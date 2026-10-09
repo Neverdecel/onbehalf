@@ -30,7 +30,8 @@ check "the release has the gateway provider with the model catalog" \
 check "the release permits only the gateway provider" test "$(jq -c .enabled_providers "$cfg")" = '["onbehalf"]'
 check "the release keeps the settings of the team" test "$(jq -r .update "$cfg")" = disable
 check "the release has the default model of models.json" test "$(jq -r .model "$cfg")" = onbehalf/mock-model-v2
-check "the release gives the root AGENTS.md to OpenCode" cmp -s "$src/AGENTS.md" "$ONBEHALF_STACK/current/opencode/AGENTS.md"
+check "the release gives the root AGENTS.md to OpenCode" \
+  test "$(sha256sum <"$src/AGENTS.md")" = "$(sha256sum <"$ONBEHALF_STACK/current/opencode/AGENTS.md")"
 
 # The earlier checks can remove users. Check the users that are still here.
 for u in "${PEOPLE[@]}"; do
