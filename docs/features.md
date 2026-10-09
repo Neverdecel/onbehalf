@@ -67,12 +67,15 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
   stack permits. A personal configuration cannot add a model. The shared
   stack turns off the built-in providers of OpenCode, because they do not
   go through the gateway.
+- **One AI harness for each host.** The operator selects it. onbehalf
+  checks that the gateway serves the API of that AI harness.
 
 | Claim | Checked by |
 |---|---|
 | Gateway keys permit only the models in the model catalog, also after a model leaves the catalog | `09-personal-models` |
 | Users see only the gateway providers of the shared stack, not the built-in providers of OpenCode | `09-personal-models` |
 | `doctor --model-check` shows a refusal from the provider separately from the result of the host | `09-model-access` |
+| `init`, `doctor` and `health` check the API of the AI harness of the host, without a model request | `13-harness-setting` |
 
 ## Enroll and offboard
 

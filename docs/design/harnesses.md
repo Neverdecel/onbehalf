@@ -94,10 +94,17 @@ change. Each adapter gives the routes of its API:
 | Claude Code | `/v1/messages`, `/v1/messages/count_tokens` |
 | Codex | `/v1/responses` |
 
-Before the setup changes the host, it sends one short request through the
-routes of the AI harness. If the gateway does not answer, the setup stops and shows
-the fix. `doctor` and `health` do the same check. `model_access_check` in
-`common.sh` gets the API as a parameter.
+Before `init` saves the configuration, it checks the routes of the AI
+harness. The check sends a GET to each route. The gateway gives 405 for a
+route that it serves, and 404 for a route that it does not serve. The check
+sends no model request and uses no key, because the
+[contract](../../project.md#contract) does not permit model requests in host
+checks. If a route is missing, `init` stops and shows the fix. `doctor` and
+`health` do the same check.
+
+The model access check (`doctor --model-check`, `status --model-check` and
+the health probe) sends its one request with the API of the AI harness. It
+runs only when the operator or the user asks for it, as before.
 
 `GATEWAY_USER_ROUTES` becomes the model routes, `/user/daily/activity`, and
 the routes of the AI harness of the host. Thus a key cannot use an API that

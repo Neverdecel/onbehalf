@@ -19,6 +19,14 @@ cmd_setup() {
   ask answer "Start host setup? (yes/no)" no
   [ "$answer" = yes ] || return 0
 
+  # A new host gets its AI harness first: the checks below depend on it.
+  if [ ! -r "$ONBEHALF_ETC/onbehalf.conf" ] && [ ${#HARNESSES[@]} -gt 1 ]; then
+    heading "AI harness"
+    info "Each host has one AI harness: ${HARNESSES[*]}. Every user uses it. The model gateway must serve its API."
+    ask ONBEHALF_HARNESS "AI harness" "${ONBEHALF_HARNESS:-opencode}"
+    harness_known "$ONBEHALF_HARNESS" || die "the AI harness must be one of: ${HARNESSES[*]}"
+  fi
+
   heading "Prerequisites"
   setup_prerequisites || {
     setup_paused
