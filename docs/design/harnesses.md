@@ -103,15 +103,43 @@ the fix. `doctor` and `health` do the same check. `model_access_check` in
 the routes of the AI harness of the host. Thus a key cannot use an API that
 the host does not use.
 
-### 2. A model catalog that does not depend on the AI harness
+### 2. A stack source that does not depend on the AI harness
 
-Add `models.json` to the root of the stack source. It contains the model
-catalog and an optional default model. The Codex configuration has no
-setting for the models of a custom provider. Thus the model catalog must
-have its own file. If the file
-is not there, onbehalf reads the model catalog from
-`opencode/opencode.json`, as today. `stack_validate` makes sure that the
-configuration of the AI harness uses only models of the model catalog.
+onbehalf promises that it does not depend on one AI harness. Thus a team
+can change the AI harness of a host and keep its stack source.
+The items that the three AI harnesses share go to the root of the stack
+source. A directory for each AI harness keeps only the settings of that AI
+harness:
+
+```
+models.json      the model catalog and an optional default model
+AGENTS.md        the harness instructions
+skills/          the skills, one directory with a SKILL.md for each skill
+tools/           the work tools of the team, as today
+opencode/        settings, custom agents and commands of OpenCode
+claude/          settings, custom agents and commands of Claude Code
+codex/           settings of Codex
+```
+
+- **Model catalog.** onbehalf reads `models.json`. Each adapter writes the
+  models into the configuration of its AI harness: the providers of
+  OpenCode, `availableModels` of Claude Code, the default model of Codex.
+  The team does not write the model catalog two times.
+- **Harness instructions.** OpenCode and Codex read `AGENTS.md`. The Claude
+  Code adapter links `~/.claude/CLAUDE.md` to the same file.
+- **Skills.** The three AI harnesses use the same `SKILL.md` format. Each
+  adapter links each skill into the skills directory of its AI harness.
+- **Custom agents, commands, MCP connections.** The formats are different,
+  so they stay in the directory of each AI harness. A neutral format for
+  MCP connections is possible later.
+
+The current stack sources keep their function. If `models.json` is not
+there, onbehalf reads the model catalog from `opencode/opencode.json`. If
+`AGENTS.md` or `skills/` is not at the root, the OpenCode adapter uses the
+items in `opencode/`.
+
+`stack_validate` makes sure that the settings of each AI harness in the
+stack source use only models of the model catalog.
 
 ### 3. An adapter interface
 
@@ -142,20 +170,24 @@ the file name that it keeps for personal settings.
 
 - `stack_installed` writes `/etc/claude-code/managed-settings.json` from
   `claude/managed-settings.json` in the shared stack. onbehalf adds
-  `apiKeyHelper`, `env.ANTHROPIC_BASE_URL`, `availableModels` and
-  `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+  `apiKeyHelper`, `env.ANTHROPIC_BASE_URL`, `availableModels` (from
+  `models.json`) and `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
 - `stack_validate` refuses `model` in the managed settings. A team default
   in managed settings stops each personal default.
-- `user_add` links `CLAUDE.md` and each named item into `~/.claude/`.
+- `user_add` links `~/.claude/CLAUDE.md` to the shared `AGENTS.md`. It
+  links each skill, and each custom agent and command of `claude/`, into
+  `~/.claude/`.
 - `check` gives a warning for `~/.claude/.credentials.json`.
 - There is no port and no service.
 
 ### 5. The Codex adapter
 
 - `stack_installed` writes `/etc/codex/config.toml` from `codex/config.toml`
-  in the shared stack. onbehalf adds the provider for the gateway and the
-  `auth.command` for the personal key.
-- `user_add` links `AGENTS.md` and each skill.
+  in the shared stack. onbehalf adds the provider for the gateway, the
+  `auth.command` for the personal key, and the default model of
+  `models.json`.
+- `user_add` links `~/.codex/AGENTS.md` to the shared `AGENTS.md`, and
+  links each skill.
 - `check` gives a warning for `~/.codex/auth.json`.
 - There is no port and no service.
 
@@ -193,7 +225,8 @@ the file name that it keeps for personal settings.
 
 ## Steps
 
-1. Model catalog and adapter interface. This step changes no behavior.
+1. The neutral stack source (`models.json`, `AGENTS.md`, `skills/` at the
+   root) and the adapter interface. This step changes no behavior.
 2. The selection of the AI harness and the gateway checks.
 3. The Claude Code adapter and its tests.
 4. The Codex adapter and its tests.
