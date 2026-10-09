@@ -8,11 +8,20 @@ HARNESSES=(opencode)
 # The AI harness of the host. A host without the setting uses OpenCode.
 harness_id() { echo "${ONBEHALF_HARNESS:-opencode}"; }
 
+# True if NAME is an AI harness that onbehalf supports.
+harness_known() {
+  local h
+  for h in "${HARNESSES[@]}"; do [ "$h" != "$1" ] || return 0; done
+  return 1
+}
+
 # harness OP [ARGS]: call OP of the adapter of the AI harness of the host.
 harness() {
-  local op=$1
+  local op=$1 h
   shift
-  "harness_$(harness_id)_$op" "$@"
+  h=$(harness_id)
+  harness_known "$h" || die "the AI harness '$h' in $ONBEHALF_ETC/onbehalf.conf is not one of: ${HARNESSES[*]}"
+  "harness_${h}_$op" "$@"
 }
 
 # Check the harness directories of a stack source. The adapter of the host

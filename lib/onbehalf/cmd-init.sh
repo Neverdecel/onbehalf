@@ -1,20 +1,37 @@
 # shellcheck shell=bash
-# onbehalf init: connect this host to a model gateway. Asks on a terminal;
-# otherwise takes --gateway-url and the admin key on stdin. Nothing is saved
-# until the gateway answers and accepts the key.
+# onbehalf init: connect this host to a model gateway, for one AI harness.
+# Asks on a terminal; otherwise takes --gateway-url, --harness and the admin
+# key on stdin. Nothing is saved until the gateway answers, accepts the key
+# and serves the API of the AI harness.
 
 cmd_init() {
   need_root
-  local url="" key problem out code msg
+  local url="" key problem out code msg harness="" missing
   while [ $# -gt 0 ]; do
     case $1 in
       --gateway-url)
         url=${2:-}
         shift 2
         ;;
+      --harness)
+        harness=${2:-}
+        shift 2
+        ;;
       *) die "unknown option: $1" ;;
     esac
   done
+  # Keep the AI harness of the host when init runs again.
+  [ -n "$harness" ] || harness=${ONBEHALF_HARNESS:-}
+  if [ -z "$harness" ] && [ -r "$ONBEHALF_ETC/onbehalf.conf" ]; then
+    harness=$(sed -n 's/^ONBEHALF_HARNESS=//p' "$ONBEHALF_ETC/onbehalf.conf")
+  fi
+  if [ -z "$harness" ] && [ -t 0 ] && [ ${#HARNESSES[@]} -gt 1 ]; then
+    info "Select the AI harness of this host: ${HARNESSES[*]}. The model gateway must serve its API."
+    ask harness "AI harness" opencode
+  fi
+  harness=${harness:-opencode}
+  harness_known "$harness" || die "the AI harness must be one of: ${HARNESSES[*]}"
+  ONBEHALF_HARNESS=$harness
 
   heading "Connect this host to the model gateway"
   if [ -t 0 ]; then
@@ -76,6 +93,15 @@ cmd_init() {
     warn "the gateway has no models yet"
     fix "an operator adds each model deployment to the LiteLLM configuration"
   fi
+  ONBEHALF_GATEWAY_URL=$url
+  missing=$(gateway_api_missing)
+  if [ -z "$missing" ]; then
+    ok "the gateway serves the API of $(harness label)"
+  else
+    err "the gateway does not serve the API of $(harness label): ${missing//$'\n'/ }"
+    fix "use a LiteLLM version that serves these routes. See the operator guide, section 'Model gateway'. onbehalf kept nothing"
+    exit 1
+  fi
 
   install -d -m 0755 "$ONBEHALF_ETC" || die "could not create $ONBEHALF_ETC"
   (
@@ -85,6 +111,7 @@ cmd_init() {
   cat >"$ONBEHALF_ETC/onbehalf.conf" <<EOF || die "could not save $ONBEHALF_ETC/onbehalf.conf"
 # onbehalf host configuration. Readable by all users; contains no secrets.
 ONBEHALF_GATEWAY_URL=$url
+ONBEHALF_HARNESS=$harness
 ONBEHALF_STACK=/opt/onbehalf/stack
 ONBEHALF_PORT_BASE=40000
 EOF
