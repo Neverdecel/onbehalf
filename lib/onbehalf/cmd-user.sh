@@ -54,7 +54,7 @@ onboarding_steps() {
   heading "Send each user these steps"
   cat <<EOF
   1. Log in to this host with your own account:   ssh <you>@$(uname -n)
-  2. Start the agent:                             opencode
+  2. Start the AI harness:                        $(harness command)
   3. Sign in to work tools with your own account when needed.
      For problems, run:                          onbehalf status
   4. Make your own changes without root: settings, agents, skills,
@@ -114,7 +114,7 @@ user_add_one() {
   fi
 
   install -d -o "$u" -g "$group" -m 0700 "$home/.config" "$home/.config/onbehalf"
-  models=$(stack_models "$ONBEHALF_STACK/current/opencode/opencode.json") || die "the current stack has no model catalog"
+  models=$(stack_models "$ONBEHALF_STACK/current") || die "the current stack has no model catalog"
   if [ -s "$home/.config/onbehalf/gateway.key" ]; then
     gateway_models_update "$u" "$models"
     ok "has a personal gateway key"
@@ -128,7 +128,7 @@ user_add_one() {
     ok "created a personal gateway key"
   fi
 
-  harness_opencode_user_add "$u" "$home" "$group" "$replace"
+  harness user_add "$u" "$home" "$group" "$replace"
 
   groups=$(privileged_groups_of "$u")
   if [ -n "$groups" ]; then
@@ -176,7 +176,7 @@ user_remove_one() {
   gateway_revoke_all "$u"
   removed_mark "$u"
   rm -f "$ENROLL_STATE/$u"
-  harness_opencode_port_release "$u"
+  harness user_remove "$u"
   agents_unlink "$u"
 
   if [ -n "$uid" ]; then

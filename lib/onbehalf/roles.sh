@@ -112,7 +112,7 @@ operator_add() {
     gateway_revoke_all "$u"
     removed_mark "$u"
     rm -f "$home/.config/onbehalf/gateway.key" "$ENROLL_STATE/$u"
-    pkill -u "$uid" -f opencode 2>/dev/null || true
+    harness stop "$u"
     ok "$u is not a user now: the gateway key is revoked, the runtime of $u is stopped, the files stay"
   fi
 
@@ -211,10 +211,6 @@ operator_shell() {
   exec runuser -l "$a"
 }
 
-# True if an OpenCode process (the TUI or its background service) runs as
-# the operator. Any OpenCode command starts the service, even `opencode models`.
-operator_runs_opencode() { pgrep -u "$1" -x 'opencode(\.exe)?' >/dev/null 2>&1; }
-
 # Checks for doctor.
 operator_check() {
   local ops a o
@@ -229,9 +225,9 @@ operator_check() {
     info "no operators: only root runs onbehalf. Add one: sudo onbehalf operator add NAME"
   fi
   for o in $(operators); do
-    if operator_runs_opencode "$o"; then
-      warn "OpenCode runs in the operator account $o: a runtime there can run 'sudo onbehalf', and it goes around the gateway key"
-      fix "as $o: opencode service stop. Then use the runtime account: sudo onbehalf operator shell"
+    if harness operator_runs "$o"; then
+      warn "$(harness label) runs in the operator account $o: a runtime there can run 'sudo onbehalf', and it goes around the gateway key"
+      fix "as $o: $(harness operator_stop). Then use the runtime account: sudo onbehalf operator shell"
     fi
   done
   [ -r "$AGENTS_MAP" ] || return 0

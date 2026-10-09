@@ -350,7 +350,7 @@ tools_summary() {
   printf '%s\n' "${lines[@]}"
   printf '\n'
   [ ${#retry[@]} = 0 ] || printf '  %sFinish later:%s onbehalf tools %s\n' "$_d" "$_0" "${retry[*]}"
-  printf '  %sStart the AI harness:%s opencode\n' "$_d" "$_0"
+  printf '  %sStart the AI harness:%s %s\n' "$_d" "$_0" "$(harness command)"
 }
 
 # For onbehalf report: one line per work tool, ID and state, tab-separated.

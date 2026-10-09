@@ -22,7 +22,7 @@ cmd_stack_install() {
   [ -d "$src" ] || die "usage: onbehalf stack install [--no-restart] DIR"
   stack_validate "$src"
   local available models
-  models=$(stack_models "$src/opencode/opencode.json")
+  models=$(stack_models "$src")
   available=$(gateway_admin GET /v1/models | jq -ce '[.data[].id]') || die "could not read the models of the gateway. The shared stack did not change"
   jq -en --argjson models "$models" --argjson available "$available" '$models - $available | length == 0' >/dev/null \
     || die "the model catalog has models that the gateway does not serve. The shared stack did not change"
@@ -37,7 +37,9 @@ cmd_stack_install() {
     tmp=$(mktemp -d "$ONBEHALF_STACK/releases/.new.XXXXXX")
     cp -R "$src"/. "$tmp"/
     # Fill in host settings; the stack in Git stays host-independent.
-    grep -rlZ '@GATEWAY_URL@' "$tmp" | xargs -0 -r sed -i "s#@GATEWAY_URL@#$ONBEHALF_GATEWAY_URL#g"
+    # A stack source with models.json can have no placeholder: grep then finds nothing.
+    { grep -rlZ '@GATEWAY_URL@' "$tmp" || true; } | xargs -0 -r sed -i "s#@GATEWAY_URL@#$ONBEHALF_GATEWAY_URL#g"
+    harness_build "$tmp"
     chown -R root:root "$tmp"
     chmod -R u=rwX,go=rX "$tmp"
     mv "$tmp" "$rel"
@@ -56,6 +58,6 @@ cmd_stack_install() {
   # --no-restart leaves running services on the old config until they restart.
   for u in $(people); do
     home=$(getent passwd "$u" | cut -d: -f6)
-    harness_opencode_stack_changed "$u" "$home" "$(id -gn "$u")" "$restart"
+    harness stack_changed "$u" "$home" "$(id -gn "$u")" "$restart"
   done
 }

@@ -41,14 +41,14 @@ cmd_status() {
     err "the gateway does not accept your key"
     fix "ask your operator to run: sudo onbehalf user add $u"
   fi
-  harness_opencode_check "$u" "$HOME"
+  harness check "$u" "$HOME"
 
   heading "Model access"
   if [ "$check_model" = no ]; then
     info "not checked. To send one short test request: onbehalf status --model-check"
   elif [ ! -r "$key" ]; then
     err "no gateway key to send the request with"
-  elif [ -z "$model" ] && ! model=$(stack_default_model "$ONBEHALF_STACK/current/opencode/opencode.json" 2>/dev/null); then
+  elif [ -z "$model" ] && ! model=$(stack_default_model "$ONBEHALF_STACK/current" 2>/dev/null); then
     err "the shared stack has no model to check"
     fix "ask your operator"
   elif ! model_access_check "$key" "$model" "$u"; then

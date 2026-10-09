@@ -313,7 +313,7 @@ cmd_user_prune() {
     [ -z "$home" ] || rm -f "$home/.config/onbehalf/gateway.key"
     rm -f "$ENROLL_STATE/$u"
     # An account that is gone keeps no port; a returning one keeps its port.
-    [ -n "$uid" ] || harness_opencode_port_release "$u"
+    [ -n "$uid" ] || harness user_remove "$u"
     ok "$u: the files stay. The next login gives a new key"
   done
   [ "$n" -gt 0 ] || ok "none"

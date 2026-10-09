@@ -98,40 +98,73 @@ gateway_admin() { gateway_call "$ONBEHALF_ETC/gateway-admin.key" "$@"; }
 # /user/daily/activity for a personal key with that key's own use only.
 GATEWAY_USER_ROUTES='["/models","/v1/models","/chat/completions","/v1/chat/completions","/responses","/v1/responses","/messages","/v1/messages","/user/daily/activity"]'
 
-# The provider model entries of the shared stack are the model catalog. Use
-# API model IDs for gateway access, not display aliases. Never send an empty list: LiteLLM treats it as unrestricted.
+# A model ID must be the model_name of a gateway model. Never send an empty
+# list: LiteLLM treats it as unrestricted.
+STACK_MODEL_IDS_OK='unique | select(length > 0 and all(.[]; type == "string" and
+  test("^[a-zA-Z0-9][a-zA-Z0-9._/-]*$") and
+  . != "all-proxy-models" and . != "all-team-models"))'
+
+# The model catalog of a stack directory (a stack source or a release).
+# models.json is the catalog for each AI harness. A stack without it keeps
+# the catalog in the providers of opencode/opencode.json, as onbehalf 0.1.0.
 stack_models() {
-  jq -ce '
-    [.providers[]?.models // {} | to_entries[] |
-      select(.value.disabled != true) | (.value.modelID // .key)] | unique |
-    select(length > 0 and all(.[]; type == "string" and
-      test("^[a-zA-Z0-9][a-zA-Z0-9._/-]*$") and
-      . != "all-proxy-models" and . != "all-team-models"))
-  ' "$1"
+  if [ -e "$1/models.json" ]; then
+    jq -ce "[.models // {} | keys_unsorted[]] | $STACK_MODEL_IDS_OK" "$1/models.json"
+  else
+    harness_opencode_models "$1/opencode/opencode.json"
+  fi
 }
 
-# OpenCode adds its own built-in providers, which bypass the gateway, unless
-# the stack allows only its own providers with enabled_providers.
-stack_providers_limited() {
-  jq -e '. as $c | (.enabled_providers | type == "array" and length > 0) and
-    all(.enabled_providers[]; . as $p | type == "string" and ($c.providers // {} | has($p)))' "$1" >/dev/null 2>&1
+# The model a check uses: the stack default, else the first model of the catalog.
+stack_default_model() {
+  if [ -e "$1/models.json" ]; then
+    jq -er '.model // (.models | keys_unsorted[0])' "$1/models.json"
+  else
+    harness_opencode_default_model "$1/opencode/opencode.json"
+  fi
 }
-stack_providers() { jq -c '[.providers // {} | keys[]]' "$1" 2>/dev/null; }
+
+# models.json: {"model": ID, "models": {ID: {"api": "openai" | "anthropic"}}}.
+# "model" (the default) and "api" (default "openai") are optional.
+stack_catalog_valid() {
+  jq -e "
+    type == \"object\" and (keys - [\"model\", \"models\"] | length == 0) and
+    (.models | type == \"object\") and
+    ([.models | keys_unsorted[]] | $STACK_MODEL_IDS_OK | length > 0) and
+    all(.models[]; type == \"object\" and (keys - [\"api\"] | length == 0) and
+      ((has(\"api\") | not) or .api == \"openai\" or .api == \"anthropic\")) and
+    ((has(\"model\") | not) or (.model as \$m | .models | has(\$m)))
+  " "$1" >/dev/null 2>&1
+}
+
+# The harness instructions and the skills at the root are for each AI
+# harness. A harness directory must not have an item with the same name.
+stack_shared_valid() {
+  local h skill
+  if [ -d "$1/skills" ]; then
+    for skill in "$1"/skills/*; do
+      [ -e "$skill" ] || continue
+      [ -f "$skill/SKILL.md" ] || die "skills/${skill##*/}: each skill must be a directory with a SKILL.md"
+    done
+  fi
+  for h in "${HARNESSES[@]}"; do
+    if [ -e "$1/AGENTS.md" ] && [ -e "$1/$h/AGENTS.md" ]; then
+      die "AGENTS.md is at the root and in $h/. Keep one of them"
+    fi
+    for skill in "$1"/skills/*; do
+      [ -e "$skill" ] || continue
+      [ ! -e "$1/$h/skills/${skill##*/}" ] || die "the skill ${skill##*/} is in skills/ and in $h/skills/. Keep one of them"
+    done
+  done
+}
 
 stack_validate() {
-  local cfg="$1/opencode/opencode.json"
-  [ ! -e "$1/opencode/opencode.jsonc" ] && [ ! -L "$1/opencode/opencode.jsonc" ] || die "opencode.jsonc is reserved for personal overrides, not the shared stack"
-  stack_models "$cfg" >/dev/null || die "the stack source must have a model catalog: one or more models in opencode/opencode.json"
-  # A default model is optional. If the stack sets one, it must be in the catalog.
-  jq -e '
-    . as $cfg | ((has("model") | not) or ((.model | type == "string") and
-    ([.providers | to_entries[] | . as $p | .value.models | to_entries[] |
-      select(.value.disabled != true) | ($p.key + "/" + .key)] | index($cfg.model) != null))) and
-    all(.providers[]; .settings.baseURL == "@GATEWAY_URL@/v1" and
-      .settings.apiKey == "{file:~/.config/onbehalf/gateway.key}")
-  ' "$cfg" >/dev/null || die "the default model must be in the model catalog. All providers must use the personal gateway key and @GATEWAY_URL@/v1"
-  stack_providers_limited "$cfg" \
-    || die "the stack source must permit only its gateway providers. If not, OpenCode adds its built-in providers. Set \"enabled_providers\": $(stack_providers "$cfg") in opencode/opencode.json"
+  if [ -e "$1/models.json" ]; then
+    stack_catalog_valid "$1/models.json" \
+      || die "models.json must have one or more models, with an optional \"api\" of openai or anthropic. The default \"model\" must be one of them"
+  fi
+  stack_shared_valid "$1"
+  harness_validate "$1"
   local f id
   for f in "$1"/tools/*.json; do
     [ -e "$f" ] || continue
@@ -186,13 +219,6 @@ gateway_models_match() {
   gateway_admin GET "/key/info?key=$token" | jq -e --argjson models "$2" --argjson routes "$GATEWAY_USER_ROUTES" \
     '(.info.models | sort) == $models and .info.allowed_routes == $routes' >/dev/null \
     2>/dev/null
-}
-
-# The model a check uses: the stack default, else the first model of the catalog.
-stack_default_model() {
-  jq -er '. as $c | [.providers | to_entries[] | .key as $p | (.value.models // {}) | to_entries[] |
-    select(.value.disabled != true) | {ref: ($p + "/" + .key), id: (.value.modelID // .key)}] |
-    (map(select(.ref == $c.model)) + .)[0].id' "$1"
 }
 
 # model_access_check KEYFILE MODEL WHO: send one short chat request through the
