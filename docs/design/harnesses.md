@@ -6,8 +6,9 @@ Claude Code 2.1.287, Codex 0.160.0 and the test gateway of `make test`
 
 ## Goal
 
-The operator selects the AI harness of the host: OpenCode, Claude Code or
-Codex. onbehalf gives the same contract for each AI harness:
+The operator selects one AI harness for the host: OpenCode, Claude Code or
+Codex. A host never has more than one AI harness. onbehalf gives the same
+contract for each AI harness:
 
 - The runtime runs in the Unix account of the user.
 - The runtime uses only the personal gateway key of the user.
@@ -83,8 +84,9 @@ is a problem of the test models, not of the AI harnesses:
 ### 1. The operator selects the AI harness
 
 `onbehalf setup` and `onbehalf init` write `ONBEHALF_HARNESS` to
-`onbehalf.conf`. The value is a list. The default is `opencode`. Each
-adapter gives the routes of its API:
+`onbehalf.conf`. The value is one of `opencode`, `claude` or `codex`. A
+host that has no value uses `opencode`, so the current hosts do not
+change. Each adapter gives the routes of its API:
 
 | AI harness | Routes |
 |---|---|
@@ -92,37 +94,45 @@ adapter gives the routes of its API:
 | Claude Code | `/v1/messages`, `/v1/messages/count_tokens` |
 | Codex | `/v1/responses` |
 
-Before the setup changes the host, it sends one short request through each
-of these routes. If the gateway does not answer, the setup stops and shows
+Before the setup changes the host, it sends one short request through the
+routes of the AI harness. If the gateway does not answer, the setup stops and shows
 the fix. `doctor` and `health` do the same check. `model_access_check` in
 `common.sh` gets the API as a parameter.
 
 `GATEWAY_USER_ROUTES` becomes the model routes, `/user/daily/activity`, and
-the routes of the selected AI harnesses. Thus a key cannot use an API that
+the routes of the AI harness of the host. Thus a key cannot use an API that
 the host does not use.
 
-### 2. One model catalog for each AI harness
+### 2. A model catalog that does not depend on the AI harness
 
 Add `models.json` to the root of the stack source. It contains the model
-catalog and an optional default model. If the file is not there, onbehalf
-reads the model catalog from `opencode/opencode.json`, as today.
-`stack_validate` makes sure that the configuration of each selected AI
-harness uses only models of the model catalog.
+catalog and an optional default model. The Codex configuration has no
+setting for the models of a custom provider. Thus the model catalog must
+have its own file. If the file
+is not there, onbehalf reads the model catalog from
+`opencode/opencode.json`, as today. `stack_validate` makes sure that the
+configuration of the AI harness uses only models of the model catalog.
 
 ### 3. An adapter interface
 
-Add `lib/onbehalf/harness.sh`. It calls the adapter of each selected AI
-harness:
+Add `lib/onbehalf/harness.sh`. It loads only the adapter of the AI harness
+of the host, and calls it:
 
 - `user_add`, `stack_changed`, `user_remove`
 - `check` (for `doctor` and `status`)
 - `restart`, `runs` (for `restart` and the operator checks)
 - `stack_installed` (root, one time for each installation)
 
-`stack install` refuses a stack source without the directory of each
-selected AI harness: `opencode/`, `claude/` or `codex/`. `doctor` shows an
-error when the command of a selected AI harness is not installed for the
-host.
+`stack install` refuses a stack source without the directory of the AI
+harness of the host: `opencode/`, `claude/` or `codex/`. A stack source
+can have the directories of more AI harnesses. Then one stack source can
+serve hosts with different AI harnesses. `doctor` shows an error when the
+command of the AI harness is not installed for the host.
+
+The operator can change the AI harness of a host. Then onbehalf removes the
+links and the files in `/etc` of the old adapter, and enrolls each user
+again with the new adapter. The personal settings and the private state of
+the old AI harness stay in the account of the user.
 
 `harness_opencode_link` and `harness_opencode_item` become one shared
 function. Each adapter gives its source directory, its target directory and
