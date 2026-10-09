@@ -1,0 +1,43 @@
+name: Bug report
+description: A part of onbehalf does not work as the documentation says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not put a security problem in a public issue. An example is a user who can read the files or credentials of a different user.
+        Use **Security → Report a vulnerability**.
+        Remove secrets, tokens and real hostnames from all text that you paste.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The commands that you ran, the result that you expected, and the result that you got.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. sudo onbehalf user add alice
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `sudo onbehalf doctor`
+      render: text
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and version
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: onbehalf commit, OpenCode and LiteLLM versions
+      placeholder: 8203874, OpenCode 2.0, LiteLLM 1.104

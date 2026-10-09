@@ -1,0 +1,39 @@
+name: Fuzz
+
+# ClusterFuzzLite runs the fuzzers in test/fuzz/. A pull request fuzzes for
+# a short time; the weekly run fuzzes for longer and keeps the corpus.
+on:
+  pull_request:
+    paths:
+      - lib/**
+      - test/fuzz/**
+      - .clusterfuzzlite/**
+      - .github/workflows/fuzz.yml
+  schedule:
+    - cron: "17 6 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Fuzz (ClusterFuzzLite)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Build the fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: python
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run the fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          mode: ${{ github.event_name == 'pull_request' && 'code-change' || 'batch' }}
+          fuzz-seconds: ${{ github.event_name == 'pull_request' && 300 || 1200 }}

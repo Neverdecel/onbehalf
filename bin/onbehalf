@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# onbehalf: the setup is shared. The identity is not.
+set -Eeuo pipefail
+# Never fail silently: name the command that stopped us.
+trap 'echo "onbehalf: failed at ${BASH_SOURCE[0]##*/}:$LINENO: $BASH_COMMAND" >&2' ERR
+
+ONBEHALF_LIB=${ONBEHALF_LIB:-$(readlink -f "$(dirname "$(readlink -f "$0")")/../lib/onbehalf")}
+for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness-opencode tools; do
+  # shellcheck source=/dev/null
+  . "$ONBEHALF_LIB/$f.sh"
+done
+ONBEHALF_VERSION=$(cat "$ONBEHALF_LIB/VERSION" 2>/dev/null || echo dev)
+
+usage() {
+  cat <<EOF
+onbehalf $ONBEHALF_VERSION: the setup is shared. The identity is not.
+
+Operator commands (as root):
+  setup                             guided setup of a new host (terminal only)
+  init                              connect this host to the model gateway
+  stack install [--no-restart] DIR  make DIR the shared stack for every user
+  user add [--replace-config] [--entra-id ID] NAME...
+                                    add users (new accounts or old accounts)
+  user sync [--group GROUP] [--remove] [--dry-run] [--from FILE]
+                                    make the users follow an Entra group
+  user remove NAME                  offboard a user: stop, revoke, remove
+  auto-enroll on|off|status [--idle-days N] [--exclude 'NAME...']
+                                    enroll users at their first SSH login
+  user enroll NAME                  enroll one account, as at its first login
+  user prune [--dry-run]            revoke the keys of users who were enrolled
+                                    at login and did not log in again
+  operator add [--runtime] NAME     let NAME run onbehalf (no other sudo). NAME
+                                    is then not a user. --runtime: also give
+                                    NAME a separate runtime account
+  operator remove NAME              NAME is then not an operator
+  operator list                     show the operators and their runtime accounts
+  operator shell [-c COMMAND]       open your runtime account (sudo onbehalf ...)
+  restart [NAME | --all]            restart the runtime of your runtime account,
+                                    of NAME, or all runtimes that run
+  doctor [--model-check] [--user NAME] [--model MODEL]
+                                    check the host and every user. With
+                                    --model-check, also send one model request
+  report [--days N] [--json]        who uses the runtimes, how much, and which
+                                    requests fail (default: the last 7 days)
+  health [--json]                   check now that onbehalf works
+  health on [--every MIN] [--webhook URL] [--format slack|teams] [--probe]
+                                    check each MIN minutes (default 10). Send
+                                    an alert when a problem starts or stops
+  health off | alert-test           stop the checks | send a test alert
+
+User commands:
+  status [--model-check] [--model MODEL]
+                                    check your own setup and logins
+  tools [git] [gh] [az] [mcp:NAME]...
+                                    set up your work tools and MCP logins,
+                                    each with its own login (a guided menu)
+  restart                           restart your runtime
+  login                             setup at the first login, or a short start message
+
+Docs: $ONBEHALF_SHARE/docs
+EOF
+}
+
+# shellcheck disable=SC2034  # read by need_root in common.sh
+ONBEHALF_CMD="${1:-} ${2:-}"
+case "${1:-} ${2:-}" in
+  "setup "*)
+    shift
+    cmd_setup "$@"
+    ;;
+  "login "*)
+    shift
+    cmd_login "$@"
+    ;;
+  "init "*)
+    shift
+    cmd_init "$@"
+    ;;
+  "stack install")
+    shift 2
+    cmd_stack_install "$@"
+    ;;
+  "user add")
+    shift 2
+    cmd_user_add "$@"
+    ;;
+  "user remove")
+    shift 2
+    cmd_user_remove "$@"
+    ;;
+  "user sync")
+    shift 2
+    cmd_user_sync "$@"
+    ;;
+  "user enroll")
+    shift 2
+    cmd_user_enroll "$@"
+    ;;
+  "user prune")
+    shift 2
+    cmd_user_prune "$@"
+    ;;
+  "auto-enroll "*)
+    shift
+    cmd_auto_enroll "$@"
+    ;;
+  "operator "*)
+    shift
+    cmd_operator "$@"
+    ;;
+  "doctor "*)
+    shift
+    cmd_doctor "$@"
+    ;;
+  "health "*)
+    shift
+    cmd_health "$@"
+    ;;
+  "report "*)
+    shift
+    cmd_report "$@"
+    ;;
+  "status "*)
+    shift
+    cmd_status "$@"
+    ;;
+  "restart "*)
+    shift
+    cmd_restart "$@"
+    ;;
+  "tools "*)
+    shift
+    cmd_tools "$@"
+    ;;
+  "--version "*) echo "onbehalf $ONBEHALF_VERSION" ;;
+  "help "* | "--help "* | "-h "*) usage ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac

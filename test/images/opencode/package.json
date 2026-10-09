@@ -1,0 +1,11 @@
+{
+  "name": "onbehalf-test-opencode",
+  "private": true,
+  "description": "OpenCode version for the test hosts. The lockfile pins it by hash; Dependabot updates both.",
+  "dependencies": {
+    "@opencode/cli": "2.0.24"
+  },
+  "allowScripts": {
+    "@opencode/cli": true
+  }
+}

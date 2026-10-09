@@ -1,0 +1,3 @@
+# Source files that are not given on the command line (-x follows them).
+external-sources=true
+shell=bash

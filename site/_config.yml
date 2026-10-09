@@ -1,0 +1,59 @@
+# Jekyll settings for https://neverdecel.github.io/onbehalf/.
+# For a custom domain: set url to the domain, set baseurl to "", and add a
+# CNAME file with the domain.
+title: onbehalf
+tagline: The setup is shared. The identity is not.
+description: >-
+  One reviewed AI harness setup for a team on a shared Linux host. The
+  runtime of each user runs as that user, with their own logins.
+url: https://neverdecel.github.io
+baseurl: /onbehalf
+lang: en
+repository: Neverdecel/onbehalf
+repo_url: https://github.com/Neverdecel/onbehalf
+docs_url: https://github.com/Neverdecel/onbehalf/tree/main/docs
+
+author:
+  name: Neverdecel
+  url: https://github.com/Neverdecel
+twitter:
+  username: Neverdecel
+  card: summary_large_image
+social:
+  name: Neverdecel
+  links:
+    - https://x.com/Neverdecel
+    - https://github.com/Neverdecel
+logo: /assets/social-preview.png
+image: /assets/social-preview.png
+
+permalink: /blog/:year/:month/:day/:title/
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    disable: true
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+feed:
+  path: feed.xml
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+      image: /assets/social-preview.png
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      author: Neverdecel
+
+exclude:
+  - README.md

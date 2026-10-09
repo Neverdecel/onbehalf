@@ -1,0 +1,21 @@
+---
+layout: default
+---
+<article>
+  <header>
+    <h1>{{ page.title }}</h1>
+    <p class="meta">
+      <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%-d %B %Y" }}</time>
+      {%- if page.last_modified_at %} · Updated <time datetime="{{ page.last_modified_at | date_to_xmlschema }}">{{ page.last_modified_at | date: "%-d %B %Y" }}</time>{% endif %}
+      · By <a href="{{ '/about/' | relative_url }}" rel="author">{{ site.author.name }}</a>
+    </p>
+  </header>
+  {%- if page.hero %}
+  <img src="{{ page.hero.src | relative_url }}" srcset="{{ page.hero.small | relative_url }} 640w, {{ page.hero.src | relative_url }} 1280w" sizes="(max-width: 46rem) 100vw, 46rem" alt="{{ page.image.alt }}" width="1280" height="640" fetchpriority="high">
+  {%- elsif page.image %}
+  <img src="{{ page.image.path | relative_url }}" alt="{{ page.image.alt }}" width="{{ page.image.width }}" height="{{ page.image.height }}" fetchpriority="high">
+  {%- endif %}
+{{ content }}
+  <hr>
+  <p><a href="{{ '/blog/' | relative_url }}">All posts</a> · <a href="{{ site.repo_url }}">onbehalf on GitHub</a></p>
+</article>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="{{ site.lang }}">
+<head>
+{% include head.html %}
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="site">
+  <div class="wide">
+    <a class="brand" href="{{ '/' | relative_url }}">{% include logo.svg id="h" %}onbehalf</a>
+    <nav aria-label="Main">
+      <ul>
+        <li class="wide-only"><a href="{{ '/#how' | relative_url }}">How it works</a></li>
+        <li><a href="{{ site.docs_url }}">Docs</a></li>
+        <li><a href="{{ '/blog/' | relative_url }}"{% if page.url contains '/blog/' %} aria-current="page"{% endif %}>Blog</a></li>
+        <li class="wide-only"><a href="{{ '/about/' | relative_url }}"{% if page.url == '/about/' %} aria-current="page"{% endif %}>About</a></li>
+        <li><a class="gh" href="{{ site.repo_url }}">{% include github.svg %}GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+{%- if page.layout == 'home' %}
+<main id="main">
+{{ content }}
+</main>
+{%- else %}
+<main id="main" class="prose-page">
+  <div class="wrap">
+{{ content }}
+  </div>
+</main>
+{%- endif %}
+<footer class="site">
+  <div class="wide">
+    <div class="about">
+      <a class="brand" href="{{ '/' | relative_url }}">{% include logo.svg id="f" %}onbehalf</a>
+      <p>{{ site.tagline }}<br>One shared AI harness setup for a team on a Linux host.</p>
+    </div>
+    <div>
+      <h2>Project</h2>
+      <ul>
+        <li><a href="{{ site.repo_url }}">Source code</a></li>
+        <li><a href="{{ site.repo_url }}/releases">Releases</a></li>
+        <li><a href="{{ site.repo_url }}/blob/main/CHANGELOG.md">Changelog</a></li>
+        <li><a href="{{ site.repo_url }}/blob/main/SECURITY.md">Security</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Docs</h2>
+      <ul>
+        <li><a href="{{ site.repo_url }}/blob/main/docs/how-it-works.md">How it works</a></li>
+        <li><a href="{{ site.repo_url }}/blob/main/docs/operator-guide.md">Operator guide</a></li>
+        <li><a href="{{ site.repo_url }}/blob/main/docs/user-guide.md">User guide</a></li>
+        <li><a href="{{ site.repo_url }}/blob/main/docs/faq.md">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>More</h2>
+      <ul>
+        <li><a href="{{ '/blog/' | relative_url }}">Blog</a></li>
+        <li><a href="{{ '/feed.xml' | relative_url }}">RSS feed</a></li>
+        <li><a href="{{ '/about/' | relative_url }}">About the author</a></li>
+        <li><a href="https://x.com/Neverdecel">X</a></li>
+      </ul>
+    </div>
+    <div class="fine">
+      <span>Copyright 2026 Neverdecel. Apache License 2.0.</span>
+      <span>No cookies. No scripts. No tracking.</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

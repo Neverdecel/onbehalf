@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: If you use or refer to onbehalf, cite it with these metadata.
+type: software
+title: onbehalf
+abstract: >-
+  The setup is shared. The identity is not. onbehalf gives a team one
+  reviewed AI harness setup on one shared Linux host. The runtime of each
+  user runs in the Unix account of that user, with the logins and the
+  personal model gateway key of that user. Git, GitHub, Azure and the model
+  gateway record each action as that user. There is no shared account and
+  no shared credential.
+authors:
+  - alias: Neverdecel
+version: 0.1.0
+license: Apache-2.0
+repository-code: https://github.com/Neverdecel/onbehalf
+url: https://github.com/Neverdecel/onbehalf
+keywords:
+  - ai-agents
+  - coding-agents
+  - agent-runtime
+  - multi-user
+  - identity
+  - attribution
+  - isolation
+  - audit
+  - llm-gateway
+  - litellm
+  - opencode
+  - linux
+  - platform-engineering

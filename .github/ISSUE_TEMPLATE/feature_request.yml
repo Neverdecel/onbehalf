@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose a change or a new feature.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [delivery plan](https://github.com/Neverdecel/onbehalf/blob/main/project.md#later-phases)
+        first. The idea can be in the plan already.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is difficult or not possible today? For whom (operator or user)?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What must onbehalf do?
+    validations:
+      required: true
+  - type: textarea
+    id: identity
+    attributes:
+      label: Identity and isolation impact
+      description: Does this change show an action as the action of a different user? Does it let a user get the data of a different user?

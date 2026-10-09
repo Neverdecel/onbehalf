@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="670" viewBox="0 0 1200 670" role="img" aria-labelledby="title desc">
+  <title id="title">What is shared and what stays personal</title>
+  <desc id="desc">Three layers. The operator installs the host software: an AI harness, work tools such as Git, the GitHub CLI and the Azure CLI, and the model gateway. Every user uses the same programs, but an installed tool gives nobody a login. onbehalf gives the shared stack from /opt/onbehalf/stack/current, owned by root and read-only: opencode.json, AGENTS.md, custom agents, skills and commands, linked into the ~/.config/opencode directory of each user. Each user keeps their own settings, custom agents and skills, tool logins, gateway key, sessions and service port. The project configuration has priority over the personal configuration. The personal configuration has priority over the shared stack. Unix permissions, the gateway key and the external systems control access. The permission rules of a custom agent only guide the runtime.</desc>
+  <style>
+    svg {
+      --bg: #ffffff; --border: #e3e6ef; --fg: #161a2b; --muted: #5f6680; --faint: #8a91a8;
+      --host: #f6f7fb; --host-line: #cfd4e3;
+      --shared: #6d5ce8; --shared-bg: #f0eeff;
+      --alice: #0f9488; --alice-bg: #e6f7f5;
+      --bob: #d9620f; --bob-bg: #fdf1e7;
+      --ext: #ffffff; --ext-line: #cfd4e3; --chip: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --bg: #0d1117; --border: #262c3a; --fg: #e8ebf5; --muted: #a2a9c2; --faint: #6f7690;
+        --host: #131925; --host-line: #2e3547;
+        --shared: #a596ff; --shared-bg: #1d1a3a;
+        --alice: #2dd4bf; --alice-bg: #0f2a2a;
+        --bob: #fb923c; --bob-bg: #2e1d10;
+        --ext: #161c28; --ext-line: #2e3547; --chip: #0d1117;
+      }
+    }
+    text { font-family: Inter, -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; fill: var(--fg); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+    .h { font-size: 15px; font-weight: 700; }
+    .t { font-size: 13px; }
+    .s { font-size: 12px; fill: var(--muted); }
+    .k { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; fill: var(--faint); }
+    .wire { fill: none; stroke-width: 1.8; }
+  </style>
+  <defs>
+    <marker id="l-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--faint)"/></marker>
+    <marker id="l-shared" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--shared)"/></marker>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="1199" height="669" rx="16" style="fill: var(--bg); stroke: var(--border)"/>
+
+  <text x="40" y="44" class="k">ONE LINUX HOST · THREE LAYERS</text>
+  <text x="850" y="44" class="k">WHICH SETTING HAS PRIORITY</text>
+
+  <!-- ============ Layer 1: host software ============ -->
+  <rect x="40" y="64" width="760" height="146" rx="12" style="fill: var(--host); stroke: var(--host-line)"/>
+  <text x="60" y="92" class="h">Host software</text>
+  <text x="780" y="92" class="s" text-anchor="end">the operator installs and updates it</text>
+
+  <rect x="60" y="106" width="180" height="62" rx="8" style="fill: var(--chip); stroke: var(--host-line)"/>
+  <text x="76" y="131" class="t" font-weight="600">AI harness</text>
+  <text x="76" y="151" class="s">replaceable · one version</text>
+
+  <rect x="252" y="106" width="328" height="62" rx="8" style="fill: var(--chip); stroke: var(--host-line)"/>
+  <text x="268" y="131" class="t" font-weight="600">Work tools</text>
+  <text x="268" y="151" class="s">Git · GitHub CLI · Azure CLI · more</text>
+
+  <rect x="592" y="106" width="188" height="62" rx="8" style="fill: none; stroke: var(--host-line); stroke-dasharray: 5 4"/>
+  <text x="608" y="131" class="t" font-weight="600">Model gateway</text>
+  <text x="608" y="151" class="s">LiteLLM · may run elsewhere</text>
+
+  <text x="60" y="194" class="s">Same program for every user. An installed tool gives nobody a login.</text>
+  <text x="780" y="194" class="s" text-anchor="end">gateway: an operator</text>
+
+  <!-- ============ Layer 2: shared stack ============ -->
+  <rect x="40" y="234" width="760" height="148" rx="12" style="fill: var(--shared-bg); stroke: var(--shared)"/>
+  <text x="60" y="262" class="h" style="fill: var(--shared)">Shared stack</text>
+  <text x="780" y="262" class="s" text-anchor="end">the team reviews it in Git · onbehalf gives it</text>
+  <text x="60" y="284" class="s mono">/opt/onbehalf/stack/current/opencode/ · owned by root, read-only</text>
+  <g class="t">
+    <rect x="60" y="304" width="136" height="50" rx="8" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="74" y="324" class="mono" font-weight="600">opencode.json</text>
+    <text x="74" y="342" class="s">settings · models</text>
+    <rect x="204" y="304" width="136" height="50" rx="8" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="218" y="324" class="mono" font-weight="600">AGENTS.md</text>
+    <text x="218" y="342" class="s">harness instructions</text>
+    <rect x="348" y="304" width="136" height="50" rx="8" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="362" y="324" class="mono" font-weight="600">agents/</text>
+    <text x="362" y="342" class="s">custom agents</text>
+    <rect x="492" y="304" width="136" height="50" rx="8" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="506" y="324" class="mono" font-weight="600">skills/</text>
+    <text x="506" y="342" class="s">named skills</text>
+    <rect x="636" y="304" width="144" height="50" rx="8" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="650" y="324" class="mono" font-weight="600">commands/</text>
+    <text x="650" y="342" class="s">named commands</text>
+  </g>
+
+  <!-- Stack links down into each user -->
+  <path class="wire" d="M225 382V418" style="stroke: var(--shared)" marker-end="url(#l-shared)"/>
+  <path class="wire" d="M615 382V418" style="stroke: var(--shared)" marker-end="url(#l-shared)"/>
+  <text x="420" y="405" class="s mono" text-anchor="middle">a link for each item in ~/.config/opencode/</text>
+
+  <!-- ============ Layer 3: personal ============ -->
+  <!-- alice -->
+  <rect x="40" y="420" width="370" height="186" rx="12" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+  <text x="58" y="446" class="h" style="fill: var(--alice)">alice</text>
+  <text x="392" y="446" class="s mono" text-anchor="end">Unix account · home 0700</text>
+  <g class="t">
+    <rect x="56" y="460" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="68" y="477" font-weight="600">Settings</text>
+    <text x="68" y="493" class="s mono">opencode.jsonc</text>
+    <rect x="229" y="460" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="241" y="477" font-weight="600">Custom agents, skills</text>
+    <text x="241" y="493" class="s">same name replaces</text>
+    <rect x="56" y="506" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="68" y="523" font-weight="600">Tool logins</text>
+    <text x="68" y="539" class="s">logged in as alice</text>
+    <rect x="229" y="506" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="241" y="523" font-weight="600">Gateway key</text>
+    <text x="241" y="539" class="s">0600 · model catalog</text>
+    <rect x="56" y="552" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="68" y="569" font-weight="600">Sessions, history</text>
+    <text x="68" y="585" class="s">repositories, work</text>
+    <rect x="229" y="552" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="241" y="569" font-weight="600">Runtime</text>
+    <text x="241" y="585" class="s">own port</text>
+  </g>
+
+  <!-- bob -->
+  <rect x="430" y="420" width="370" height="186" rx="12" style="fill: var(--bob-bg); stroke: var(--bob)"/>
+  <text x="448" y="446" class="h" style="fill: var(--bob)">bob</text>
+  <text x="782" y="446" class="s mono" text-anchor="end">Unix account · home 0700</text>
+  <g class="t">
+    <rect x="446" y="460" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="458" y="477" font-weight="600">Settings</text>
+    <text x="458" y="493" class="s mono">opencode.jsonc</text>
+    <rect x="619" y="460" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="631" y="477" font-weight="600">Custom agents, skills</text>
+    <text x="631" y="493" class="s">same name replaces</text>
+    <rect x="446" y="506" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="458" y="523" font-weight="600">Tool logins</text>
+    <text x="458" y="539" class="s">logged in as bob</text>
+    <rect x="619" y="506" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="631" y="523" font-weight="600">Gateway key</text>
+    <text x="631" y="539" class="s">0600 · model catalog</text>
+    <rect x="446" y="552" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="458" y="569" font-weight="600">Sessions, history</text>
+    <text x="458" y="585" class="s">repositories, work</text>
+    <rect x="619" y="552" width="165" height="40" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="631" y="569" font-weight="600">Runtime</text>
+    <text x="631" y="585" class="s">own port</text>
+  </g>
+
+  <!-- ============ Precedence ============ -->
+  <path class="wire" d="M832 324V72" style="stroke: var(--faint)" marker-end="url(#l-muted)"/>
+  <text x="826" y="200" class="s" text-anchor="middle" transform="rotate(-90 826 200)">priority</text>
+
+  <rect x="850" y="64" width="310" height="76" rx="10" style="fill: var(--ext); stroke: var(--ext-line)"/>
+  <text x="870" y="92" class="h">1 · Project</text>
+  <text x="870" y="114" class="s mono">opencode.json · AGENTS.md</text>
+  <text x="870" y="130" class="s">in the repository</text>
+
+  <rect x="850" y="156" width="310" height="76" rx="10" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+  <text x="870" y="184" class="h" style="fill: var(--alice)">2 · Personal</text>
+  <text x="870" y="206" class="s mono">opencode.jsonc</text>
+  <text x="870" y="222" class="s">and custom agents, skills with the same name</text>
+
+  <rect x="850" y="248" width="310" height="76" rx="10" style="fill: var(--shared-bg); stroke: var(--shared)"/>
+  <text x="870" y="276" class="h" style="fill: var(--shared)">3 · Shared stack</text>
+  <text x="870" y="298" class="s">defaults for every user;</text>
+  <text x="870" y="314" class="s">shared settings stay if not replaced</text>
+
+  <!-- ============ Enforcement ============ -->
+  <text x="850" y="376" class="k">WHAT CONTROLS ACCESS</text>
+  <rect x="850" y="392" width="310" height="214" rx="10" style="fill: var(--ext); stroke: var(--ext-line)"/>
+  <g>
+    <rect x="870" y="412" width="12" height="10" rx="2" style="fill: var(--muted)"/>
+    <path d="M872.5 412v-3a3.5 3.5 0 0 1 7 0v3" fill="none" style="stroke: var(--muted)" stroke-width="1.8"/>
+    <text x="892" y="422" class="t" font-weight="600">Files, services</text>
+    <text x="1140" y="422" class="s" text-anchor="end">Unix permissions</text>
+
+    <rect x="870" y="448" width="12" height="10" rx="2" style="fill: var(--muted)"/>
+    <path d="M872.5 448v-3a3.5 3.5 0 0 1 7 0v3" fill="none" style="stroke: var(--muted)" stroke-width="1.8"/>
+    <text x="892" y="458" class="t" font-weight="600">Models</text>
+    <text x="1140" y="458" class="s" text-anchor="end">gateway key catalog</text>
+
+    <rect x="870" y="484" width="12" height="10" rx="2" style="fill: var(--muted)"/>
+    <path d="M872.5 484v-3a3.5 3.5 0 0 1 7 0v3" fill="none" style="stroke: var(--muted)" stroke-width="1.8"/>
+    <text x="892" y="494" class="t" font-weight="600">External systems</text>
+    <text x="1140" y="494" class="s" text-anchor="end">their own permissions</text>
+  </g>
+  <path d="M870 526H1140" style="stroke: var(--ext-line)"/>
+  <text x="870" y="554" class="s">Custom agent rules only guide the runtime.</text>
+  <text x="870" y="572" class="s">They are not access control. A personal</text>
+  <text x="870" y="590" class="s">configuration cannot add a model.</text>
+
+  <!-- Footer -->
+  <g transform="translate(40 646)">
+    <rect y="-10" width="12" height="12" rx="3" style="fill: var(--host); stroke: var(--host-line)"/>
+    <text x="20" class="s">same for all</text>
+    <rect x="140" y="-10" width="12" height="12" rx="3" style="fill: var(--shared-bg); stroke: var(--shared)"/>
+    <text x="160" class="s">shared and reviewed</text>
+    <rect x="300" y="-10" width="12" height="12" rx="3" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+    <rect x="318" y="-10" width="12" height="12" rx="3" style="fill: var(--bob-bg); stroke: var(--bob)"/>
+    <text x="338" class="s">private to one user</text>
+  </g>
+  <text x="1160" y="646" class="t" font-weight="700" text-anchor="end">An installed tool is not a login.</text>
+</svg>

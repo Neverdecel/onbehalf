@@ -1,0 +1,22 @@
+# The docs that test/lint-docs.sh checks. Add each new docs file here.
+AGENTS.md
+CONTRIBUTING.md
+README.md
+SECURITY.md
+project.md
+llms.txt
+docs/features.md
+docs/how-it-works.md
+docs/faq.md
+docs/operator-guide.md
+docs/user-guide.md
+docs/design/monitoring.md
+examples/stack/README.md
+examples/stack/opencode/AGENTS.md
+examples/stack/opencode/agents/whoami.md
+.github/pull_request_template.md
+site/index.html
+site/about/index.md
+site/_posts/2026-10-09-why-each-ai-agent-must-act-on-behalf-of-one-person.md
+CHANGELOG.md
+demo/README.md

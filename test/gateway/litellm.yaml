@@ -1,0 +1,42 @@
+# Test gateway: mock responses, no real provider. PROVIDER_API_KEY is the
+# canary value, so tests can prove it never reaches a user.
+model_list:
+  - model_name: mock-model
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/PROVIDER_API_KEY
+      mock_response: "onbehalf-mock-ok"
+  # A second model, so a model change in the stack is visible in the answer.
+  - model_name: mock-model-v2
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/PROVIDER_API_KEY
+      mock_response: "onbehalf-mock-v2"
+  # Present in the gateway, but never curated for host users.
+  - model_name: private-model
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/PROVIDER_API_KEY
+      mock_response: "onbehalf-private"
+  # Deterministic agent model: turns "RUN: <command>" into a shell tool call.
+  - model_name: agent-model
+    litellm_params:
+      model: openai/agent-model
+      api_base: http://fake-model:8080/v1
+      api_key: os.environ/PROVIDER_API_KEY
+
+  # Curated, but the provider refuses every request (see fake-model/server.js).
+  - model_name: blocked-model
+    litellm_params:
+      model: openai/blocked-model
+      api_base: http://fake-model:8080/v1
+      api_key: os.environ/PROVIDER_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  # Test only: keep request bodies, so checks can see what each user sent.
+  store_prompts_in_spend_logs: true
+
+litellm_settings:
+  drop_params: true

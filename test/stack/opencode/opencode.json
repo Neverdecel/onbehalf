@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "onbehalf/mock-model",
+  "update": "disable",
+  "enabled_providers": ["onbehalf"],
+  "providers": {
+    "onbehalf": {
+      "name": "onbehalf gateway",
+      "package": "@ai-sdk/openai-compatible",
+      "settings": {
+        "baseURL": "@GATEWAY_URL@/v1",
+        "apiKey": "{file:~/.config/onbehalf/gateway.key}"
+      },
+      "models": {
+        "mock-model": {},
+        "mock-model-v2": {},
+        "agent-model": {},
+        "blocked-model": {}
+      }
+    }
+  }
+}

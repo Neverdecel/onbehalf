@@ -1,0 +1,44 @@
+# Model gateway: LiteLLM with PostgreSQL for keys and model use records.
+# Run it as root (or as a dedicated account) in /etc/onbehalf-gateway:
+#
+#   cp .env.example .env && chmod 600 .env   # then fill in the values
+#   docker compose up -d
+#
+# Users must not be in the docker group: that gives root access.
+name: onbehalf-gateway
+
+services:
+  db:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: litellm
+    # PostgreSQL 18+ keeps its data in /var/lib/postgresql/<major>/docker, so a
+    # later major version can sit next to this one for pg_upgrade.
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 5s
+      retries: 30
+
+  gateway:
+    image: ghcr.io/berriai/litellm-database:v1.104.0@sha256:fbe28229d2d02181c0a7d9df9599de614b491f3d897d2d7da18404f088310218
+    restart: unless-stopped
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD}@db:5432/litellm
+    volumes:
+      - ./litellm.yaml:/etc/litellm/config.yaml:ro
+    # Only this host can reach the gateway. For other hosts, use an internal address.
+    ports:
+      - 127.0.0.1:4000:4000
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db:

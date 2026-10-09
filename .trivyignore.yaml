@@ -1,0 +1,23 @@
+# Trivy findings that do not apply. Each entry gives the reason.
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - "test/images/*.Dockerfile"
+    statement: >-
+      The test host images must run as root. The tests make Unix accounts,
+      write sudoers files and install onbehalf. These images are for tests
+      only and are not released.
+  - id: DS-0002
+    paths:
+      - ".clusterfuzzlite/Dockerfile"
+    statement: >-
+      The ClusterFuzzLite build image must run as root, as its OSS-Fuzz base
+      image does. It only builds the fuzzers in CI and is not released.
+  - id: DS-0002
+    paths:
+      - "demo/images/*.Dockerfile"
+    statement: >-
+      The demo images must run as root. The devbox image starts the SSH
+      server and changes Unix accounts. The VHS image runs as root, as its
+      base image does. These images record the demo casts only and are not
+      released.

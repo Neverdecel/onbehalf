@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="764" viewBox="0 0 820 764" role="img" aria-labelledby="title desc">
+  <title id="title">onbehalf doctor</title>
+  <desc id="desc">Output of sudo onbehalf doctor: host checks for the OS, tools, OpenCode, gateway, shared stack and kernel hardening, then per-user checks for alice and bob. Bob has one warning with a proposed fix.</desc>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; font-size: 13.5px; fill: #c9d1e4; white-space: pre; }
+    .p { fill: #7d86a8; }
+    .b { font-weight: 700; fill: #ffffff; }
+    .g { fill: #4ade80; }
+    .y { fill: #facc15; }
+    .d { fill: #6b7391; }
+  </style>
+  <rect x="0.5" y="0.5" width="819" height="763" rx="12" fill="#0d1117" stroke="#262c3a"/>
+  <path d="M12 0.5H808A11.5 11.5 0 0 1 819.5 12V40H0.5V12A11.5 11.5 0 0 1 12 0.5Z" fill="#161b26"/>
+  <path d="M0.5 40.5H819.5" stroke="#262c3a"/>
+  <circle cx="22" cy="20" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="20" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="20" r="6" fill="#28c840"/>
+  <text x="410" y="25" text-anchor="middle" style="font-size: 12px; fill: #7d86a8">root@team-host: ~</text>
+
+  <g xml:space="preserve">
+    <text x="24" y="72"><tspan class="g">$</tspan> sudo onbehalf doctor</text>
+
+    <text x="24" y="112" class="b">Host</text>
+    <text x="24" y="132">  <tspan class="g">✓</tspan> Ubuntu 24.04.1 LTS</text>
+    <text x="24" y="152">  <tspan class="g">✓</tspan> required tools are installed</text>
+    <text x="24" y="172">  <tspan class="g">✓</tspan> 2.0.0 at /usr/local/bin/opencode</text>
+    <text x="24" y="192">  <tspan class="g">✓</tspan> only root can read the admin key of the gateway</text>
+    <text x="24" y="212">  <tspan class="g">✓</tspan> gateway https://llm.internal.example answers</text>
+    <text x="24" y="232">  <tspan class="g">✓</tspan> the gateway accepts the admin key</text>
+    <text x="24" y="252">  <tspan class="g">✓</tspan> shared stack 3f9c2a1b7e04</text>
+    <text x="24" y="272">  <tspan class="g">✓</tspan> /proc hides the processes of other accounts</text>
+    <text x="24" y="292">  <tspan class="g">✓</tspan> kernel.yama.ptrace_scope is 1</text>
+
+    <text x="24" y="332" class="b">Users</text>
+
+    <text x="24" y="372" class="b">alice</text>
+    <text x="24" y="392">  <tspan class="g">✓</tspan> home directory is private</text>
+    <text x="24" y="412">  <tspan class="g">✓</tspan> gateway key is private</text>
+    <text x="24" y="432">  <tspan class="g">✓</tspan> gateway key works</text>
+    <text x="24" y="452">  <tspan class="g">✓</tspan> OpenCode uses the shared stack</text>
+    <text x="24" y="472">  <tspan class="g">✓</tspan> OpenCode service has its own port 41001</text>
+    <text x="24" y="492">  <tspan class="g">✓</tspan> gateway key permits only the model catalog and inference routes</text>
+
+    <text x="24" y="532" class="b">bob</text>
+    <text x="24" y="552">  <tspan class="g">✓</tspan> home directory is private</text>
+    <text x="24" y="572">  <tspan class="g">✓</tspan> gateway key is private</text>
+    <text x="24" y="592">  <tspan class="g">✓</tspan> gateway key works</text>
+    <text x="24" y="612">  <tspan class="g">✓</tspan> OpenCode uses the shared stack</text>
+    <text x="24" y="632">  <tspan class="g">✓</tspan> OpenCode service has its own port 41002</text>
+    <text x="24" y="652">  <tspan class="y">!</tspan> personal model credentials in ~/.local/share/opencode/auth.json go around the gateway</text>
+    <text x="24" y="672">      <tspan class="d">fix:</tspan> opencode auth logout   (as bob), or remove the file</text>
+    <text x="24" y="692">  <tspan class="g">✓</tspan> gateway key permits only the model catalog and inference routes</text>
+
+    <text x="24" y="732"><tspan class="g">no errors</tspan>, 1 warning(s)</text>
+  </g>
+</svg>

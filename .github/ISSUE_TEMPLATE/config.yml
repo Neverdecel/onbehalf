@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/Neverdecel/onbehalf/security/advisories/new
+    about: Send a private report about a security problem. Do not use a public issue.
+  - name: Operator guide
+    url: https://github.com/Neverdecel/onbehalf/blob/main/docs/operator-guide.md#troubleshooting
+    about: Installation, setup and troubleshooting.

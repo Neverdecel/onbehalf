@@ -1,0 +1,23 @@
+---
+layout: default
+---
+{{ content }}
+{%- if site.posts.size > 0 %}
+<section class="section alt" aria-labelledby="blog-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">Blog</p>
+      <h2 id="blog-head">The latest posts</h2>
+    </div>
+    <ul class="posts">
+      {%- for post in site.posts limit:3 %}
+      <li>
+        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%-d %B %Y" }}</time>
+        {%- if post.description %}<p>{{ post.description }}</p>{% endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+  </div>
+</section>
+{%- endif %}

@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories: [/test/images]
+    schedule:
+      interval: weekly
+    ignore:
+      # The test host matches the supported release (24.04 LTS). A new Ubuntu
+      # release (LTS or interim, like 24.10) is a decision, not a routine bump;
+      # digest updates for 24.04 still come.
+      - dependency-name: ubuntu
+        update-types: [version-update:semver-major, version-update:semver-minor]
+
+  # OpenCode on the test hosts. The package and its platform binaries move
+  # together, so one pull request updates the whole lockfile.
+  - package-ecosystem: npm
+    directory: /test/images/opencode
+    schedule:
+      interval: weekly
+    groups:
+      opencode:
+        patterns: ["*"]
+
+  - package-ecosystem: docker-compose
+    directories: [/test, /examples/gateway]
+    schedule:
+      interval: weekly
+    groups:
+      # One pull request per image for both directories, so the example
+      # gateway always runs the versions that the tests cover.
+      images:
+        group-by: dependency-name
+        patterns: ["*"]

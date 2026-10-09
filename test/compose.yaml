@@ -1,0 +1,96 @@
+name: onbehalf-test
+
+x-host: &host
+  volumes:
+    - ..:/src:ro
+  environment:
+    ONBEHALF_GATEWAY_URL: http://gateway:4000
+    LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?run through make}
+    ONBEHALF_CANARY: ${ONBEHALF_CANARY:?run through make}
+    FORGEJO_URL: http://forgejo:3000
+    FORGEJO_ADMIN_PASSWORD: ${FORGEJO_ADMIN_PASSWORD:?run through make}
+  depends_on:
+    gateway:
+      condition: service_healthy
+    forgejo:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: litellm
+      POSTGRES_DB: litellm
+    # PostgreSQL 18+ keeps its data in /var/lib/postgresql/<major>/docker.
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 2s
+      retries: 30
+
+  gateway:
+    image: ghcr.io/berriai/litellm-database:v1.104.0@sha256:fbe28229d2d02181c0a7d9df9599de614b491f3d897d2d7da18404f088310218
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
+    volumes:
+      - ./gateway/litellm.yaml:/etc/litellm/config.yaml:ro
+    environment:
+      DATABASE_URL: postgresql://litellm:litellm@db:5432/litellm
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?run through make}
+      PROVIDER_API_KEY: ${ONBEHALF_CANARY:?run through make}
+    depends_on:
+      db:
+        condition: service_healthy
+      fake-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 3s
+      retries: 60
+
+  # Deterministic model for agent tests; see fake-model/server.js.
+  fake-model:
+    image: node:26-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80
+    command: ["node", "/app/server.js"]
+    volumes:
+      - ./fake-model/server.js:/app/server.js:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      retries: 30
+
+  # Git server, to check who commits and who pushes.
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:16.0.5-rootless@sha256:5effb7305584aca479b29fde6f9631a6dbe86ae798ae02eeea33a3666f0c0bf8
+    entrypoint: ["/bin/sh", "/onbehalf/start.sh"]
+    volumes:
+      - ./forgejo/start.sh:/onbehalf/start.sh:ro
+    environment:
+      FORGEJO_ADMIN_PASSWORD: ${FORGEJO_ADMIN_PASSWORD:?run through make}
+      FORGEJO__security__INSTALL_LOCK: "true"
+      FORGEJO__database__DB_TYPE: sqlite3
+      FORGEJO__server__ROOT_URL: http://forgejo:3000/
+      FORGEJO__server__HTTP_PORT: "3000"
+      FORGEJO__server__DISABLE_SSH: "true"
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/admin-ready"]
+      interval: 2s
+      retries: 60
+
+  host-ubuntu:
+    <<: *host
+    build:
+      context: images
+      dockerfile: ubuntu.Dockerfile
+      args:
+        - UBUNTU_MIRROR
+    image: onbehalf-test/host-ubuntu
+
+  host-arch:
+    <<: *host
+    build:
+      context: images
+      dockerfile: arch.Dockerfile
+    image: onbehalf-test/host-arch

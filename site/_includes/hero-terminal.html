@@ -1,0 +1,19 @@
+<div class="term" role="img" aria-label="A terminal on a shared host with two panes. In the pane of alice, onbehalf status shows the shared stack and a working gateway key, and Git shows alice as the author. In the pane of bob, bob cannot read the GitHub login of alice, and GitHub CLI shows bob.">
+  <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>One host · each action as its user</span></div>
+  <div class="panes" aria-hidden="true">
+<pre class="pane"><span class="pane-label"><span class="av a">A</span><b>alice</b> · runtime</span><span class="u">alice@team-host</span><span class="d">:~$</span> <span class="c">onbehalf status</span>
+
+<span class="c">onbehalf for alice</span>
+  <span class="ok">✓</span> shared stack 3f9c2a1b7e04
+  <span class="ok">✓</span> your gateway key works
+  <span class="ok">✓</span> OpenCode uses the shared stack
+<span class="u">alice@team-host</span><span class="d">:~/app$</span> <span class="c">git log -1 --format=%an</span>
+alice</pre>
+<pre class="pane"><span class="pane-label"><span class="av b">B</span><b>bob</b> · runtime</span><span class="u2">bob@team-host</span><span class="d">:~$</span> <span class="c">cat ~alice/.config/gh/hosts.yml</span>
+cat: /home/alice/.config/gh/hosts.yml: <span class="no">Permission denied</span>
+<span class="u2">bob@team-host</span><span class="d">:~$</span> <span class="c">gh api user -q .login</span>
+bob
+<span class="u2">bob@team-host</span><span class="d">:~$</span> <span class="cursor"></span></pre>
+  </div>
+  <div class="tmux" aria-hidden="true"><span>[team] <b>0:alice</b> 1:bob</span><span>one host · one setup · two identities</span></div>
+</div>

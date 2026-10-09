@@ -1,0 +1,22 @@
+---
+title: Blog
+description: Articles about onbehalf, shared AI harness setups and personal identity on a shared Linux host.
+permalink: /blog/
+---
+<p class="eyebrow">Blog</p>
+<h1>Notes from the shared host</h1>
+<p class="lead">Articles about onbehalf: one shared setup, and a personal identity for each user.</p>
+{%- if site.posts.size > 0 %}
+<ul class="posts">
+  {%- for post in site.posts %}
+  <li>
+    <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+    <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%-d %B %Y" }}</time>
+    {%- if post.description %}<p>{{ post.description }}</p>{% endif %}
+  </li>
+  {%- endfor %}
+</ul>
+{%- else %}
+<p class="empty">There are no posts yet. Subscribe to the <a href="{{ '/feed.xml' | relative_url }}">RSS feed</a> to get the first post.</p>
+{%- endif %}
+<p><a href="{{ '/feed.xml' | relative_url }}">RSS feed</a></p>

@@ -1,0 +1,4 @@
+ignored:
+  # The base image is pinned by digest, so apt versions are already fixed
+  # for a given build; per-package pins would only add churn.
+  - DL3008

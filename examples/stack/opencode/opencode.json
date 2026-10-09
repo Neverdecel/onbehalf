@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "onbehalf-openai/gpt-5.4",
+  "update": "disable",
+  "enabled_providers": ["onbehalf-openai", "onbehalf-anthropic"],
+  "providers": {
+    "onbehalf-openai": {
+      "name": "Team models (OpenAI API)",
+      "package": "@ai-sdk/openai-compatible",
+      "settings": {
+        "baseURL": "@GATEWAY_URL@/v1",
+        "apiKey": "{file:~/.config/onbehalf/gateway.key}"
+      },
+      "models": {
+        "gpt-5.4": {}
+      }
+    },
+    "onbehalf-anthropic": {
+      "name": "Team models (Anthropic API)",
+      "package": "@ai-sdk/anthropic",
+      "settings": {
+        "baseURL": "@GATEWAY_URL@/v1",
+        "apiKey": "{file:~/.config/onbehalf/gateway.key}"
+      },
+      "models": {
+        "claude-sonnet-4-5": {}
+      }
+    }
+  }
+}

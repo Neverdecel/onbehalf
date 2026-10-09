@@ -1,0 +1,267 @@
+---
+layout: home
+title: onbehalf
+description: >-
+  onbehalf gives a team one reviewed AI harness setup on a shared Linux
+  host. The runtime of each user runs as that user, with their own logins.
+---
+<section class="hero">
+  <div class="wide hero-grid">
+    <div>
+      <a class="pill" href="https://github.com/Neverdecel/onbehalf/releases/tag/v0.1.0"><b>NEW</b>
+        Release 0.1.0 is available
+      </a>
+      <h1>The setup is shared. <span class="grad">The identity is not.</span></h1>
+      <p class="lead">
+        onbehalf gives your team one reviewed AI harness setup on a shared Linux host.
+        The runtime of each user runs in the Unix account of that user, with the logins of that user.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="#quickstart">Get started</a>
+        <a class="btn" href="https://github.com/Neverdecel/onbehalf">{% include github.svg %}View on GitHub</a>
+      </div>
+      <div class="install" aria-label="The command for the guided setup">sudo onbehalf setup</div>
+      <div class="chips-row" aria-label="The parts that onbehalf works with">
+        <span>AI harness</span><span>Model gateway</span><span>Work tools</span><span>Shared stack</span>
+      </div>
+    </div>
+    {% include hero-terminal.html %}
+  </div>
+</section>
+
+<div class="works">
+  <div class="wide">
+    <span class="label">Works with</span>
+    <span>OpenCode</span>
+    <span>LiteLLM</span>
+    <span>Git</span>
+    <span>GitHub CLI</span>
+    <span>Azure CLI</span>
+    <span>MCP servers</span>
+    <span>Entra ID</span>
+    <span>systemd</span>
+  </div>
+</div>
+
+<section class="section alt" id="demo" aria-labelledby="demo-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">See it</p>
+      <h2 id="demo-head">The runtime acts as you.</h2>
+      <p>
+        A real session on a test host with a stand-in model.
+        The CLI output is the output of onbehalf.
+      </p>
+    </div>
+    {% include demo-figures.html %}
+    <p class="layer-note">
+      For the operator, see the casts in the operator guide:
+      <a href="https://github.com/Neverdecel/onbehalf/blob/main/docs/operator-guide.md">set up a host</a> and
+      <a href="https://github.com/Neverdecel/onbehalf/blob/main/docs/operator-guide.md#see-who-uses-the-runtimes">see who uses the runtimes</a>.
+      <a href="https://github.com/Neverdecel/onbehalf/blob/main/demo/README.md">Make the casts again with make demo</a>.
+    </p>
+  </div>
+</section>
+
+<section class="section" id="problem" aria-labelledby="problem-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">The problem</p>
+      <h2 id="problem-head">A shared setup must not hide who did an action.</h2>
+      <p>
+        A good AI harness setup has many parts: settings, instructions, skills and model access.
+        Teams usually select one of two bad options.
+        onbehalf gives the good parts of the two.
+      </p>
+    </div>
+    <div class="compare">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr">What the team gets</span></th>
+            <th scope="col">A setup on each laptop</th>
+            <th scope="col">One shared account</th>
+            <th scope="col" class="us">onbehalf</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">One reviewed setup for the team</th>
+            <td class="n" aria-label="No">✗</td><td class="y" aria-label="Yes">✓</td><td class="us" aria-label="Yes">✓</td>
+          </tr>
+          <tr>
+            <th scope="row">Git, GitHub and Azure record the real user</th>
+            <td class="y" aria-label="Yes">✓</td><td class="n" aria-label="No">✗</td><td class="us" aria-label="Yes">✓</td>
+          </tr>
+          <tr>
+            <th scope="row">No user can read the credentials of a different user</th>
+            <td class="y" aria-label="Yes">✓</td><td class="n" aria-label="No">✗</td><td class="us" aria-label="Yes">✓</td>
+          </tr>
+          <tr>
+            <th scope="row">Model use and cost for each user</th>
+            <td class="n" aria-label="No">✗</td><td class="n" aria-label="No">✗</td><td class="us" aria-label="Yes">✓</td>
+          </tr>
+          <tr>
+            <th scope="row">Offboard without a secret to change</th>
+            <td class="y" aria-label="Yes">✓</td><td class="n" aria-label="No">✗</td><td class="us" aria-label="Yes">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="how" aria-labelledby="how-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">How it works</p>
+      <h2 id="how-head">The runtime acts on behalf of the user who started it.</h2>
+      <p>
+        The runtime is not an identity of its own.
+        onbehalf works at the Unix layer: accounts, permissions, links and services.
+      </p>
+    </div>
+    {% include architecture-figure.html %}
+    <p class="layer-note">
+      onbehalf does not install the AI harness, and it does not log anybody in.
+      Each user logs in to each work tool.
+      <a href="https://github.com/Neverdecel/onbehalf/blob/main/docs/how-it-works.md">Read how it works</a>.
+    </p>
+  </div>
+</section>
+
+<section class="section" id="features" aria-labelledby="features-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">Features</p>
+      <h2 id="features-head">All the parts for a team, in one CLI.</h2>
+      <p>
+        Each claim has a test.
+        The tests run on fresh Ubuntu and Arch Linux hosts for each test run.
+      </p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="icon c-shared"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
+        <h3>One shared stack</h3>
+        <p>
+          The team keeps the harness settings, the instructions, the skills and the model catalog in Git.
+          Each user gets them read-only.
+          A personal item replaces only the shared item with the same name.
+        </p>
+        <div class="cmd">onbehalf stack install</div>
+      </div>
+      <div class="card">
+        <div class="icon c-alice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></div>
+        <h3>A personal identity</h3>
+        <p>
+          Each runtime runs in the Unix account of its user.
+          Commits, pushes and model use show the user whose runtime did them.
+        </p>
+        <div class="cmd">onbehalf status</div>
+      </div>
+      <div class="card">
+        <div class="icon c-alice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        <h3>No shared credential</h3>
+        <p>
+          Each user logs in to each work tool.
+          Only the model gateway keeps the provider key.
+          onbehalf never keeps, reads or sends a credential.
+        </p>
+        <div class="cmd">onbehalf tools</div>
+      </div>
+      <div class="card">
+        <div class="icon c-bob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+        <h3>Enroll and offboard</h3>
+        <p>
+          Users enroll at the first SSH login, or follow an Entra group.
+          Offboarding stops the runtime and revokes the gateway key.
+          The other users continue to work.
+        </p>
+        <div class="cmd">onbehalf user remove</div>
+      </div>
+      <div class="card">
+        <div class="icon c-shared"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <h3>Checks and reports</h3>
+        <p>
+          The doctor command checks the host and every user, and shows a fix for each problem.
+          The report command shows use and cost for each user, but never what a user asked.
+        </p>
+        <div class="cmd">onbehalf doctor</div>
+      </div>
+      <div class="card">
+        <div class="icon c-bob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>Least privilege</h3>
+        <p>
+          An operator can run only onbehalf as root.
+          The runtime of an operator runs in a separate account without sudo.
+        </p>
+        <div class="cmd">onbehalf operator shell</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section alt" aria-labelledby="proof-head">
+  <div class="wide">
+    <div class="section-head">
+      <p class="eyebrow">Tested on real systems</p>
+      <h2 id="proof-head">No mocks between the runtime and the record.</h2>
+      <p>
+        The tests use the real AI harness, a real model gateway and a real Git server.
+        Only the model is a test model that always gives the same answer.
+      </p>
+    </div>
+    <div class="proof">
+      <div><strong>Ubuntu + Arch</strong><span>A fresh host for each test run.</span></div>
+      <div><strong>OpenCode</strong><span>The real AI harness, one runtime for each user.</span></div>
+      <div><strong>LiteLLM</strong><span>A real model gateway records the use of each key.</span></div>
+      <div><strong>Forgejo</strong><span>A real Git server shows the user of each push.</span></div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="https://github.com/Neverdecel/onbehalf/blob/main/docs/features.md">See each claim and its test</a>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="quickstart" aria-labelledby="qs-head">
+  <div class="wide qs">
+    <div>
+      <div class="section-head">
+        <p class="eyebrow">Quick start</p>
+        <h2 id="qs-head">From a fresh host to a team in four steps.</h2>
+      </div>
+      <ol class="steps">
+        <li><div><strong>Install OpenCode</strong><span>
+          Install the AI harness one time on the host.
+        </span></div></li>
+        <li><div><strong>Connect a model gateway</strong><span>
+          Run a LiteLLM model gateway, or use the gateway of your team.
+        </span></div></li>
+        <li><div><strong>Make a stack source</strong><span>
+          Copy examples/stack into a Git repository of your team.
+        </span></div></li>
+        <li><div><strong>Run the guided setup</strong><span>
+          The setup connects the gateway, installs the shared stack and adds users.
+        </span></div></li>
+      </ol>
+    </div>
+    {% include quickstart-terminal.html %}
+  </div>
+</section>
+
+<section class="section" aria-labelledby="cta-head" style="padding-top:0">
+  <div class="wide">
+    <div class="cta">
+      <h2 id="cta-head">Give your team one setup. Keep each identity.</h2>
+      <p>
+        onbehalf is an early MVP.
+        The repository on GitHub is the main location for the code and the docs.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/Neverdecel/onbehalf">{% include github.svg %}Get onbehalf on GitHub</a>
+        <a class="btn" href="https://github.com/Neverdecel/onbehalf/tree/main/docs">Read the docs</a>
+      </div>
+    </div>
+  </div>
+</section>

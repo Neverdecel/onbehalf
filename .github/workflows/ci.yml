@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install lint tools
+        run: |
+          .github/scripts/install-lint-tools.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          pipx install yamllint==1.38.0
+      - name: Shell syntax, shellcheck, shfmt
+        run: make lint-shell
+      - name: Dockerfiles
+        run: make lint-docker
+      - name: YAML
+        run: make lint-yaml
+      - name: Docs (ASD-STE100)
+        run: make lint-docs
+      - name: Workflows
+        run: actionlint
+
+  # The host tests take minutes. A pull request that changes only docs, the
+  # site or repo metadata skips them. The integration jobs still run and
+  # pass, because the ruleset for main requires their names. A path that is
+  # not in the list below always runs the tests, and only the exact output
+  # "false" skips them.
+  changes:
+    name: Changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Find the changed files
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          docs_only='^([^/]+\.md|docs/.*|site/.*|test/lint/.*|llms\.txt|CITATION\.cff|LICENSE|NOTICE|\.github/ISSUE_TEMPLATE/.*|\.github/(pull_request_template\.md|CODEOWNERS|dependabot\.yml)|\.github/workflows/(pages|fuzz|scorecard|security)\.yml)$'
+          code=true
+          if [ "$EVENT" = pull_request ] && files=$(git diff --name-only "$BASE...$HEAD") && [ -n "$files" ]; then
+            other=$(grep -Ev "$docs_only" <<<"$files" || true)
+            if [ -z "$other" ]; then
+              code=false
+            else
+              printf 'Files that need the host tests:\n%s\n' "$other"
+            fi
+          fi
+          echo "code=$code" >>"$GITHUB_OUTPUT"
+          echo "Run the host tests: $code" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  integration:
+    name: Integration (${{ matrix.distro }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: [lint, changes]
+    # If the changes job fails, run the host tests: do not skip them.
+    if: ${{ !cancelled() && needs.lint.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [ubuntu, arch]
+    steps:
+      - name: Skip the host tests
+        if: needs.changes.outputs.code == 'false'
+        run: echo "Only docs changed. The host tests are skipped."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code != 'false'
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: needs.changes.outputs.code != 'false'
+      - name: Run the host tests
+        if: needs.changes.outputs.code != 'false'
+        run: make test-${{ matrix.distro }}
+        env:
+          # The runners are in Azure; its mirror is faster than archive.ubuntu.com.
+          UBUNTU_MIRROR: http://azure.archive.ubuntu.com/ubuntu/
+      - name: Clean up
+        if: always() && needs.changes.outputs.code != 'false'
+        run: make down

@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">How onbehalf works</title>
+  <desc id="desc">One Linux host gives one reviewed shared stack, owned by root, to every user. The runtime of each user runs in the Unix account of that user, with personal overrides, tool logins and a gateway key. The model gateway keeps the provider key of the team. GitHub and Azure record each action as the user who asked for it.</desc>
+  <style>
+    svg {
+      --bg: #ffffff; --border: #e3e6ef; --fg: #161a2b; --muted: #5f6680; --faint: #8a91a8;
+      --host: #f6f7fb; --host-line: #cfd4e3;
+      --shared: #6d5ce8; --shared-bg: #f0eeff;
+      --alice: #0f9488; --alice-bg: #e6f7f5;
+      --bob: #d9620f; --bob-bg: #fdf1e7;
+      --ext: #ffffff; --ext-line: #cfd4e3; --chip: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --bg: #0d1117; --border: #262c3a; --fg: #e8ebf5; --muted: #a2a9c2; --faint: #6f7690;
+        --host: #131925; --host-line: #2e3547;
+        --shared: #a596ff; --shared-bg: #1d1a3a;
+        --alice: #2dd4bf; --alice-bg: #0f2a2a;
+        --bob: #fb923c; --bob-bg: #2e1d10;
+        --ext: #161c28; --ext-line: #2e3547; --chip: #0d1117;
+      }
+    }
+    text { font-family: Inter, -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; fill: var(--fg); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+    .h { font-size: 15px; font-weight: 700; }
+    .t { font-size: 13px; }
+    .s { font-size: 12px; fill: var(--muted); }
+    .k { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; fill: var(--faint); }
+    .wire { fill: none; stroke-width: 1.8; }
+  </style>
+  <defs>
+    <marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--faint)"/></marker>
+    <marker id="a-shared" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--shared)"/></marker>
+    <marker id="a-alice" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--alice)"/></marker>
+    <marker id="a-bob" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill: var(--bob)"/></marker>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="1199" height="659" rx="16" style="fill: var(--bg); stroke: var(--border)"/>
+
+  <!-- Column labels -->
+  <text x="40" y="44" class="k">PEOPLE</text>
+  <text x="270" y="44" class="k">SHARED HOST · ONE LINUX HOST</text>
+  <text x="900" y="44" class="k">OUTSIDE THE HOST</text>
+
+  <!-- ============ People ============ -->
+  <g>
+    <rect x="40" y="150" width="180" height="56" rx="10" style="fill: none; stroke: var(--host-line); stroke-dasharray: 5 4"/>
+    <text x="58" y="174" class="t" font-weight="600">Web client</text>
+    <text x="58" y="193" class="s">planned · broker for each user</text>
+
+    <rect x="40" y="300" width="180" height="64" rx="10" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+    <text x="58" y="326" class="h">alice</text>
+    <text x="58" y="347" class="s mono">ssh · opencode</text>
+
+    <rect x="40" y="466" width="180" height="64" rx="10" style="fill: var(--bob-bg); stroke: var(--bob)"/>
+    <text x="58" y="492" class="h">bob</text>
+    <text x="58" y="513" class="s mono">ssh · opencode</text>
+  </g>
+
+  <!-- ============ Host ============ -->
+  <rect x="270" y="60" width="560" height="560" rx="14" style="fill: var(--host); stroke: var(--host-line)"/>
+
+  <!-- Shared stack -->
+  <rect x="294" y="84" width="512" height="128" rx="10" style="fill: var(--shared-bg); stroke: var(--shared)"/>
+  <text x="314" y="112" class="h" style="fill: var(--shared)">Shared stack</text>
+  <text x="786" y="112" class="s" text-anchor="end">reviewed in Git · one version</text>
+  <text x="314" y="134" class="s mono">/opt/onbehalf/stack/current · root-owned, read-only</text>
+  <g class="t">
+    <rect x="314" y="154" width="84" height="34" rx="17" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="356" y="176" text-anchor="middle">defaults</text>
+    <rect x="406" y="154" width="120" height="34" rx="17" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="466" y="176" text-anchor="middle">custom agents</text>
+    <rect x="534" y="154" width="68" height="34" rx="17" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="568" y="176" text-anchor="middle">skills</text>
+    <rect x="610" y="154" width="130" height="34" rx="17" style="fill: var(--chip); stroke: var(--shared)" stroke-opacity="0.5"/>
+    <text x="675" y="176" text-anchor="middle">model catalog</text>
+  </g>
+
+  <!-- The shared stack flows down into each user, read-time -->
+  <path class="wire" d="M294 194H282V584" style="stroke: var(--shared)"/>
+  <path class="wire" d="M282 384H292" style="stroke: var(--shared)" marker-end="url(#a-shared)"/>
+  <path class="wire" d="M282 584H292" style="stroke: var(--shared)" marker-end="url(#a-shared)"/>
+  <text x="300" y="244" class="s">every user reads the same version; personal overrides have priority</text>
+
+  <!-- alice lane -->
+  <rect x="294" y="266" width="512" height="134" rx="10" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+  <text x="314" y="294" class="h" style="fill: var(--alice)">alice</text>
+  <text x="314" y="314" class="s mono">uid 1001</text>
+  <text x="314" y="330" class="s mono">home 0700</text>
+  <g class="t">
+    <rect x="404" y="282" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="418" y="302" font-weight="600">Runtime</text>
+    <text x="418" y="320" class="s mono">service port 41001</text>
+    <rect x="602" y="282" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="616" y="302" font-weight="600">Personal overrides</text>
+    <text x="616" y="320" class="s mono">opencode.jsonc · skills</text>
+    <rect x="404" y="338" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="418" y="358" font-weight="600">Own tool logins</text>
+    <text x="418" y="376" class="s mono">az · gh · git</text>
+    <rect x="602" y="338" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--alice)" stroke-opacity="0.45"/>
+    <text x="616" y="358" font-weight="600">Gateway key</text>
+    <text x="616" y="376" class="s mono">0600 · model catalog</text>
+  </g>
+
+  <!-- isolation wall -->
+  <g>
+    <path d="M294 433H516M664 433H806" style="stroke: var(--host-line); stroke-dasharray: 2 5" stroke-width="2" stroke-linecap="round"/>
+    <rect x="530" y="426" width="12" height="10" rx="2" style="fill: var(--muted)"/>
+    <path d="M532.5 426v-3a3.5 3.5 0 0 1 7 0v3" fill="none" style="stroke: var(--muted)" stroke-width="1.8"/>
+    <text x="550" y="437" class="s" font-weight="600">Unix permissions</text>
+  </g>
+
+  <!-- bob lane -->
+  <rect x="294" y="466" width="512" height="134" rx="10" style="fill: var(--bob-bg); stroke: var(--bob)"/>
+  <text x="314" y="494" class="h" style="fill: var(--bob)">bob</text>
+  <text x="314" y="514" class="s mono">uid 1002</text>
+  <text x="314" y="530" class="s mono">home 0700</text>
+  <g class="t">
+    <rect x="404" y="482" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="418" y="502" font-weight="600">Runtime</text>
+    <text x="418" y="520" class="s mono">service port 41002</text>
+    <rect x="602" y="482" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="616" y="502" font-weight="600">Personal overrides</text>
+    <text x="616" y="520" class="s mono">opencode.jsonc · skills</text>
+    <rect x="404" y="538" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="418" y="558" font-weight="600">Own tool logins</text>
+    <text x="418" y="576" class="s mono">az · gh · git</text>
+    <rect x="602" y="538" width="190" height="48" rx="8" style="fill: var(--chip); stroke: var(--bob)" stroke-opacity="0.45"/>
+    <text x="616" y="558" font-weight="600">Gateway key</text>
+    <text x="616" y="576" class="s mono">0600 · model catalog</text>
+  </g>
+
+  <!-- People into their own runtime -->
+  <path d="M276 332H288M276 498H288" style="stroke: var(--host)" stroke-width="6"/>
+  <path class="wire" d="M220 332H292" style="stroke: var(--alice)" marker-end="url(#a-alice)"/>
+  <path class="wire" d="M220 498H292" style="stroke: var(--bob)" marker-end="url(#a-bob)"/>
+  <path class="wire" d="M220 178H266" style="stroke: var(--faint); stroke-dasharray: 4 4" marker-end="url(#a-muted)"/>
+  <text x="40" y="226" class="s">same identity contract</text>
+
+  <!-- ============ Outside ============ -->
+  <!-- Model provider -->
+  <rect x="900" y="84" width="260" height="62" rx="10" style="fill: var(--ext); stroke: var(--ext-line)"/>
+  <text x="920" y="110" class="h">Model provider</text>
+  <text x="920" y="130" class="s">for example Azure AI Foundry</text>
+
+  <!-- Gateway -->
+  <rect x="900" y="196" width="260" height="128" rx="10" style="fill: var(--ext); stroke: var(--shared)"/>
+  <text x="920" y="224" class="h">Model gateway</text>
+  <text x="1140" y="224" class="s" text-anchor="end">LiteLLM</text>
+  <g class="t">
+    <circle cx="924" cy="250" r="3" style="fill: var(--shared)"/>
+    <text x="936" y="254">keeps the team provider key</text>
+    <circle cx="924" cy="274" r="3" style="fill: var(--shared)"/>
+    <text x="936" y="278">one key for each user</text>
+    <circle cx="924" cy="298" r="3" style="fill: var(--shared)"/>
+    <text x="936" y="302">use and cost of each user</text>
+  </g>
+  <path class="wire" d="M1030 196V148" style="stroke: var(--shared)" marker-end="url(#a-shared)"/>
+  <text x="1042" y="177" class="s">team provider key</text>
+
+  <!-- External systems -->
+  <rect x="900" y="400" width="260" height="140" rx="10" style="fill: var(--ext); stroke: var(--ext-line)"/>
+  <text x="920" y="428" class="h">GitHub · Azure · Git</text>
+  <text x="920" y="448" class="s">each audit log shows the user</text>
+  <g class="t mono">
+    <rect x="920" y="464" width="220" height="28" rx="6" style="fill: var(--alice-bg)"/>
+    <text x="932" y="483" style="fill: var(--alice)">pushed by alice</text>
+    <rect x="920" y="498" width="220" height="28" rx="6" style="fill: var(--bob-bg)"/>
+    <text x="932" y="517" style="fill: var(--bob)">deployed by bob</text>
+  </g>
+
+  <!-- alice out -->
+  <path class="wire" d="M806 362C850 362 852 268 898 268" style="stroke: var(--alice)" marker-end="url(#a-alice)"/>
+  <path class="wire" d="M806 380C858 380 852 476 898 476" style="stroke: var(--alice)" marker-end="url(#a-alice)"/>
+  <!-- bob out -->
+  <path class="wire" d="M806 556C872 556 840 300 898 300" style="stroke: var(--bob)" marker-end="url(#a-bob)"/>
+  <path class="wire" d="M806 574C866 574 852 512 898 512" style="stroke: var(--bob)" marker-end="url(#a-bob)"/>
+
+  <!-- Footer -->
+  <g transform="translate(40 636)">
+    <rect y="-10" width="12" height="12" rx="3" style="fill: var(--shared-bg); stroke: var(--shared)"/>
+    <text x="20" class="s">shared and reviewed</text>
+    <rect x="160" y="-10" width="12" height="12" rx="3" style="fill: var(--alice-bg); stroke: var(--alice)"/>
+    <rect x="178" y="-10" width="12" height="12" rx="3" style="fill: var(--bob-bg); stroke: var(--bob)"/>
+    <text x="198" class="s">private to one user</text>
+  </g>
+  <text x="1160" y="636" class="t" font-weight="700" text-anchor="end">No shared account.</text>
+</svg>

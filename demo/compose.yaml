@@ -1,0 +1,91 @@
+# Demo environment for the recorded casts (make demo). The same gateway and
+# fake model as the tests, a host "devbox" with an SSH server, and a VHS
+# container that records SSH sessions to devbox.
+# All keys here are fixed demo values for a disposable environment. They give
+# access to no real model and no real account.
+name: onbehalf-demo
+
+services:
+  db:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: litellm
+      POSTGRES_DB: litellm
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 2s
+      retries: 30
+
+  gateway:
+    image: ghcr.io/berriai/litellm-database:v1.104.0@sha256:fbe28229d2d02181c0a7d9df9599de614b491f3d897d2d7da18404f088310218
+    command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
+    volumes:
+      - ./gateway/litellm.yaml:/etc/litellm/config.yaml:ro
+    environment:
+      DATABASE_URL: postgresql://litellm:litellm@db:5432/litellm
+      LITELLM_MASTER_KEY: sk-demo-admin-key
+      PROVIDER_API_KEY: sk-demo-provider-key
+    depends_on:
+      db:
+        condition: service_healthy
+      fake-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 3s
+      retries: 60
+
+  fake-model:
+    image: node:26-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80
+    command: ["node", "/app/server.js"]
+    environment:
+      FAKE_MODEL_DONE: "Done. The command ran in your account, with your Git identity."
+    volumes:
+      - ../test/fake-model/server.js:/app/server.js:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      retries: 30
+
+  # The clean test host, as the base of devbox.
+  host-ubuntu:
+    build:
+      context: ../test/images
+      dockerfile: ubuntu.Dockerfile
+    image: onbehalf-test/host-ubuntu
+    profiles: [base]
+
+  devbox:
+    build:
+      context: .
+      dockerfile: images/devbox.Dockerfile
+    image: onbehalf-demo/devbox
+    hostname: devbox
+    volumes:
+      - ..:/src:ro
+      - keys:/demo-keys
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/run/sshd.pid"]
+      interval: 2s
+      retries: 30
+
+  vhs:
+    build:
+      context: .
+      dockerfile: images/vhs.Dockerfile
+    image: onbehalf-demo/vhs
+    volumes:
+      - .:/demo:ro
+      - ../docs/assets/demo:/out
+      - keys:/demo-keys:ro
+    working_dir: /out
+    profiles: [record]
+
+volumes:
+  keys:

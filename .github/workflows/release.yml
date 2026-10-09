@@ -1,0 +1,73 @@
+name: Release
+
+# A pushed tag vX.Y.Z makes the GitHub release: a source tarball, SHA256SUMS,
+# a signed build provenance bundle, and the notes of X.Y.Z from CHANGELOG.md.
+# The tag must agree with lib/onbehalf/VERSION.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions: {}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # make the release
+      id-token: write # sign the provenance with Sigstore
+      attestations: write # store the provenance on GitHub
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the version and the notes
+        id: meta
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          file_version=$(cat lib/onbehalf/VERSION)
+          if [ "$version" != "$file_version" ]; then
+            echo "::error::tag $TAG does not agree with lib/onbehalf/VERSION ($file_version)"
+            exit 1
+          fi
+          awk -v v="$version" '
+            $0 ~ "^## " v "( |$)" { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md >notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no notes for $version"
+            exit 1
+          fi
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - name: Build the tarball
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          mkdir dist
+          git archive --format=tar.gz --prefix="onbehalf-$VERSION/" \
+            -o "dist/onbehalf-$VERSION.tar.gz" HEAD
+          (cd dist && sha256sum "onbehalf-$VERSION.tar.gz" >SHA256SUMS)
+          cat dist/SHA256SUMS
+
+      - name: Attest the build provenance
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/onbehalf-${{ steps.meta.outputs.version }}.tar.gz
+
+      - name: Make the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" "dist/onbehalf-$VERSION.tar.gz.sigstore.json"
+          gh release create "$TAG" --verify-tag --title "onbehalf $VERSION" \
+            --notes-file notes.md dist/*

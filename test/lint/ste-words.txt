@@ -1,0 +1,53 @@
+# Words that docs must not use, for test/lint-docs.sh.
+# Format: <word or phrase>|<what to write instead>
+# Matches are whole words and ignore case. Code spans and fenced code are
+# not checked. "custom agent" and AGENTS.md are permitted.
+#
+# The terminology table in CONTRIBUTING.md.
+agent|AI harness, runtime or runtime account (see the terminology table)
+agents|AI harnesses, runtimes or runtime accounts (see the terminology table)
+coding harness|AI harness
+agent harness|AI harness
+onboard|enroll
+onboarding|enrollment
+unenroll|offboard
+deprovision|offboard
+baseline|shared stack
+blueprint|shared stack
+stack release|shared stack
+toolchain|work tools
+gateway admin|operator
+person|user
+persons|users
+model list|model catalog
+curated list|model catalog
+stack directory|stack source
+stack repository|stack source
+#
+# Words that ASD-STE100 does not approve, or that it replaces.
+allow|permit, let
+allows|permits, lets
+allowed|permitted
+ensure|make sure
+ensures|makes sure
+utilize|use
+via|through, with
+e.g.|for example
+i.e.|that is
+etc.|a full list, or "and other ..."
+however|but
+should|must, or "we recommend"
+in order to|to
+able to|can
+provide|give, supply
+provides|gives, supplies
+require|must, or "it is necessary"
+requires|must, or "it is necessary"
+need|must, or "it is necessary"
+needs|must, or "it is necessary"
+simply|(delete it)
+just|only, or delete it
+easily|(delete it)
+basically|(delete it)
+a lot|many, much
+lots of|many, much

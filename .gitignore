@@ -1,0 +1,12 @@
+.env
+# Local settings and worktrees of the Claude Code AI harness.
+.claude/
+# GitHub Pages: the build output, and the images that the build copies from docs/assets.
+site/_site/
+site/.jekyll-cache/
+site/assets/banner.svg
+site/assets/social-preview.png
+site/assets/architecture.svg
+site/assets/demo/
+# Logs of make demo.
+demo/.*.log
