@@ -11,6 +11,7 @@ docs/faq.md
 docs/operator-guide.md
 docs/user-guide.md
 docs/design/monitoring.md
+docs/design/harnesses.md
 examples/stack/README.md
 examples/stack/opencode/AGENTS.md
 examples/stack/opencode/agents/whoami.md
