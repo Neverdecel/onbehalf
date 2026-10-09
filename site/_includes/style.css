@@ -174,12 +174,6 @@ hr{border:0;border-top:1px solid var(--line);margin:40px 0}
 .icon svg{width:21px;height:21px}
 
 /* Proof */
-.demo{display:grid;gap:36px}
-.demo figure{margin:0}
-.demo video{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);background:#1e1e2e}
-.demo img{width:100%;height:auto}
-.demo figcaption{color:var(--muted);margin-top:12px;font-size:.98rem}
-.demo figcaption strong{color:var(--fg)}
 .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .proof div{background:var(--card);padding:24px}
 .proof strong{display:block;font:700 1.5rem/1.1 var(--mono);letter-spacing:-.03em;margin-bottom:8px}

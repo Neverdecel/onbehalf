@@ -37,15 +37,13 @@ lint-docs:
 # with "published: false", with plain Jekyll in the same image.
 # The image version comes from the workflow, so Dependabot updates both.
 PAGES_IMAGE := ghcr.io/actions/jekyll-build-pages:$(shell sed -n 's/.*jekyll-build-pages@[0-9a-f]* \# //p' .github/workflows/pages.yml)
-SITE_ASSETS := docs/assets/banner.svg docs/assets/architecture.svg docs/assets/social-preview.png \
-  $(addprefix docs/assets/demo/,user.webm user.gif)
+SITE_ASSETS := docs/assets/banner.svg docs/assets/architecture.svg docs/assets/social-preview.png
 # Rootless Docker maps root in the container to you; other Docker needs -u.
 SITE_USER = $(shell docker info -f '{{.SecurityOptions}}' 2>/dev/null | grep -q rootless || echo "-u $$(id -u):$$(id -g)")
 
 site-assets:
-	mkdir -p site/assets/demo
-	cp $(filter-out docs/assets/demo/%,$(SITE_ASSETS)) site/assets/
-	cp $(filter docs/assets/demo/%,$(SITE_ASSETS)) site/assets/demo/
+	mkdir -p site/assets
+	cp $(SITE_ASSETS) site/assets/
 
 site: site-assets
 	docker run --rm $(SITE_USER) -v "$$PWD/site:/src" -w /usr/local/bundle \

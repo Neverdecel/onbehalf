@@ -77,18 +77,15 @@ shares, and what onbehalf does not do.
 
 ## See it
 
-`alice` logs in through SSH and sets up the work tools. Then the runtime
-acts as `alice`, with the Git identity of `alice`:
+Two users send the same prompt on one host. The runtime of each user acts
+as that user. The runtime of `alice` cannot read the token of `bob`:
 
 <p align="center">
-  <img src="docs/assets/demo/user.gif" alt="alice logs in through SSH for the first time and sets up Git and GitHub CLI. The runtime of alice runs whoami and a git commit: both show alice." width="100%">
+  <img src="docs/assets/two-users.svg" alt="alice and bob send the same prompt to the AI harness: who am I? The runtime of alice answers alice on the host and on GitHub. The runtime of bob answers bob. The runtime of alice tries to read the GitHub token of bob and gets Permission denied. onbehalf status shows that bob uses the shared stack." width="100%">
 </p>
 
-For the operator, see the casts in the operator guide:
-[set up a host](docs/operator-guide.md) and
-[see who uses the runtimes](docs/operator-guide.md#see-who-uses-the-runtimes).
-The casts come from a test container with a stand-in model. See
-[demo/README.md](demo/README.md).
+The [user guide](docs/user-guide.md) and the
+[operator guide](docs/operator-guide.md) have recorded casts of each step.
 
 ## Quick start
 

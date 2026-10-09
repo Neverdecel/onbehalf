@@ -1,8 +1,7 @@
 # Demo casts
 
 The casts show what the operator and a user do on a shared host. They are
-in `docs/assets/demo`. The README and the site show the `user` cast only.
-The user guide and the operator guide show the casts for each role.
+in `docs/assets/demo`. The user guide and the operator guide show them.
 
 | Cast | What it shows |
 |---|---|

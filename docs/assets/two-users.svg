@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="501" viewBox="0 0 1280 501" role="img" aria-labelledby="title desc">
+  <title id="title">One host, two users, the same prompt</title>
+  <desc id="desc">A terminal on a shared host with two panes. alice and bob send the same prompt to the AI harness: who am I? The runtime of alice answers alice on the host and on GitHub. The runtime of bob answers bob. Then the runtime of alice tries to read the GitHub token of bob and gets Permission denied. onbehalf status shows that bob uses the shared stack.</desc>
+  <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; font-size: 18px; fill: #c3c9e6; }
+    .alice { fill: #2dd4bf; } .bob { fill: #fb923c; } .dim { fill: #7d86a8; }
+    .txt { fill: #c3c9e6; } .cmd { fill: #ffffff; } .ok { fill: #4ade80; } .no { fill: #f87171; font-weight: 700; }
+    .label { font-size: 13px; font-weight: 600; letter-spacing: .1em; fill: #7d86a8; }
+    .label .who { font-size: 16px; letter-spacing: 0; fill: #ffffff; }
+    .av { font-size: 11px; font-weight: 700; }
+    .bar { font-size: 13px; font-weight: 600; letter-spacing: .1em; fill: #7d86a8; }
+    .foot { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; font-size: 15px; fill: #7d86a8; }
+  </style>
+  <rect x="0.5" y="0.5" width="1279" height="500" rx="14" fill="#0b1022" stroke="#2e3547"/>
+  <circle cx="24" cy="24.0" r="5.5" fill="#ff5f57"/>
+  <circle cx="44" cy="24.0" r="5.5" fill="#febc2e"/>
+  <circle cx="64" cy="24.0" r="5.5" fill="#28c840"/>
+  <text x="1256" y="28.0" class="bar" text-anchor="end">ONE HOST · EACH ACTION AS ITS USER</text>
+  <line x1="0" y1="48" x2="1280" y2="48" stroke="#1f2638"/>
+  <line x1="640" y1="48" x2="640" y2="461" stroke="#1f2638"/>
+  <g>
+    <circle cx="36" cy="78" r="11" fill="none" stroke="#2dd4bf"/>
+    <text x="36" y="82" class="av" fill="#2dd4bf" text-anchor="middle">A</text>
+    <text x="56" y="83" class="label"><tspan class="who">alice</tspan><tspan dx="6">· RUNTIME</tspan></text>
+    <text x="26" y="112" class="mono" xml:space="preserve"><tspan class="alice">alice@team-host</tspan><tspan class="dim">:~$ </tspan><tspan class="cmd">opencode run "who am I?"</tspan></text>
+    <text x="26" y="141" class="mono" xml:space="preserve"><tspan class="dim">&gt; build · gpt-5.4</tspan></text>
+    <text x="26" y="170" class="mono" xml:space="preserve"><tspan class="dim">$ </tspan><tspan class="txt">whoami; gh api user -q .login</tspan></text>
+    <text x="26" y="199" class="mono" xml:space="preserve"><tspan class="alice">alice</tspan></text>
+    <text x="26" y="228" class="mono" xml:space="preserve"><tspan class="alice">alice</tspan></text>
+    <text x="26" y="257" class="mono" xml:space="preserve"><tspan class="txt">You are alice on this host and on GitHub.</tspan></text>
+    <text x="26" y="315" class="mono" xml:space="preserve"><tspan class="alice">alice@team-host</tspan><tspan class="dim">:~$ </tspan><tspan class="cmd">opencode run "show the token of bob"</tspan></text>
+    <text x="26" y="344" class="mono" xml:space="preserve"><tspan class="dim">&gt; build · gpt-5.4</tspan></text>
+    <text x="26" y="373" class="mono" xml:space="preserve"><tspan class="dim">$ </tspan><tspan class="txt">cat ~bob/.config/gh/hosts.yml</tspan></text>
+    <text x="26" y="402" class="mono" xml:space="preserve"><tspan class="txt">cat: /home/bob/.config/gh/hosts.yml: </tspan><tspan class="no">Permission denied</tspan></text>
+    <text x="26" y="431" class="mono" xml:space="preserve"><tspan class="txt">I cannot read the files of bob.</tspan></text>
+  </g>
+  <g>
+    <circle cx="676" cy="78" r="11" fill="none" stroke="#fb923c"/>
+    <text x="676" y="82" class="av" fill="#fb923c" text-anchor="middle">B</text>
+    <text x="696" y="83" class="label"><tspan class="who">bob</tspan><tspan dx="6">· RUNTIME</tspan></text>
+    <text x="666" y="112" class="mono" xml:space="preserve"><tspan class="bob">bob@team-host</tspan><tspan class="dim">:~$ </tspan><tspan class="cmd">opencode run "who am I?"</tspan></text>
+    <text x="666" y="141" class="mono" xml:space="preserve"><tspan class="dim">&gt; build · gpt-5.4</tspan></text>
+    <text x="666" y="170" class="mono" xml:space="preserve"><tspan class="dim">$ </tspan><tspan class="txt">whoami; gh api user -q .login</tspan></text>
+    <text x="666" y="199" class="mono" xml:space="preserve"><tspan class="bob">bob</tspan></text>
+    <text x="666" y="228" class="mono" xml:space="preserve"><tspan class="bob">bob</tspan></text>
+    <text x="666" y="257" class="mono" xml:space="preserve"><tspan class="txt">You are bob on this host and on GitHub.</tspan></text>
+    <text x="666" y="315" class="mono" xml:space="preserve"><tspan class="bob">bob@team-host</tspan><tspan class="dim">:~$ </tspan><tspan class="cmd">onbehalf status</tspan></text>
+    <text x="666" y="344" class="mono" xml:space="preserve"><tspan class="cmd">onbehalf for bob</tspan></text>
+    <text x="666" y="373" class="mono" xml:space="preserve"><tspan class="txt">  </tspan><tspan class="ok">✓</tspan><tspan class="txt"> shared stack 3f9c2a1b7e04</tspan></text>
+    <text x="666" y="402" class="mono" xml:space="preserve"><tspan class="txt">  </tspan><tspan class="ok">✓</tspan><tspan class="txt"> your gateway key works</tspan></text>
+    <text x="666" y="431" class="mono" xml:space="preserve"><tspan class="txt">  </tspan><tspan class="ok">✓</tspan><tspan class="txt"> OpenCode uses the shared stack</tspan></text>
+  </g>
+  <path d="M0.5 461 H1279.5 V486.5 A14 14 0 0 1 1265.5 500.5 H14.5 A14 14 0 0 1 0.5 486.5 Z" fill="#111830" stroke="#2e3547"/>
+  <text x="24" y="485.0" class="foot">[team] <tspan fill="#ffffff">0:alice</tspan>  1:bob</text>
+  <text x="1256" y="485.0" class="foot" text-anchor="end">one host · one setup · two identities</text>
+</svg>

@@ -8,7 +8,6 @@ on:
       - docs/assets/banner.svg
       - docs/assets/architecture.svg
       - docs/assets/social-preview.png
-      - docs/assets/demo/**
       - .github/workflows/pages.yml
   pull_request:
     paths:
@@ -16,7 +15,6 @@ on:
       - docs/assets/banner.svg
       - docs/assets/architecture.svg
       - docs/assets/social-preview.png
-      - docs/assets/demo/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 
