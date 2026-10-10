@@ -15,6 +15,8 @@ if [ $# -gt 0 ]; then
   . "$ONBEHALF_LIB/enroll.sh"
   . "$ONBEHALF_LIB/roles.sh"
   . "$ONBEHALF_LIB/tools.sh"
+  . "$ONBEHALF_LIB/harness.sh"
+  . "$ONBEHALF_LIB/harness-opencode.sh"
   need_root() { [ "$TEST_UID" = 0 ] || die "this command must run as root"; }
   id() {
     if [ "$*" = -u ]; then

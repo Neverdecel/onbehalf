@@ -126,13 +126,12 @@ health_checks() {
     fi
   fi
 
-  local cfg="$ONBEHALF_STACK/current/opencode/opencode.json"
   if [ ! -e "$ONBEHALF_STACK/current" ]; then
     health_result stack fail "no shared stack" "sudo onbehalf stack install DIR"
-  elif ! stack_models "$cfg" >/dev/null 2>&1; then
+  elif ! stack_models "$ONBEHALF_STACK/current" >/dev/null 2>&1; then
     health_result stack fail "the shared stack has no model catalog" "sudo onbehalf stack install DIR"
-  elif ! stack_providers_limited "$cfg"; then
-    health_result stack warn "the shared stack does not limit OpenCode to its gateway providers" "sudo onbehalf doctor"
+  elif [ -n "$(harness stack_problem)" ]; then
+    health_result stack warn "the shared stack does not limit $(harness label) to its gateway providers" "sudo onbehalf doctor"
   else
     health_result stack ok "shared stack $(basename "$(readlink "$ONBEHALF_STACK/current")")"
   fi
@@ -220,7 +219,7 @@ health_keys() {
 # One short model request with the probe key, to the stack default model.
 health_probe() {
   local model out
-  model=$(stack_default_model "$ONBEHALF_STACK/current/opencode/opencode.json" 2>/dev/null) || {
+  model=$(stack_default_model "$ONBEHALF_STACK/current" 2>/dev/null) || {
     health_result probe fail "the shared stack has no model to probe" "sudo onbehalf stack install DIR"
     return 0
   }

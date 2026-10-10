@@ -1,6 +1,97 @@
 # shellcheck shell=bash
 # OpenCode adapter: connect a user's OpenCode to the shared stack.
 
+harness_opencode_label() { echo OpenCode; }
+harness_opencode_command() { echo opencode; }
+
+# The model catalog of a stack without models.json: the enabled provider
+# model entries. Use API model IDs for gateway access, not display aliases.
+harness_opencode_models() {
+  jq -ce "[.providers[]?.models // {} | to_entries[] |
+    select(.value.disabled != true) | (.value.modelID // .key)] | $STACK_MODEL_IDS_OK" "$1"
+}
+
+harness_opencode_default_model() {
+  jq -er '. as $c | [.providers | to_entries[] | .key as $p | (.value.models // {}) | to_entries[] |
+    select(.value.disabled != true) | {ref: ($p + "/" + .key), id: (.value.modelID // .key)}] |
+    (map(select(.ref == $c.model)) + .)[0].id' "$1"
+}
+
+# OpenCode adds its own built-in providers, which bypass the gateway, unless
+# the stack allows only its own providers with enabled_providers.
+harness_opencode_providers_limited() {
+  jq -e '. as $c | (.enabled_providers | type == "array" and length > 0) and
+    all(.enabled_providers[]; . as $p | type == "string" and ($c.providers // {} | has($p)))' "$1" >/dev/null 2>&1
+}
+harness_opencode_providers() { jq -c '[.providers // {} | keys[]]' "$1" 2>/dev/null; }
+
+harness_opencode_validate() {
+  local cfg="$1/opencode/opencode.json"
+  [ ! -e "$1/opencode/opencode.jsonc" ] && [ ! -L "$1/opencode/opencode.jsonc" ] || die "opencode.jsonc is reserved for personal overrides, not the shared stack"
+  if [ -e "$1/models.json" ]; then
+    # onbehalf writes the gateway providers and the default model from models.json.
+    [ ! -e "$cfg" ] || jq -e 'type == "object" and (has("providers") or has("enabled_providers") or has("model") | not)' "$cfg" >/dev/null 2>&1 \
+      || die "opencode/opencode.json must be a JSON object without providers, enabled_providers and model. onbehalf writes them from models.json"
+    return 0
+  fi
+  harness_opencode_models "$cfg" >/dev/null 2>&1 || die "the stack source must have a model catalog: models.json, or one or more models in opencode/opencode.json"
+  # A default model is optional. If the stack sets one, it must be in the catalog.
+  jq -e '
+    . as $cfg | ((has("model") | not) or ((.model | type == "string") and
+    ([.providers | to_entries[] | . as $p | .value.models | to_entries[] |
+      select(.value.disabled != true) | ($p.key + "/" + .key)] | index($cfg.model) != null))) and
+    all(.providers[]; .settings.baseURL == "@GATEWAY_URL@/v1" and
+      .settings.apiKey == "{file:~/.config/onbehalf/gateway.key}")
+  ' "$cfg" >/dev/null || die "the default model must be in the model catalog. All providers must use the personal gateway key and @GATEWAY_URL@/v1"
+  harness_opencode_providers_limited "$cfg" \
+    || die "the stack source must permit only its gateway providers. If not, OpenCode adds its built-in providers. Set \"enabled_providers\": $(harness_opencode_providers "$cfg") in opencode/opencode.json"
+}
+
+# Write the gateway providers of the model catalog into the opencode.json of
+# the release: "onbehalf" for the OpenAI API, "onbehalf-anthropic" for the
+# Anthropic API. The other settings of the team stay.
+harness_opencode_build() {
+  local cfg="$1/opencode/opencode.json" tmp
+  tmp=$(mktemp)
+  { cat "$cfg" 2>/dev/null || echo '{}'; } | jq --slurpfile c "$1/models.json" --arg url "$ONBEHALF_GATEWAY_URL" '
+    $c[0] as $c |
+    def provider($api; $name; $package):
+      {name: $name, package: $package,
+       settings: {baseURL: ($url + "/v1"), apiKey: "{file:~/.config/onbehalf/gateway.key}"},
+       models: ($c.models | with_entries(select((.value.api // "openai") == $api) | .value = {}))};
+    def id($api): if $api == "anthropic" then "onbehalf-anthropic" else "onbehalf" end;
+    .providers = ({onbehalf: provider("openai"; "Team models (OpenAI API)"; "@ai-sdk/openai-compatible"),
+      "onbehalf-anthropic": provider("anthropic"; "Team models (Anthropic API)"; "@ai-sdk/anthropic")}
+      | with_entries(select(.value.models != {}))) |
+    .enabled_providers = (.providers | keys) |
+    if $c.model then .model = (id($c.models[$c.model].api // "openai") + "/" + $c.model) else . end |
+    {"$schema": "https://opencode.ai/config.json"} + .
+  ' >"$tmp" || die "could not write the OpenCode configuration of the model catalog"
+  mv "$tmp" "$cfg"
+}
+
+# A problem of the shared stack for OpenCode, for doctor and health: the
+# problem on line 1 and the fix on line 2. Nothing if there is no problem.
+harness_opencode_stack_problem() {
+  local cfg="$ONBEHALF_STACK/current/opencode/opencode.json"
+  ! harness_opencode_providers_limited "$cfg" || return 0
+  echo "the shared stack does not limit the providers: users also see the built-in models of OpenCode, which go around the gateway"
+  echo "add \"enabled_providers\": $(harness_opencode_providers "$cfg") to opencode/opencode.json in the stack source, then: sudo onbehalf stack install DIR"
+}
+
+# The runtime: the OpenCode service of the user.
+harness_opencode_runs() { pgrep -u "$1" -f 'serve --service' >/dev/null; }
+harness_opencode_restart() { as_user "$1" "opencode service restart" >/dev/null; }
+harness_opencode_restart_self() { opencode service restart >/dev/null; }
+harness_opencode_stop() { pkill -u "$1" -f opencode 2>/dev/null || true; }
+# Any OpenCode process: the TUI or its service. Any OpenCode command starts
+# the service, even `opencode models`.
+harness_opencode_operator_runs() { pgrep -u "$1" -x 'opencode(\.exe)?' >/dev/null 2>&1; }
+harness_opencode_operator_stop() { echo "opencode service stop"; }
+
+# Offboard: the service port goes back to the free ports.
+harness_opencode_user_remove() { harness_opencode_port_release "$1"; }
+
 harness_opencode_user_add() {
   local u=$1 home=$2 group=$3 replace=$4
   harness_opencode_link "$u" "$home" "$group" "$replace"

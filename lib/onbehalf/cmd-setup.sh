@@ -43,8 +43,10 @@ cmd_setup() {
     info "Use a stack source from the Git repository of your team. The team must review it."
     info "The models in the stack must already be on the gateway. Do not include credentials."
     ask dir "Reviewed stack source"
-    [ -r "$dir/opencode/opencode.json" ] || die "the directory must contain opencode/opencode.json"
-    jq -e 'type == "object"' "$dir/opencode/opencode.json" >/dev/null || die "the configuration of the stack source must be a JSON object"
+    local cfg="$dir/models.json"
+    [ -r "$cfg" ] || cfg="$dir/opencode/opencode.json"
+    [ -r "$cfg" ] || die "the directory must contain models.json or opencode/opencode.json"
+    jq -e 'type == "object"' "$cfg" >/dev/null || die "the configuration of the stack source must be a JSON object"
     ask answer "Install this directory for all users? (yes/no)" no
     [ "$answer" = yes ] || return 0
     cmd_stack_install --no-restart "$dir"
@@ -122,19 +124,20 @@ cmd_setup() {
       ;;
     *) result skip "model access: not checked. Check later: sudo onbehalf doctor --model-check" ;;
   esac
-  ok "Host setup is complete. Users can connect through SSH and run opencode."
+  ok "Host setup is complete. Users can connect through SSH and run $(harness command)."
   info "Users make their own changes without root. See the user guide."
 }
 
 # OpenCode and a running gateway must be there before the wizard changes
 # anything. Returns 1, with the steps to take, if one is missing.
 setup_prerequisites() {
-  local oc ready=yes answer
-  if oc=$(command -v opencode) && [[ $oc != /home/* && $oc != /root/* ]]; then
-    ok "OpenCode is installed for the full host"
+  local path ready=yes answer label
+  label=$(harness label)
+  if path=$(command -v "$(harness command)") && [[ $path != /home/* && $path != /root/* ]]; then
+    ok "$label is installed for the full host"
   else
-    err "OpenCode is not installed for the full host"
-    fix "install OpenCode with the OpenCode documentation. See the operator guide, section 'OpenCode'"
+    err "$label is not installed for the full host"
+    fix "install $label with the $label documentation. See the operator guide, section '$label'"
     ready=no
   fi
 
@@ -185,8 +188,8 @@ cmd_login() {
   fi
   [ "$(id -u)" != 0 ] || return 0
   if is_operator "$(id -un)"; then
-    if operator_runs_opencode "$(id -un)"; then
-      warn "OpenCode runs in this operator account. Stop it: opencode service stop"
+    if harness operator_runs "$(id -un)"; then
+      warn "$(harness label) runs in this operator account. Stop it: $(harness operator_stop)"
     fi
     if [ -e "$HOME/.config/onbehalf/operator-seen" ]; then
       if [ -n "$(agent_of "$(id -un)")" ]; then
@@ -236,7 +239,7 @@ cmd_login() {
   fi
   if [ ! -e "$HOME/.config/onbehalf/welcome-seen" ]; then
     heading "onbehalf"
-    info "Start the AI harness: opencode"
+    info "Start the AI harness: $(harness command)"
     [ -z "$(owner_of "$(id -un)")" ] \
       || info "This is the runtime account of $(owner_of "$(id -un)"). The logins that you make here stay in this account."
     info "Set up your work tools and logins at any time: onbehalf tools"
@@ -259,7 +262,7 @@ login_panel() {
   local owner todo
   owner=$(owner_of "$(id -un)")
   todo=$(tools_unfinished)
-  printf '\n%sonbehalf%s · start the AI harness: opencode\n' "$_b" "$_0"
+  printf '\n%sonbehalf%s · start the AI harness: %s\n' "$_b" "$_0" "$(harness command)"
   [ -z "$owner" ] || info "This is the runtime account of $owner. The logins that you make here stay in this account."
   [ "$1" = no ] || info "The shared stack changed after your last login: new team settings, custom agents, skills or work tools."
   [ -z "$todo" ] || printf '  %s!%s Work tools to finish: onbehalf tools %s\n' "$_y" "$_0" "$todo"

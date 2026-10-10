@@ -22,6 +22,8 @@ tool_mcp_servers() {
 }
 
 tool_mcp_discover() {
+  # The MCP logins use the commands of OpenCode.
+  [ "$(harness_id)" = opencode ] || return 0
   local name url
   while IFS= read -r name; do
     [ -n "$name" ] || continue

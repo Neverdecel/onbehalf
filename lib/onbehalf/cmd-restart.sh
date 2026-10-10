@@ -41,7 +41,7 @@ cmd_restart() {
     heading "Restart all runtimes"
     local n=0
     for u in $(people); do
-      if pgrep -u "$u" -f 'serve --service' >/dev/null; then
+      if harness runs "$u"; then
         restart_one "$u"
         n=$((n + 1))
       fi
@@ -69,12 +69,12 @@ restart_self() {
   ! is_operator "$u" || die "operators run no runtime in this account. For your runtime account: sudo onbehalf restart"
   [ -e "$HOME/.config/onbehalf/gateway.key" ] || die "you are not a user on this host. Ask your operator to run: sudo onbehalf user add $u"
   heading "Restart your runtime"
-  opencode service restart >/dev/null || die "the runtime did not restart. Check: onbehalf status"
+  harness restart_self || die "the runtime did not restart. Check: onbehalf status"
   ok "restarted your runtime"
 }
 
 restart_one() {
-  as_user "$1" "opencode service restart" >/dev/null || {
+  harness restart "$1" || {
     err "the runtime of $1 did not restart"
     return 0
   }

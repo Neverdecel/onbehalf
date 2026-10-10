@@ -5,7 +5,7 @@ set -Eeuo pipefail
 trap 'echo "onbehalf: failed at ${BASH_SOURCE[0]##*/}:$LINENO: $BASH_COMMAND" >&2' ERR
 
 ONBEHALF_LIB=${ONBEHALF_LIB:-$(readlink -f "$(dirname "$(readlink -f "$0")")/../lib/onbehalf")}
-for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness-opencode tools; do
+for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness harness-opencode tools; do
   # shellcheck source=/dev/null
   . "$ONBEHALF_LIB/$f.sh"
 done

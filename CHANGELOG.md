@@ -6,6 +6,14 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+### Shared stack
+
+- A stack source can have `models.json` as its model catalog, and
+  `AGENTS.md` and `skills/` at its root. Then the stack source does not
+  depend on one AI harness. onbehalf writes the gateway providers of
+  OpenCode from `models.json`. A stack source with
+  `opencode/opencode.json` and no `models.json` works as before.
+
 ### Docs
 
 - Recorded casts show the operator setup, the first login of a user and

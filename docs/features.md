@@ -46,6 +46,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
   version. Personal files stay.
 - **Shared custom agents with limits.** A shared custom agent asks the
   user before each command that is not in its list of permitted commands.
+- **A stack source for each AI harness.** `models.json` is the model
+  catalog. `AGENTS.md` and `skills/` at the root are for each AI harness.
+  onbehalf writes the gateway providers of OpenCode from `models.json`.
 
 | Claim | Checked by |
 |---|---|
@@ -53,6 +56,7 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | One change to the shared stack gets to every user, also to the runtimes that run. Rollback works | `07-stack-update` |
 | Personal tools in `~/.local/bin` stay available to the runtime after a change to the shared stack | `07-stack-update` |
 | A shared custom agent asks the user before each command that is not in its list | `07-shared-agent` |
+| A stack source with `models.json`, a root `AGENTS.md` and root skills gives each user the same result | `12-neutral-stack` |
 | Personal settings keep the shared settings. Updates and rollback keep the personal overrides | `09-personal-models` |
 
 ## Model access through one gateway

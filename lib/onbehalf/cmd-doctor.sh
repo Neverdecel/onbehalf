@@ -92,7 +92,7 @@ doctor_model_access() {
     fix "use one of: ${users[*]}"
     return 1
   fi
-  if [ -z "$model" ] && ! model=$(stack_default_model "$ONBEHALF_STACK/current/opencode/opencode.json" 2>/dev/null); then
+  if [ -z "$model" ] && ! model=$(stack_default_model "$ONBEHALF_STACK/current" 2>/dev/null); then
     err "the shared stack has no model to check"
     fix "sudo onbehalf stack install <reviewed stack source>"
     return 1
@@ -117,15 +117,16 @@ doctor_host() {
     fix "run the installer again with --install-deps"
   fi
 
-  local oc
-  if oc=$(command -v opencode); then
-    case $oc in
-      /home/* | /root/*) warn "OpenCode at $oc is a personal installation, not an installation for the full host" ;;
-      *) ok "$(opencode --version 2>/dev/null) at $oc" ;;
+  local cmd label path
+  cmd=$(harness command) label=$(harness label)
+  if path=$(command -v "$cmd"); then
+    case $path in
+      /home/* | /root/*) warn "$label at $path is a personal installation, not an installation for the full host" ;;
+      *) ok "$("$cmd" --version 2>/dev/null) at $path" ;;
     esac
   else
-    err "OpenCode is not installed for the full host"
-    fix "install OpenCode for the full host with the OpenCode documentation. See the operator guide, section 'OpenCode'"
+    err "$label is not installed for the full host"
+    fix "install $label for the full host with the $label documentation. See the operator guide, section '$label'"
   fi
 
   if [ ! -r "$ONBEHALF_ETC/onbehalf.conf" ]; then
@@ -162,11 +163,13 @@ doctor_host() {
 
   if [ -e "$ONBEHALF_STACK/current" ]; then
     ok "shared stack $(basename "$(readlink "$ONBEHALF_STACK/current")")"
-    if stack_providers_limited "$ONBEHALF_STACK/current/opencode/opencode.json"; then
+    local problem
+    problem=$(harness stack_problem)
+    if [ -z "$problem" ]; then
       ok "the shared stack permits only its gateway providers"
     else
-      warn "the shared stack does not limit the providers: users also see the built-in models of OpenCode, which go around the gateway"
-      fix "add \"enabled_providers\": $(stack_providers "$ONBEHALF_STACK/current/opencode/opencode.json") to opencode/opencode.json in the stack source, then: sudo onbehalf stack install DIR"
+      warn "${problem%%$'\n'*}"
+      fix "${problem#*$'\n'}"
     fi
     local loose
     loose=$(find "$ONBEHALF_STACK" \( ! -user root -o -perm -o+w -o -perm -g+w \) ! -type l -print -quit)
@@ -232,10 +235,10 @@ doctor_user() {
     fix "rm $key && sudo onbehalf user add $u"
   fi
 
-  harness_opencode_check "$u" "$home"
+  harness check "$u" "$home"
 
   local models policy=models
-  ! models=$(stack_models "$ONBEHALF_STACK/current/opencode/opencode.json" 2>/dev/null) \
+  ! models=$(stack_models "$ONBEHALF_STACK/current" 2>/dev/null) \
     || policy=$(gateway_key_policy "$u" "$models")
   if [ "$policy" = ok ]; then
     ok "gateway key permits only the model catalog and inference routes"
