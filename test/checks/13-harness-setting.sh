@@ -9,7 +9,7 @@ check "init writes the default AI harness" grep -qx 'ONBEHALF_HARNESS=opencode' 
 
 before=$(sha256sum "$conf")
 out=$(onbehalf init --harness nothere </dev/null 2>&1)
-check "init refuses an AI harness that onbehalf does not support" grep -q "the AI harness must be one of: opencode" <<<"$out"
+check "init refuses an AI harness that onbehalf does not support" grep -q "the AI harness must be one of: opencode claude" <<<"$out"
 check "the refused init keeps the configuration" test "$(sha256sum "$conf")" = "$before"
 
 # init again, without --harness: the host keeps its AI harness.
@@ -35,7 +35,7 @@ cp -p "$conf" "$conf.orig"
 sed -i 's/^ONBEHALF_HARNESS=.*/ONBEHALF_HARNESS=nothere/' "$conf"
 out=$(onbehalf doctor 2>&1)
 check "doctor names an AI harness in the configuration that onbehalf does not support" \
-  grep -q "the AI harness 'nothere' in /etc/onbehalf/onbehalf.conf is not one of: opencode" <<<"$out"
+  grep -q "the AI harness 'nothere' in /etc/onbehalf/onbehalf.conf is not one of: opencode claude" <<<"$out"
 mv "$conf.orig" "$conf"
 
 exit $FAILED

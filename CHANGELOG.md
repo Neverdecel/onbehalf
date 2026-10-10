@@ -23,6 +23,22 @@ in `lib/onbehalf/VERSION`.
 - `doctor --model-check`, `status --model-check` and the health probe
   send their request with the API of the AI harness.
 
+### Claude Code
+
+- `onbehalf init --harness claude` selects Claude Code. The stack source
+  must have `models.json`.
+- `stack install` writes the managed settings of Claude Code from
+  `models.json`: the gateway, the personal gateway key, the model catalog
+  and the default model. `/etc/claude-code/managed-settings.json` is a
+  link to the current release. Team settings go in
+  `claude/managed-settings.json` of the stack source.
+- Each user gets links in `~/.claude`: `CLAUDE.md` to the shared
+  `AGENTS.md`, and each shared skill, custom agent and command.
+- A user can set a different default model in `~/.claude/settings.json`.
+- `doctor` and `status` warn about `~/.claude/.credentials.json`.
+- Claude Code has no service. `onbehalf restart` tells the user to start
+  a new session.
+
 ### Docs
 
 - Recorded casts show the operator setup, the first login of a user and

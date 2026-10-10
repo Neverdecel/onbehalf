@@ -87,7 +87,11 @@ harness_opencode_stack_problem() {
   echo "add \"enabled_providers\": $(harness_opencode_providers "$cfg") to opencode/opencode.json in the stack source, then: sudo onbehalf stack install DIR"
 }
 
+# The shared settings are links into the release. Nothing goes into /etc.
+harness_opencode_activate() { :; }
+
 # The runtime: the OpenCode service of the user.
+harness_opencode_service() { :; }
 harness_opencode_runs() { pgrep -u "$1" -f 'serve --service' >/dev/null; }
 harness_opencode_restart() { as_user "$1" "opencode service restart" >/dev/null; }
 harness_opencode_restart_self() { opencode service restart >/dev/null; }
@@ -170,7 +174,7 @@ harness_opencode_stack_changed() {
 harness_opencode_link() {
   local u=$1 home=$2 group=$3 replace=$4
   local dir="$home/.config/opencode" src="$ONBEHALF_STACK/current/opencode"
-  local item name link child
+  local item name link
 
   install -d -o "$u" -g "$group" -m 0700 "$dir"
   # Native V2 precedence: global JSON defaults, then personal JSONC overrides.
@@ -187,47 +191,11 @@ harness_opencode_link() {
   for item in "$src"/*; do
     name=${item##*/}
     link="$dir/$name"
-    # Named agents, skills and commands shadow individually, not as a directory.
-    if [ -d "$item" ]; then
-      if [ "$(link_of "$link")" = "$item" ]; then rm "$link"; fi
-      if [ ! -e "$link" ]; then install -d -o "$u" -g "$group" -m 0700 "$link"; fi
-      if [ -d "$link" ] && [ ! -L "$link" ]; then
-        for child in "$item"/*; do
-          [ -e "$child" ] || continue
-          harness_opencode_item "$u" "$group" "$replace" "$child" "$link/${child##*/}"
-        done
-        continue
-      fi
-    fi
-    harness_opencode_item "$u" "$group" "$replace" "$item" "$link"
+    if [ -d "$item" ] && harness_link_each "$u" "$group" "$replace" "$item" "$link"; then continue; fi
+    harness_link_item "$u" "$group" "$replace" "$item" "$link"
   done
 
-  # Remove only our broken links, including removed named shared items.
-  while IFS= read -r -d '' link; do
-    if [[ $(link_of "$link") == "$src/"* ]] && [ ! -e "$link" ]; then rm -f "$link"; fi
-  done < <(find "$dir" -type l -print0)
-}
-
-harness_opencode_item() {
-  local u=$1 group=$2 replace=$3 item=$4 link=$5 backup name=${5##*/}
-  if { [ -e "$link" ] || [ -L "$link" ]; } && [ "$(link_of "$link")" != "$item" ]; then
-    if [ "$replace" = yes ]; then
-      backup="$link.before-onbehalf"
-      # A skill directory backup must not remain in OpenCode's discovery tree.
-      if [ -d "$link" ]; then
-        backup="$(home_of "$u")/.config/onbehalf/backups/$name.before-onbehalf"
-        install -d -o "$u" -g "$group" -m 0700 "${backup%/*}"
-      fi
-      while [ -e "$backup" ] || [ -L "$backup" ]; do backup="$backup.bak"; done
-      mv "$link" "$backup"
-      ok "moved the personal $name to ${backup##*/}"
-    else
-      info "$u uses the personal $name, not the shared item with the same name"
-      return
-    fi
-  fi
-  ln -sfn "$item" "$link"
-  chown -h "$u:$group" "$link"
+  harness_unlink_removed "$dir" "$src"
 }
 
 # Checks for onbehalf doctor (as root) and onbehalf status (as the user).

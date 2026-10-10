@@ -104,7 +104,7 @@ health_run() {
 health_result() { jq -nc --arg id "$1" --arg s "$2" --arg t "$3" --arg f "${4:-}" '{id: $id, status: $s, text: $t, fix: $f}'; }
 
 health_checks() {
-  local gw=yes
+  local gw=yes problem
   if curl -fsS --max-time 10 "$ONBEHALF_GATEWAY_URL/health/liveliness" >/dev/null 2>&1; then
     health_result gateway ok "the gateway answers"
   else
@@ -138,8 +138,8 @@ health_checks() {
     health_result stack fail "no shared stack" "sudo onbehalf stack install DIR"
   elif ! stack_models "$ONBEHALF_STACK/current" >/dev/null 2>&1; then
     health_result stack fail "the shared stack has no model catalog" "sudo onbehalf stack install DIR"
-  elif [ -n "$(harness stack_problem)" ]; then
-    health_result stack warn "the shared stack does not limit $(harness label) to its gateway providers" "sudo onbehalf doctor"
+  elif problem=$(harness stack_problem | head -1) && [ -n "$problem" ]; then
+    health_result stack warn "$problem" "sudo onbehalf doctor"
   else
     health_result stack ok "shared stack $(basename "$(readlink "$ONBEHALF_STACK/current")")"
   fi

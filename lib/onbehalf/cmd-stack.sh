@@ -53,6 +53,7 @@ cmd_stack_install() {
   ln -sfn "releases/$id" "$ONBEHALF_STACK/current.new"
   mv -T "$ONBEHALF_STACK/current.new" "$ONBEHALF_STACK/current"
   ok "shared stack $id is current"
+  harness activate
 
   # Every user gets the change now: new links, and running services restart.
   # --no-restart leaves running services on the old config until they restart.

@@ -5,7 +5,7 @@ set -Eeuo pipefail
 trap 'echo "onbehalf: failed at ${BASH_SOURCE[0]##*/}:$LINENO: $BASH_COMMAND" >&2' ERR
 
 ONBEHALF_LIB=${ONBEHALF_LIB:-$(readlink -f "$(dirname "$(readlink -f "$0")")/../lib/onbehalf")}
-for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness harness-opencode tools; do
+for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness harness-opencode harness-claude tools; do
   # shellcheck source=/dev/null
   . "$ONBEHALF_LIB/$f.sh"
 done
@@ -18,7 +18,7 @@ onbehalf $ONBEHALF_VERSION: the setup is shared. The identity is not.
 Operator commands (as root):
   setup                             guided setup of a new host (terminal only)
   init [--harness NAME]             connect this host to the model gateway, for
-                                    one AI harness: opencode (default)
+                                    one AI harness: opencode (default) or claude
   stack install [--no-restart] DIR  make DIR the shared stack for every user
   user add [--replace-config] [--entra-id ID] NAME...
                                     add users (new accounts or old accounts)
