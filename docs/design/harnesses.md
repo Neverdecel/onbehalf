@@ -53,7 +53,8 @@ model catalog and the routes of `GATEWAY_USER_ROUTES`.
 | Claude Code: a model that is not in the model catalog | The gateway refuses it (403). Claude Code tries again until the timeout. The user sees no clear error |
 | Codex with a provider in `/etc/codex/config.toml`, `wire_api = "responses"`, and `auth.command` that reads the key file through `$HOME` | Codex sends the request as the user. The gateway accepts the key |
 | Codex: `~/.codex/config.toml` sets a different `model` | The personal `model` wins over `/etc/codex/config.toml` |
-| Codex: a model that is not in the model catalog | The gateway refuses it |
+| Codex: a model that is not in the model catalog | The gateway refuses it (403). Codex shows the error of the gateway |
+| Codex 0.162.1: a link in `~/.codex/skills/` to a shared skill, and a link `~/.codex/AGENTS.md` | The request of the user has the skill and the harness instructions |
 | Codex reads `/v1/models` of LiteLLM | Codex cannot read the format. It writes an error and continues |
 
 The test gateway could not give a full answer to Claude Code or Codex. This
@@ -78,7 +79,7 @@ is a problem of the test models, not of the AI harnesses:
 | Model catalog in the AI harness | `enabled_providers` and the provider models | `availableModels` | The provider of `/etc/codex/config.toml` |
 | Credentials that go around the gateway | `~/.local/share/opencode/auth.json` | `~/.claude/.credentials.json` | `~/.codex/auth.json` |
 | Harness instructions | Link `~/.config/opencode/AGENTS.md` | Link `~/.claude/CLAUDE.md` | Link `~/.codex/AGENTS.md` |
-| Custom agents, skills, commands | Links in `agents/`, `skills/`, `commands/` | Links in `~/.claude/agents/`, `skills/`, `commands/` | Skills only. The path is not tested yet |
+| Custom agents, skills, commands | Links in `agents/`, `skills/`, `commands/` | Links in `~/.claude/agents/`, `skills/`, `commands/` | Skills only: links in `~/.codex/skills/` |
 | Service of each user | Yes, with a port for each user | No | No |
 | Change of the shared stack | `opencode service restart` | Claude Code reads changed settings again. New sessions read new links | New sessions read the new configuration |
 | MCP login | `opencode mcp auth NAME` | No command. The login is in the session (`/mcp`) | `codex mcp login NAME` |
@@ -252,10 +253,17 @@ the account of the user.
 
 ### 6. The Codex adapter
 
-- `build` writes `codex/config.toml` in the release. `activate` copies it
-  to `/etc/codex/config.toml`. onbehalf adds the provider for the gateway, the
+- `build` writes `codex/config.toml` in the release. `activate` links
+  `/etc/codex/config.toml` to that file in the current release, as for
+  Claude Code. onbehalf adds the provider `onbehalf` for the gateway, the
   `auth.command` for the personal key, and the default model of
   `models.json`.
+- onbehalf has no TOML tool. It writes `model` and `model_provider` before
+  the settings of the team, and the provider after them. Thus the result
+  is a correct TOML file.
+- `stack_validate` refuses `model`, `model_provider` and the provider
+  `onbehalf` in the configuration of the team.
+- A personal `model` in `~/.codex/config.toml` wins over the default model.
 - `user_add` links `~/.codex/AGENTS.md` to the shared `AGENTS.md`, and
   links each skill.
 - `check` gives a warning for `~/.codex/auth.json`.
@@ -298,7 +306,10 @@ the account of the user.
 - The quality of the API change in LiteLLM for models of other providers.
   A Claude model behind Codex, or a GPT model behind Claude Code, can lose
   features.
-- Codex: the path of the shared skills is not tested yet.
+- Codex: a personal `~/.codex/config.toml` wins over each setting of the
+  shared stack. A user can select a different provider there. That
+  provider must have personal credentials, and the gateway key does not
+  permit more than the model catalog.
 
 ## Steps
 

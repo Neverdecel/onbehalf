@@ -1,0 +1,8 @@
+{
+  "name": "onbehalf-test-codex",
+  "private": true,
+  "description": "Codex version for the Ubuntu test host. The lockfile pins it by hash; Dependabot updates both.",
+  "dependencies": {
+    "@openai/codex": "0.162.1"
+  }
+}

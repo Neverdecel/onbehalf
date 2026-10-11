@@ -72,6 +72,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 - **Claude Code as the AI harness.** The managed settings of the host give
   the gateway, the personal gateway key and the model catalog. A user can
   change the default model to a different model of the model catalog.
+- **Codex as the AI harness.** The system configuration of the host gives
+  the gateway, the personal gateway key and the default model. A user can
+  change the default model to a different model of the model catalog.
 
 | Claim | Checked by |
 |---|---|
@@ -80,6 +83,7 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | `doctor --model-check` shows a refusal from the provider separately from the result of the host | `09-model-access` |
 | `init`, `doctor` and `health` check the API of the AI harness of the host, without a model request | `13-harness-setting` |
 | Claude Code answers through the gateway with the personal gateway key. A personal default model stays after a stack update. `doctor` finds personal credentials that go around the gateway | `14-claude-code` |
+| Codex answers through the gateway with the personal gateway key. The gateway refuses a model that is not in the model catalog. A personal default model stays after a stack update. `doctor` finds personal credentials that go around the gateway | `15-codex` |
 
 ## Enroll and offboard
 
