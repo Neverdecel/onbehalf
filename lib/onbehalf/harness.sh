@@ -92,6 +92,15 @@ harness_link_each() {
   done
 }
 
+# harness_unlink_all DIR SRC: remove each link into SRC, at a change of the
+# AI harness. The personal items stay.
+harness_unlink_all() {
+  local link
+  while IFS= read -r -d '' link; do
+    if [[ $(link_of "$link") == "$2/"* ]]; then rm -f "$link"; fi
+  done < <(find "$1" -maxdepth 2 -type l -print0 2>/dev/null)
+}
+
 # harness_unlink_removed DIR SRC: remove only the broken links into SRC, for
 # example of a named item that the shared stack removed.
 harness_unlink_removed() {

@@ -54,6 +54,11 @@ harness_claude_activate() {
   ok "Claude Code uses the managed settings of the shared stack"
 }
 
+harness_claude_deactivate() {
+  [ "$(link_of "$CLAUDE_MANAGED")" != "$ONBEHALF_STACK/current/claude/managed-settings.json" ] || rm -f "$CLAUDE_MANAGED"
+}
+harness_claude_user_unlink() { harness_unlink_all "$1/.claude" "$ONBEHALF_STACK/current/claude"; }
+
 harness_claude_stack_problem() {
   [ "$(link_of "$CLAUDE_MANAGED")" != "$ONBEHALF_STACK/current/claude/managed-settings.json" ] || return 0
   echo "Claude Code does not use the managed settings of the shared stack ($CLAUDE_MANAGED): it does not use the gateway and the model catalog"

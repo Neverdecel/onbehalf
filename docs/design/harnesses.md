@@ -220,8 +220,9 @@ installed for the host.
    harness.
 3. It checks that the gateway serves the API of the new AI harness.
 4. It updates the routes of each gateway key.
-5. It removes the links of the old adapter from each user, and calls
-   `deactivate` of the old adapter.
+5. It stops the runtimes of the old AI harness. It removes the links of
+   the old adapter from each user, and calls `deactivate` of the old
+   adapter.
 6. It writes `ONBEHALF_HARNESS`, calls `activate` of the new adapter, and
    calls `user_add` for each user.
 
