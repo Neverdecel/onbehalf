@@ -3,7 +3,7 @@
 # host. Each adapter, harness-NAME.sh, gives the functions harness_NAME_OP.
 
 # The AI harnesses that onbehalf supports, in the order of their directories.
-HARNESSES=(opencode claude)
+HARNESSES=(opencode claude codex)
 
 # The AI harness of the host. A host without the setting uses OpenCode.
 harness_id() { echo "${ONBEHALF_HARNESS:-opencode}"; }

@@ -25,6 +25,14 @@ model_list:
       api_base: http://fake-model:8080/v1
       api_key: os.environ/PROVIDER_API_KEY
 
+  # A second model of the fake model. Codex uses the responses API, and
+  # LiteLLM cannot stream a mock_response through that API.
+  - model_name: agent-model-v2
+    litellm_params:
+      model: openai/agent-model-v2
+      api_base: http://fake-model:8080/v1
+      api_key: os.environ/PROVIDER_API_KEY
+
   # Curated, but the provider refuses every request (see fake-model/server.js).
   - model_name: blocked-model
     litellm_params:

@@ -38,6 +38,15 @@ updates:
       claude:
         patterns: ["*"]
 
+  # Codex on the Ubuntu test host, with its platform binaries.
+  - package-ecosystem: npm
+    directory: /test/images/codex
+    schedule:
+      interval: weekly
+    groups:
+      codex:
+        patterns: ["*"]
+
   - package-ecosystem: docker-compose
     directories: [/test, /examples/gateway]
     schedule:

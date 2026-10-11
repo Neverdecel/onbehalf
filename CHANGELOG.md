@@ -39,6 +39,23 @@ in `lib/onbehalf/VERSION`.
 - Claude Code has no service. `onbehalf restart` tells the user to start
   a new session.
 
+### Codex
+
+- `onbehalf init --harness codex` selects Codex. The stack source must
+  have `models.json`.
+- `stack install` writes the system configuration of Codex from
+  `models.json`: the gateway provider, the personal gateway key and the
+  default model. `/etc/codex/config.toml` is a link to the current
+  release. Team settings go in `codex/config.toml` of the stack source.
+- Each user gets links in `~/.codex`: `AGENTS.md` to the shared
+  `AGENTS.md`, and each shared skill.
+- A user can set a different default model in `~/.codex/config.toml`.
+- `doctor` and `status` warn about `~/.codex/auth.json`.
+- Codex has no service. `onbehalf restart` tells the user to start a new
+  session.
+- The gateway key of a user on a Codex host permits only the responses
+  API.
+
 ### Docs
 
 - Recorded casts show the operator setup, the first login of a user and
