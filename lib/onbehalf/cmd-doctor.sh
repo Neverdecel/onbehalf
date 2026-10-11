@@ -117,6 +117,8 @@ doctor_host() {
     fix "run the installer again with --install-deps"
   fi
 
+  # The configuration names the AI harness of the host.
+  [ ! -r "$ONBEHALF_ETC/onbehalf.conf" ] || load_conf
   local cmd label path
   cmd=$(harness command) label=$(harness label)
   if path=$(command -v "$cmd"); then
@@ -144,6 +146,14 @@ doctor_host() {
   fi
   if curl -fsS --max-time 10 "$ONBEHALF_GATEWAY_URL/health/liveliness" >/dev/null 2>&1; then
     ok "gateway $ONBEHALF_GATEWAY_URL answers"
+    local missing
+    missing=$(gateway_api_missing)
+    if [ -z "$missing" ]; then
+      ok "the gateway serves the API of $label"
+    else
+      err "the gateway does not serve the API of $label: ${missing//$'\n'/ }"
+      fix "use a LiteLLM version that serves these routes. See the operator guide, section 'Model gateway'"
+    fi
     if gateway_admin GET "/key/list?size=1" >/dev/null 2>&1; then
       ok "the gateway accepts the admin key"
       # Operators see usage, not content: onbehalf report never shows it.

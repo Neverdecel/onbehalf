@@ -96,7 +96,19 @@ gateway_admin() { gateway_call "$ONBEHALF_ETC/gateway-admin.key" "$@"; }
 # Personal keys permit inference and reading the user's own model use only,
 # even if the owner has a gateway admin role. The gateway answers
 # /user/daily/activity for a personal key with that key's own use only.
-GATEWAY_USER_ROUTES='["/models","/v1/models","/chat/completions","/v1/chat/completions","/responses","/v1/responses","/messages","/v1/messages","/user/daily/activity"]'
+# The inference routes are the routes of the API of the AI harness.
+gateway_user_routes() { harness routes; }
+
+# The API routes of the AI harness that the gateway does not serve, one on
+# each line. A GET to a POST route gives 405 if the route is there and 404 if
+# not. It sends no model request and needs no key.
+gateway_api_missing() {
+  local route code
+  for route in $(harness api_routes); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$ONBEHALF_GATEWAY_URL$route" 2>/dev/null) || code=000
+    [ "$code" != 404 ] || echo "$route"
+  done
+}
 
 # A model ID must be the model_name of a gateway model. Never send an empty
 # list: LiteLLM treats it as unrestricted.
@@ -197,7 +209,7 @@ stack_tool_valid() {
 gateway_models_update() {
   local u=$1 models=$2 token body
   token=$(sha256sum "$(home_of "$u")/.config/onbehalf/gateway.key" | cut -d' ' -f1)
-  body=$(jq -nc --arg key "$token" --argjson models "$models" --argjson routes "$GATEWAY_USER_ROUTES" \
+  body=$(jq -nc --arg key "$token" --argjson models "$models" --argjson routes "$(gateway_user_routes)" \
     '{key: $key, models: $models, allowed_routes: $routes}')
   gateway_admin POST /key/update "$body" >/dev/null || die "could not update the model access of $u. Install the shared stack again"
   gateway_models_match "$u" "$models" || die "the model access of $u on the gateway is not the same as the model catalog. Install the shared stack again"
@@ -208,7 +220,7 @@ gateway_models_update() {
 gateway_key_policy() {
   local token
   token=$(sha256sum "$(home_of "$1")/.config/onbehalf/gateway.key" | cut -d' ' -f1)
-  gateway_admin GET "/key/info?key=$token" 2>/dev/null | jq -r --argjson models "$2" --argjson routes "$GATEWAY_USER_ROUTES" '
+  gateway_admin GET "/key/info?key=$token" 2>/dev/null | jq -r --argjson models "$2" --argjson routes "$(gateway_user_routes)" '
     if (.info.models | sort) != $models then "models"
     elif .info.allowed_routes != $routes then "routes" else "ok" end' 2>/dev/null || echo models
 }
@@ -216,21 +228,37 @@ gateway_key_policy() {
 gateway_models_match() {
   local token
   token=$(sha256sum "$(home_of "$1")/.config/onbehalf/gateway.key" | cut -d' ' -f1)
-  gateway_admin GET "/key/info?key=$token" | jq -e --argjson models "$2" --argjson routes "$GATEWAY_USER_ROUTES" \
+  gateway_admin GET "/key/info?key=$token" | jq -e --argjson models "$2" --argjson routes "$(gateway_user_routes)" \
     '(.info.models | sort) == $models and .info.allowed_routes == $routes' >/dev/null \
     2>/dev/null
 }
 
-# model_access_check KEYFILE MODEL WHO: send one short chat request through the
-# gateway and say who refused it, if it fails. A gateway that answers and
-# accepts keys can still have a provider that refuses every request.
+# model_access_check KEYFILE MODEL WHO: send one short request through the
+# gateway, with the API of the AI harness, and say who refused it, if it
+# fails. A gateway that answers and accepts keys can still have a provider
+# that refuses every request.
 model_access_check() {
-  local keyfile=$1 model=$2 who=$3 out code msg
+  local keyfile=$1 model=$2 who=$3 out code msg route body
+  case $(harness api) in
+    messages)
+      route=/v1/messages
+      body=$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
+        messages: [{role: "user", content: "Reply with the word ok."}]}')
+      ;;
+    responses)
+      route=/v1/responses
+      body=$(jq -nc --arg m "$model" '{model: $m, max_output_tokens: 16, input: "Reply with the word ok."}')
+      ;;
+    *)
+      route=/v1/chat/completions
+      body=$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
+        messages: [{role: "user", content: "Reply with the word ok."}]}')
+      ;;
+  esac
   info "one request to $model as $who, with a maximum of 16 output tokens. It is model use of $who"
-  out=$(curl -sS --max-time 60 -w '\n%{http_code}' -X POST "$ONBEHALF_GATEWAY_URL/v1/chat/completions" \
+  out=$(curl -sS --max-time 60 -w '\n%{http_code}' -X POST "$ONBEHALF_GATEWAY_URL$route" \
     -H @<(printf 'Authorization: Bearer %s\n' "$(<"$keyfile")") -H 'Content-Type: application/json' \
-    --data "$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
-      messages: [{role: "user", content: "Reply with the word ok."}]}')" 2>/dev/null) || true
+    --data "$body" 2>/dev/null) || true
   code=${out##*$'\n'}
   msg=$(jq -r '.error.message // .detail // empty | tostring' <<<"${out%$'\n'*}" 2>/dev/null) || msg=
   # LiteLLM prefixes errors from the provider with "litellm.<Error>: ... Exception - ".

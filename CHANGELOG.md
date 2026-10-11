@@ -14,6 +14,15 @@ in `lib/onbehalf/VERSION`.
   OpenCode from `models.json`. A stack source with
   `opencode/opencode.json` and no `models.json` works as before.
 
+### Model gateway
+
+- `onbehalf init --harness NAME` selects the AI harness of the host. The
+  value is in `onbehalf.conf`. A host without the value uses OpenCode.
+- `init`, `doctor` and `health` check that the gateway serves the API of
+  the AI harness. The check sends no model request.
+- `doctor --model-check`, `status --model-check` and the health probe
+  send their request with the API of the AI harness.
+
 ### Docs
 
 - Recorded casts show the operator setup, the first login of a user and

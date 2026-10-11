@@ -119,7 +119,7 @@ user_add_one() {
     gateway_models_update "$u" "$models"
     ok "has a personal gateway key"
   else
-    key=$(gateway_admin POST /key/generate "$(jq -nc --arg u "$u" --arg a "$u@$(uname -n)" --argjson m "$meta" --argjson models "$models" --argjson routes "$GATEWAY_USER_ROUTES" \
+    key=$(gateway_admin POST /key/generate "$(jq -nc --arg u "$u" --arg a "$u@$(uname -n)" --argjson m "$meta" --argjson models "$models" --argjson routes "$(gateway_user_routes)" \
       '{user_id: $u, key_alias: $a, metadata: $m, models: $models, allowed_routes: $routes}')" | jq -r .key)
     [ -n "$key" ] && [ "$key" != null ] || die "the gateway did not return a key for $u"
     printf %s "$key" | install -o "$u" -g "$group" -m 0600 /dev/stdin "$home/.config/onbehalf/gateway.key"

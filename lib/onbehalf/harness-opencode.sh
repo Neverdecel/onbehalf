@@ -4,6 +4,14 @@
 harness_opencode_label() { echo OpenCode; }
 harness_opencode_command() { echo opencode; }
 
+# The gateway API of OpenCode: chat completions. A provider of the Anthropic
+# API uses the messages routes. Gateway keys keep the routes of onbehalf 0.1.0.
+harness_opencode_api() { echo chat; }
+harness_opencode_api_routes() { echo /v1/chat/completions; }
+harness_opencode_routes() {
+  echo '["/models","/v1/models","/chat/completions","/v1/chat/completions","/responses","/v1/responses","/messages","/v1/messages","/user/daily/activity"]'
+}
+
 # The model catalog of a stack without models.json: the enabled provider
 # model entries. Use API model IDs for gateway access, not display aliases.
 harness_opencode_models() {

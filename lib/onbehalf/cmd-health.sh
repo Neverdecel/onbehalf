@@ -113,6 +113,14 @@ health_checks() {
       "start the gateway; see the operator guide, section 'Model gateway'"
   fi
   if [ "$gw" = yes ]; then
+    local missing
+    missing=$(gateway_api_missing)
+    if [ -z "$missing" ]; then
+      health_result gateway-api ok "the gateway serves the API of $(harness label)"
+    else
+      health_result gateway-api fail "the gateway does not serve the API of $(harness label): ${missing//$'\n'/ }" \
+        "use a LiteLLM version that serves these routes; see the operator guide, section 'Model gateway'"
+    fi
     if gateway_admin GET /health/readiness 2>/dev/null | jq -e '.db == "connected"' >/dev/null; then
       health_result gateway-db ok "the gateway database is connected"
     else
@@ -241,7 +249,7 @@ health_probe() {
 health_probe_key() {
   local key
   key=$(gateway_admin POST /key/generate "$(jq -nc --arg u "$HEALTH_PROBE_USER" --arg a "$HEALTH_PROBE_USER@$(uname -n)" \
-    --argjson routes "$GATEWAY_USER_ROUTES" '{user_id: $u, key_alias: $a, allowed_routes: $routes,
+    --argjson routes "$(gateway_user_routes)" '{user_id: $u, key_alias: $a, allowed_routes: $routes,
       metadata: {onbehalf: "health probe"}}')" | jq -er .key) || return 1
   (
     umask 077

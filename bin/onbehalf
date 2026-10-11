@@ -17,7 +17,8 @@ onbehalf $ONBEHALF_VERSION: the setup is shared. The identity is not.
 
 Operator commands (as root):
   setup                             guided setup of a new host (terminal only)
-  init                              connect this host to the model gateway
+  init [--harness NAME]             connect this host to the model gateway, for
+                                    one AI harness: opencode (default)
   stack install [--no-restart] DIR  make DIR the shared stack for every user
   user add [--replace-config] [--entra-id ID] NAME...
                                     add users (new accounts or old accounts)
