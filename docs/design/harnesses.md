@@ -46,6 +46,10 @@ model catalog and the routes of `GATEWAY_USER_ROUTES`.
 | Claude Code with `ANTHROPIC_BASE_URL` and an `apiKeyHelper` that reads `~/.config/onbehalf/gateway.key` | Claude Code answers through the gateway |
 | Claude Code: `/etc/claude-code/managed-settings.json` sets `model`, `~/.claude/settings.json` sets a different `model` | The managed `model` wins. A personal default is not possible |
 | Claude Code: managed settings without `model`, a personal `model` | The personal `model` applies |
+| Claude Code: managed `env.ANTHROPIC_DEFAULT_*_MODEL`, no personal `model` | Claude Code uses the model of the managed `env` |
+| Claude Code: managed `env.ANTHROPIC_DEFAULT_*_MODEL`, a personal `model` | The personal `model` applies |
+| Claude Code: `--model` or a personal `model` that is not in `availableModels` | Claude Code uses the default model |
+| Claude Code: a personal `env.ANTHROPIC_BASE_URL` | The managed `env` wins |
 | Claude Code: a model that is not in the model catalog | The gateway refuses it (403). Claude Code tries again until the timeout. The user sees no clear error |
 | Codex with a provider in `/etc/codex/config.toml`, `wire_api = "responses"`, and `auth.command` that reads the key file through `$HOME` | Codex sends the request as the user. The gateway accepts the key |
 | Codex: `~/.codex/config.toml` sets a different `model` | The personal `model` wins over `/etc/codex/config.toml` |
@@ -226,11 +230,20 @@ the account of the user.
 ### 5. The Claude Code adapter
 
 - `build` writes `claude/managed-settings.json` in the release. `activate`
-  copies it to `/etc/claude-code/managed-settings.json`. onbehalf adds
-  `apiKeyHelper`, `env.ANTHROPIC_BASE_URL`, `availableModels` (from
-  `models.json`) and `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
-- `stack_validate` refuses `model` in the managed settings. A team default
-  in managed settings stops each personal default.
+  links `/etc/claude-code/managed-settings.json` to that file in the
+  current release. Thus each later release changes the managed settings
+  with the release link. onbehalf adds `apiKeyHelper`,
+  `env.ANTHROPIC_BASE_URL`, `availableModels` (from `models.json`) and
+  `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`.
+- The default model of `models.json` goes into
+  `env.ANTHROPIC_DEFAULT_OPUS_MODEL`, `env.ANTHROPIC_DEFAULT_SONNET_MODEL`
+  and `env.ANTHROPIC_DEFAULT_HAIKU_MODEL`. Without them, Claude Code uses
+  its own default model, and the gateway refuses it. A personal `model` in
+  `~/.claude/settings.json` wins over these settings.
+- `stack_validate` refuses `model`, `apiKeyHelper`, `availableModels` and
+  the `env` keys `ANTHROPIC_*` and `CLAUDE_CODE_USE_*` in the managed
+  settings of the team. A `model` in managed settings stops each personal
+  default.
 - `user_add` links `~/.claude/CLAUDE.md` to the shared `AGENTS.md`. It
   links each skill, and each custom agent and command of `claude/`, into
   `~/.claude/`.
@@ -279,7 +292,8 @@ the account of the user.
 ## Risks
 
 - Claude Code: managed settings win over personal settings. The shared
-  stack can give no default that a user can change.
+  stack gives its default model through the model aliases, because only
+  these settings let a user change the default.
 - Claude Code: a model that the gateway refuses gives no clear error.
 - The quality of the API change in LiteLLM for models of other providers.
   A Claude model behind Codex, or a GPT model behind Claude Code, can lose

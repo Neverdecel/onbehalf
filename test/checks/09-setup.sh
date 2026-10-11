@@ -17,6 +17,7 @@ if [ $# -gt 0 ]; then
   . "$ONBEHALF_LIB/tools.sh"
   . "$ONBEHALF_LIB/harness.sh"
   . "$ONBEHALF_LIB/harness-opencode.sh"
+  . "$ONBEHALF_LIB/harness-claude.sh"
   need_root() { [ "$TEST_UID" = 0 ] || die "this command must run as root"; }
   id() {
     if [ "$*" = -u ]; then
@@ -112,23 +113,25 @@ check "ordinary users cannot run host setup" test "$rc" -ne 0
 check "denied setup changes nothing" test ! -s "$TEST_CALLS"
 
 # Prerequisite handoff: stop before any change, say what to do, and how to continue.
-out=$(printf 'yes\nno\n' | terminal --wizard 2>&1) && rc=0 || rc=$?
+# A new host first asks for the AI harness. The empty answer is the default.
+out=$(printf 'yes\n\nno\n' | terminal --wizard 2>&1) && rc=0 || rc=$?
+check "a new host asks for the AI harness" grep -q 'AI harness \[opencode\]' <<<"$out"
 check "a gateway that is not ready pauses setup" test "$rc" -ne 0
 check "a paused setup changes nothing" test ! -s "$TEST_CALLS"
 check "the handoff shows how to set up the gateway" \
   bash -c 'grep -q "examples/gateway" <<<"$1" && grep -q "Azure AI Foundry" <<<"$1"' _ "$out"
 check "the handoff shows how to continue" grep -q 'continue with: sudo onbehalf setup' <<<"$out"
-out=$(printf 'yes\nyes\n' | TEST_OPENCODE=missing terminal --wizard 2>&1) && rc=0 || rc=$?
+out=$(printf 'yes\n\nyes\n' | TEST_OPENCODE=missing terminal --wizard 2>&1) && rc=0 || rc=$?
 check "missing OpenCode pauses setup" test "$rc" -ne 0
 check "missing OpenCode changes nothing" test ! -s "$TEST_CALLS"
 check "the handoff names OpenCode" grep -q 'OpenCode is not installed for the full host' <<<"$out"
-out=$(printf 'yes\nyes\n' | TEST_INIT_FAIL=yes terminal --wizard 2>&1) && rc=0 || rc=$?
+out=$(printf 'yes\n\nyes\n' | TEST_INIT_FAIL=yes terminal --wizard 2>&1) && rc=0 || rc=$?
 check "a failed gateway connection pauses setup" test "$rc" -ne 0
 check "a failed gateway connection stops before the stack" test "$(cat "$TEST_CALLS")" = init
 check "a failed gateway connection shows how to continue" grep -q 'Setup paused' <<<"$out"
 : >"$TEST_CALLS"
 
-out=$(printf 'yes\nyes\n%s\nyes\n\nalice bob\nyes\nno\n' "$tmp/source" | terminal --wizard)
+out=$(printf 'yes\n\nyes\n%s\nyes\n\nalice bob\nyes\nno\n' "$tmp/source" | terminal --wizard)
 check "fresh setup calls the existing commands in order" test "$(cat "$TEST_CALLS")" = $'init\nstack\nusers alice bob\ndoctor'
 check "fresh setup reports completion" grep -q 'Host setup is complete' <<<"$out"
 check "setup offers auto-enroll, off by default" grep -q 'Turn on auto-enroll? (yes/no) \[no\]' <<<"$out"

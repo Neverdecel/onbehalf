@@ -1,0 +1,11 @@
+{
+  "name": "onbehalf-test-claude",
+  "private": true,
+  "description": "Claude Code version for the Ubuntu test host. The lockfile pins it by hash; Dependabot updates both.",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.287"
+  },
+  "allowScripts": {
+    "@anthropic-ai/claude-code": true
+  }
+}
