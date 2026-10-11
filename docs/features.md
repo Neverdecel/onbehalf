@@ -69,6 +69,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
   go through the gateway.
 - **One AI harness for each host.** The operator selects it. onbehalf
   checks that the gateway serves the API of that AI harness.
+- **Claude Code as the AI harness.** The managed settings of the host give
+  the gateway, the personal gateway key and the model catalog. A user can
+  change the default model to a different model of the model catalog.
 
 | Claim | Checked by |
 |---|---|
@@ -76,6 +79,7 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | Users see only the gateway providers of the shared stack, not the built-in providers of OpenCode | `09-personal-models` |
 | `doctor --model-check` shows a refusal from the provider separately from the result of the host | `09-model-access` |
 | `init`, `doctor` and `health` check the API of the AI harness of the host, without a model request | `13-harness-setting` |
+| Claude Code answers through the gateway with the personal gateway key. A personal default model stays after a stack update. `doctor` finds personal credentials that go around the gateway | `14-claude-code` |
 
 ## Enroll and offboard
 

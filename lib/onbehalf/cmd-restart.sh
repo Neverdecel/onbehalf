@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # onbehalf restart: restart an OpenCode service, so that it reads a changed
 # configuration or a new OpenCode version. A restart stops the agent work
-# that runs at that time.
+# that runs at that time. An AI harness without a service has nothing to
+# restart: each new session reads the configuration.
 #
 #   onbehalf restart              a user: their own service
 #   sudo onbehalf restart         an operator: the service of their agent account
@@ -25,18 +26,21 @@ cmd_restart() {
     esac
   done
   [ "$all" = no ] || [ -z "$u" ] || die "usage: onbehalf restart [NAME | --all]"
+  load_conf
+  if ! harness service; then
+    info "$(harness label) has no service to restart. Each new session reads the changed configuration"
+    return
+  fi
 
   # A user restarts their own service, without root.
   if [ "$(id -u)" != 0 ]; then
     if [ "$all" = yes ] || { [ -n "$u" ] && [ "$u" != "$(id -un)" ]; }; then
       die "a user restarts only their own runtime. For other users: sudo onbehalf restart NAME"
     fi
-    load_conf
     restart_self
     return
   fi
 
-  load_conf
   if [ "$all" = yes ]; then
     heading "Restart all runtimes"
     local n=0

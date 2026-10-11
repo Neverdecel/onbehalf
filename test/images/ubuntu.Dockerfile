@@ -20,3 +20,10 @@ COPY opencode/package.json opencode/package-lock.json /opt/opencode/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefix /opt/opencode --omit=dev \
     && ln -s /opt/opencode/node_modules/.bin/opencode /usr/local/bin/opencode
+
+# System-wide Claude Code for the checks of the Claude Code adapter, pinned
+# by hash in claude/package-lock.json. Only the Ubuntu host has it.
+COPY claude/package.json claude/package-lock.json /opt/claude/
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefix /opt/claude --omit=dev \
+    && ln -s /opt/claude/node_modules/.bin/claude /usr/local/bin/claude
