@@ -65,6 +65,12 @@ in `lib/onbehalf/VERSION`.
 
 ### Docs
 
+- The guides give the setup and the use of each AI harness. The operator
+  guide has a section about a change of the AI harness.
+- `examples/stack` is now a stack source with `models.json`. It works for
+  each AI harness. In OpenCode, its provider of the OpenAI API has the
+  name `onbehalf`, not `onbehalf-openai`. A stack source that you copied
+  from version 0.1.0 does not change.
 - Recorded casts show the operator setup, the first login of a user and
   the report. The README, the site and the guides show them. `make demo`
   records them again from a clean test host. See `demo/README.md`.

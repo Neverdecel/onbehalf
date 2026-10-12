@@ -25,13 +25,13 @@ The MVP and phase 1 have one goal: a shared host that works.
 
 | Area | Owner | Root necessary |
 |---|---|---|
-| Installation of the AI harness (for the full host; OpenCode today) | Operator, with the documentation of the AI harness | Yes |
+| Installation of the AI harness (for the full host: OpenCode, Claude Code or Codex) | Operator, with the documentation of the AI harness | Yes |
 | Installation of the work tools (Git, GitHub CLI, Azure CLI and others) | Operator, with the documentation of each tool | Yes |
 | Model gateway (LiteLLM, database, provider keys, models) | Operator, with the LiteLLM documentation. `examples/gateway` is only an example | Yes (on its own host or in Docker) |
 | Connection to the gateway (`onbehalf init`) | onbehalf | Yes |
 | Shared stack (`onbehalf stack install`) | onbehalf gives it to each user. The team owns the content | Yes |
 | Accounts, personal gateway keys, isolation, offboarding | onbehalf | Yes |
-| Personal settings (`opencode.jsonc`), own custom agents and skills | The user | No |
+| Personal settings (for example `opencode.jsonc`), own custom agents and skills | The user | No |
 | Logins to work tools and MCP connections (with help from `onbehalf tools`) | The user, with the login of each tool | No |
 | Tools in the home directory (`~/.local/bin`, npm prefix, pipx and similar tools) | The user | No |
 | Repositories and project configuration | The user and the AI harness | No |
@@ -50,10 +50,10 @@ The MVP and phase 1 have one goal: a shared host that works.
    a model on the gateway first. Then the team adds the model name to the
    model catalog in the shared stack. onbehalf only makes sure that the
    gateway has each model of the model catalog.
-3. The shared stack is configuration of the AI harness. onbehalf keeps only
-   these items for its use: `@GATEWAY_URL@`, the personal key reference
-   `{file:~/.config/onbehalf/gateway.key}` and the file name
-   `opencode.jsonc`.
+3. The shared stack is configuration of the AI harness. onbehalf writes
+   only these items: the gateway address, the reference to the personal
+   gateway key and the model catalog of `models.json`. It keeps the file
+   name `opencode.jsonc` for personal overrides.
 4. onbehalf does not set a workspace layout. It does not stop a change that
    a user makes in their own account. The only exceptions are the files
    that keep identity and isolation safe: the gateway key and the mode of
@@ -74,8 +74,9 @@ user. The client does not set the identity that acts.
 Each runtime runs as the Unix account that owns the session. The work tools
 (Git, GitHub CLI, Azure CLI and others) use the login stores and the
 permissions of that account. A different AI harness must keep the same
-contract for identity and isolation. OpenCode is the first adapter. Oh My
-Pi is the planned second adapter.
+contract for identity and isolation. OpenCode, Claude Code and Codex have
+an adapter. The operator selects one AI harness for each host. Oh My Pi is
+a planned adapter.
 
 Attribution comes from the account that the external system records. A name
 that a user can configure, for example the Git commit author, is not
@@ -145,6 +146,25 @@ must turn them off with `enabled_providers`. That setting is configuration,
 not a control. Only a control of the outbound traffic of the host stops a
 user who runs OpenCode with a different configuration. Permit outbound
 HTTPS only to the gateway.
+
+### Claude Code and Codex adapter contracts
+
+These adapters use a stack source with `models.json`. onbehalf writes the
+gateway, the personal key reference and the model catalog into the
+configuration of the AI harness.
+
+| Layer | Claude Code | Codex |
+|---|---|---|
+| Shared settings | `/etc/claude-code/managed-settings.json`, a link to the current release | `/etc/codex/config.toml`, a link to the current release |
+| Personal overrides | `~/.claude/settings.json`. The managed settings have priority, but a personal default model has priority over the shared default | `~/.codex/config.toml`. It has priority over the shared settings |
+| Named items | Links in `~/.claude/{agents,skills,commands}/`, and the link `~/.claude/CLAUDE.md` to the shared `AGENTS.md` | Links in `~/.codex/skills/`, and the link `~/.codex/AGENTS.md` |
+| Gateway API | `/v1/messages` | `/v1/responses` |
+| Service | None. Each new session reads the shared stack | None. Each new session reads the shared stack |
+
+A gateway key permits only the API of the AI harness of the host.
+`onbehalf harness NAME` changes the AI harness of a host. It updates the
+routes of each key and the links of each user. See the
+[design](docs/design/harnesses.md).
 
 ### Governance and delivery of the shared stack
 
@@ -227,8 +247,8 @@ This section applies to the MVP and phase 1. See
 - Accounts for each user: make, adopt, isolate and offboard them.
 - A connection from the host to one model gateway that runs, and one
   personal gateway key for each user.
-- One shared stack for each user, with personal overrides. OpenCode is
-  the only supported AI harness.
+- One shared stack for each user, with personal overrides. Each host has
+  one AI harness: OpenCode, Claude Code or Codex.
 - Runtimes that run only as the user who starts them.
 - Personal acting credentials through the login of each tool. Azure CLI,
   GitHub and OAuth MCP servers are the first integrations. onbehalf guides
@@ -240,8 +260,8 @@ This section applies to the MVP and phase 1. See
 
 ### Out of scope
 
-- The installation and operation of OpenCode, the model gateway or other
-  applications. The operator uses the documentation of each application.
+- The installation and operation of the AI harness, the model gateway or
+  other applications. The operator uses the documentation of each application.
 - Configuration of applications that is not in the [contract](#contract).
 - A workspace layout, or rules for repositories in the home directory.
 - Tools that a user installs in their own home directory.
@@ -261,7 +281,8 @@ This section applies to the MVP and phase 1. See
 
 ## Current implementation
 
-The MVP uses OpenCode and the terminal on Ubuntu and Arch Linux.
+The MVP uses OpenCode, Claude Code or Codex and the terminal on Ubuntu and
+Arch Linux.
 [Features](docs/features.md) gives the automated checks. The implementation
 does not do all of the target architecture yet:
 
@@ -273,7 +294,8 @@ does not do all of the target architecture yet:
   start message and one offer of the work tool wizard (`onbehalf tools`).
 - Operators can run only `onbehalf` as root, and they never have a gateway
   key. An operator who wants a runtime gets a separate runtime account.
-  `doctor` and the login message find OpenCode in an operator account.
+  `doctor` and the login message find the AI harness in an operator
+  account.
 - `onbehalf restart` restarts the runtime of a user, of a runtime account,
   or of every runtime that runs.
 - `onbehalf report` shows adoption, model use, cost and failed requests for
@@ -287,11 +309,18 @@ does not do all of the target architecture yet:
   `opencode.json` first, then the personal `opencode.jsonc` overrides.
   Named custom agents and skills replace shared items one by one. The
   project configuration has a higher priority.
-- The provider model entries of the shared stack are the model catalog.
-  Enrollment, updates and rollback limit the personal gateway keys to the
-  model catalog.
-- `enabled_providers` in the shared stack permits only the gateway
-  providers. `stack install` refuses a stack source without it, and
+- `models.json` of the shared stack is the model catalog. A stack source
+  without it has the model catalog in the provider model entries of
+  `opencode.json`, and works only for OpenCode. Enrollment, updates and
+  rollback limit the personal gateway keys to the model catalog.
+- The operator selects the AI harness with `init --harness NAME`.
+  `onbehalf harness NAME` changes it. `init`, `doctor` and `health` check
+  that the gateway serves its API.
+- The Claude Code adapter and the Codex adapter write the configuration of
+  the host from `models.json`. They have no service. The MCP work tool
+  supports only OpenCode.
+- For OpenCode, `enabled_providers` in the shared stack permits only the
+  gateway providers. `stack install` refuses a stack source without it, and
   `doctor` shows the problem. This setting guides OpenCode. The gateway and
   the network rules of the host control the access.
 - The activation on the host and the updates of the gateway keys are not
@@ -299,8 +328,7 @@ does not do all of the target architecture yet:
 - Each stack installation makes a release with a version. But a root
   operator can install each source directory. There is no curator role or
   reviewed merge that onbehalf enforces.
-- OpenCode is the only supported AI harness. External Azure attribution
-  checks and signed commits are planned work.
+- External Azure attribution checks and signed commits are planned work.
 
 ### Acceptance criteria for the target design
 
@@ -331,7 +359,8 @@ does not do all of the target architecture yet:
 - Full repeatable Linux provisioning. Enrollment at the first login also for
   logins that are not SSH. The MVP enrolls when it makes an account and,
   with auto-enroll, at the first SSH login.
-- The same override contract for the second AI harness.
+- The same override contract for each AI harness. In the MVP, the managed
+  settings of Claude Code have priority over the personal settings.
 - Changes to the shared stack without lost work. In the MVP, a change to the
   shared stack restarts all runtimes that run, and stops their work. Phase 2
   restarts only runtimes with no work. It restarts the other runtimes when
@@ -342,8 +371,8 @@ does not do all of the target architecture yet:
   action, and when.
 - Model use limits and cost reports for each user, through the model
   gateway.
-- Support for Oh My Pi as the second AI harness. This shows that onbehalf
-  does not depend on one AI harness.
+- Support for Oh My Pi as one more AI harness.
+- The MCP work tool for Codex.
 - A first production host, Azure attribution checks, signed commits and
   more tool integrations.
 - Delegated access through OAuth on-behalf-of (OBO) for one downstream API.

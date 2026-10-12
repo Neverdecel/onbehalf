@@ -27,11 +27,16 @@ operator.
 
 ## 2. Start the AI harness
 
-At your first interactive login, a short message shows how to start:
+The operator selects one AI harness for the host. At your first
+interactive login, a short message shows the command to start it:
 
-```
-opencode
-```
+| AI harness | Command |
+|---|---|
+| OpenCode | `opencode` |
+| Claude Code | `claude` |
+| Codex | `codex` |
+
+The examples in this guide show a host with OpenCode.
 
 Each subsequent login shows a few lines about what is important for you
 now:
@@ -98,7 +103,7 @@ step. Then it starts the usual login of that tool:
 | GitHub CLI | It runs `gh auth login`. Then it checks the login with `gh auth status`. |
 | Azure CLI | It runs `az login --use-device-code` and shows the account and the tenant. If your account has a link to Entra ID, it makes sure that you used that account. |
 | Tools of the team | Your operator can add more tools, for example Vault. The wizard runs the usual login of that tool. |
-| MCP servers | It shows the MCP servers of the team that use your own login. Then it runs `opencode mcp auth NAME`. |
+| MCP servers | Only with OpenCode. It shows the MCP servers of the team that use your own login. Then it runs `opencode mcp auth NAME`. |
 
 At the end, a summary shows the tools that are ready. It also shows the
 command for the other tools, for example `onbehalf tools gh`. To stop only
@@ -123,37 +128,73 @@ git config --global user.email you@example.com
 opencode mcp auth <server>
 ```
 
+With Claude Code, log in to an MCP server in a session, with `/mcp`. With
+Codex, run `codex mcp login <server>`.
+
 ### Change your settings
 
-Put your personal settings in `~/.config/opencode/opencode.jsonc`. For
-example, set a personal default model:
+Put your personal settings in the file of your AI harness:
+
+| AI harness | Personal settings |
+|---|---|
+| OpenCode | `~/.config/opencode/opencode.jsonc` |
+| Claude Code | `~/.claude/settings.json` |
+| Codex | `~/.codex/config.toml` |
+
+For example, set a personal default model. Use an entry from the model
+catalog of your team.
+
+OpenCode:
 
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "onbehalf-openai/gpt-5.4"
+  "model": "onbehalf/gpt-5.4"
 }
 ```
 
-Use an entry from the model catalog of your team. Then restart your
-runtime:
+Claude Code:
+
+```json
+{
+  "model": "claude-sonnet-4-5"
+}
+```
+
+Codex:
+
+```toml
+model = "gpt-5.4"
+```
+
+With OpenCode, restart your runtime after the change:
 
 ```
 onbehalf restart
 ```
 
+With Claude Code or Codex, start a new session.
+
 Your settings replace the shared settings with the same name. The other
 shared settings stay. Stack updates and rollbacks keep your file.
+
+With Claude Code, the shared settings of the team have priority over your
+settings. Your default model is an exception: it has priority.
 
 Do not edit `~/.config/opencode/opencode.json`. It is a link to the shared
 stack, and you cannot change it.
 
 ### Add your own custom agents and skills
 
-Put your own custom agents in `~/.config/opencode/agents/`. Use one
-Markdown file for each custom agent. Put your own skills in
-`~/.config/opencode/skills/`. Use one directory with a `SKILL.md` file for
-each skill.
+Put your own custom agents and skills in the directory of your AI harness.
+Use one Markdown file for each custom agent. Use one directory with a
+`SKILL.md` file for each skill.
+
+| AI harness | Custom agents | Skills |
+|---|---|---|
+| OpenCode | `~/.config/opencode/agents/` | `~/.config/opencode/skills/` |
+| Claude Code | `~/.claude/agents/` | `~/.claude/skills/` |
+| Codex | Not applicable | `~/.codex/skills/` |
 
 A personal item with the same name as a shared item replaces only that
 shared item for you. The other shared items stay. Stack updates do not
@@ -187,7 +228,8 @@ runtime. Speak to the operator only for system packages.
 Clone repositories into a directory in your home directory. onbehalf does
 not set a layout. The project configuration in a repository, for example
 `opencode.json` or `AGENTS.md`, has a higher priority than your personal
-settings and the shared settings.
+settings and the shared settings. With Claude Code, the shared settings of
+the team have the highest priority.
 
 ### Check your setup
 
@@ -213,7 +255,7 @@ onbehalf status --model-check
 It shows if the gateway or the model provider refused the request. The
 request is part of your model use.
 
-To see as which accounts your tools act, do these steps:
+To see as which accounts your tools act with OpenCode, do these steps:
 
 1. Start `opencode`.
 2. Push Shift+Tab until you select the `whoami` custom agent.
@@ -231,28 +273,33 @@ Speak to the operator only for these tasks:
   source of the team.
 - A new model. An operator deploys it on the gateway first. Then the team
   adds it to the shared stack.
-- System packages and the OpenCode installation for the full host.
+- System packages and the installation of the AI harness for the full
+  host.
 
 ## Useful information
 
-- **Select a model.** For the current session, use `/models`. For one run,
-  use `opencode run --model <provider/model> 'your prompt'`. The selected
+- **Select a model.** For the current session, use `/models` in OpenCode,
+  or `/model` in Claude Code and in Codex. For one run of OpenCode, use
+  `opencode run --model <provider/model> 'your prompt'`. The selected
   model of a session has priority over your default model.
-- **Many sessions at the same time.** Open more terminals or tabs. They all
-  use your one runtime. A restart of the runtime stops the work in all of
-  them, also a restart from a stack update. Your sessions stay.
+- **Many sessions at the same time.** Open more terminals or tabs. With
+  OpenCode, they all use your one runtime. A restart of the runtime stops
+  the work in all of them, also a restart from a stack update. Your
+  sessions stay.
 - **Model access.** Your gateway key can use only the models of the team.
   When you add a model to a personal file, you do not get access to it. If
   a model leaves the model catalog, select a different model. Your personal
   file does not change.
 - **Do not add personal model keys**, for example with
-  `opencode auth login`. The team gives model access through the gateway. A
-  personal key goes around the records of the gateway. `onbehalf status`
-  gives a warning about it.
+  `opencode auth login`, `/login` in Claude Code or `codex login`. The team
+  gives model access through the gateway. A personal key goes around the
+  records of the gateway. `onbehalf status` gives a warning about it.
 - **Do not change your gateway key. Do not let other users read your home
   directory.** These rules keep your identity safe. The operator checks them
   with `onbehalf doctor`.
-- **Changes to the shared stack.** When the operator changes the shared
-  stack, your runtime restarts. The work that runs at that time stops.
+- **Changes to the shared stack.** With OpenCode, your runtime restarts
+  when the operator changes the shared stack. The work that runs at that
+  time stops. With Claude Code or Codex, your next session uses the
+  change.
 - **Problems.** Run `onbehalf status`. If the fix must have root, send the
   output to your operator.

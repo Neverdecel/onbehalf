@@ -1,5 +1,5 @@
-# Gateway models. Users see the model_name values; the stack's
-# opencode.json must use the same names. Replace every <...> value.
+# Gateway models. Users see the model_name values. The models.json of the
+# stack source must use the same names. Replace every <...> value.
 model_list:
   # An OpenAI model deployed in Azure AI Foundry (OpenAI API).
   - model_name: gpt-5.4

@@ -2,21 +2,30 @@
 
 ## How do I give a team one AI harness setup without a shared account?
 
-Put the setup in a Git repository: `opencode.json`, `AGENTS.md`,
-custom agents, skills and the model catalog. Run `sudo onbehalf stack install <dir>`
+Put the setup in a Git repository: the model catalog, `AGENTS.md`, skills,
+custom agents and the harness settings. Run `sudo onbehalf stack install <dir>`
 on a Linux host. Each user gets the setup read-only in their own Unix
 account. The runtime of each user runs as that user.
 
 ## Which AI harnesses does onbehalf support?
 
-OpenCode today. onbehalf connects to the AI harness through an adapter
-(`lib/onbehalf/harness-opencode.sh`). Oh My Pi is planned.
+OpenCode, Claude Code and Codex. The operator selects one AI harness for
+each host. onbehalf connects to it through an adapter
+(`lib/onbehalf/harness-NAME.sh`). Oh My Pi is planned.
+
+## Can a host change to a different AI harness?
+
+Yes. `sudo onbehalf harness NAME` changes the AI harness of the host. The
+team keeps its stack source, and each user keeps the gateway key and the
+personal settings. See
+[Change the AI harness](operator-guide.md#change-the-ai-harness).
 
 ## Which models can the team use?
 
 Each model that the LiteLLM gateway serves and that the shared stack
-permits. The tests cover the OpenAI API route to the gateway. The tests do
-not cover the Anthropic API route yet.
+permits. The gateway must serve the API of the AI harness of the host. The
+tests cover the chat completions API with OpenCode, the messages API with
+Claude Code and the responses API with Codex.
 
 ## Is the runtime a sandbox?
 

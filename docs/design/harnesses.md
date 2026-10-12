@@ -1,6 +1,6 @@
 # Design: Claude Code and Codex as AI harnesses
 
-Status: accepted, 2026-10-09. The work starts with step 1. The tests below used
+Status: done, 2026-10-12. Steps 1 to 6 are complete. The tests below used
 Claude Code 2.1.287, Codex 0.160.0 and the test gateway of `make test`
 (LiteLLM v1.104.0).
 
