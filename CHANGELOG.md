@@ -27,8 +27,8 @@ in `lib/onbehalf/VERSION`.
   checks the command, the shared stack and the gateway first. Then it
   updates the routes of each gateway key and stops the runtimes of the
   old AI harness. It removes the links of the old AI harness and gives
-  each user the links of the new AI harness. Each user keeps the gateway key, the personal settings and
-  the private state.
+  each user the links of the new AI harness. Each user keeps the gateway
+  key, the personal settings and the private state.
 
 ### Claude Code
 

@@ -50,6 +50,7 @@ cmd_harness() {
   else
     echo "ONBEHALF_HARNESS=$new" >>"$ONBEHALF_ETC/onbehalf.conf"
   fi
+  # shellcheck disable=SC2034 # read by harness_id in harness.sh
   ONBEHALF_HARNESS=$new
   ok "saved the AI harness in $ONBEHALF_ETC/onbehalf.conf"
 
