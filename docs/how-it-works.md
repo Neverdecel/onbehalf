@@ -21,7 +21,8 @@ team.
 
 `sudo onbehalf stack install <dir>` makes the shared stack current in
 `/opt/onbehalf/stack/current/`. Each user gets a link for each item in
-`~/.config/opencode/`. A user cannot edit the shared files.
+the directory of the AI harness, for example `~/.config/opencode/`. A
+user cannot edit the shared files.
 
 The configuration has three levels:
 
@@ -29,20 +30,28 @@ The configuration has three levels:
 2. The personal configuration of the user is next.
 3. The shared stack has the lowest priority.
 
+Claude Code is an exception. Its shared settings are managed settings, and
+they have the highest priority. A user can still select a personal default
+model.
+
+The operator selects one AI harness for each host: OpenCode, Claude Code or
+Codex. The stack source does not depend on that selection.
+`sudo onbehalf harness NAME` changes the AI harness of a host.
+
 ## What is shared, what stays personal
 
 | Component | Task of the operator | What users share | What stays personal |
 |---|---|---|---|
-| AI harness | Install and update it for the full host (OpenCode today) | The same program and version | Runtime: service, sessions, history and work |
+| AI harness | Select one, then install and update it for the full host (OpenCode, Claude Code or Codex) | The same program and version | Runtime: service, sessions, history and work |
 | Work tools | Install Git, GitHub CLI, Azure CLI and the other work tools of the team | The same program and version | Logins, permissions, configuration and credentials |
 | Model gateway | Run LiteLLM and its database, or connect to a gateway that the team has | Gateway infrastructure and model deployments | Personal gateway key and the model use of the user |
 | Model catalog | Add deployed models to the shared stack | Available models and the default model | Personal model selection from the permitted models |
 | Harness settings | Set shared settings in the shared stack | Shared settings | Personal overrides |
-| Harness instructions | Supply a shared `AGENTS.md` | The same instructions for all runtimes | Project instructions. A personal `AGENTS.md` replaces the shared file |
+| Harness instructions | Supply a shared `AGENTS.md` | The same instructions for all runtimes | Project instructions. A personal file replaces the shared file |
 | Custom agents and skills | Add them to the shared stack | Shared custom agents and procedures | Personal custom agents, skills and overrides |
-| MCP connections | Define the common connections in the shared stack | Connection definitions | The OAuth login of each user, with help from `onbehalf tools` |
+| MCP connections | Define the common connections in the shared stack | Connection definitions | The OAuth login of each user, with help from `onbehalf tools` for OpenCode |
 | Plugins | Configure plugins in the shared stack | Common plugin configuration | Personal configuration and state (not tested yet) |
-| Accounts | Add users, give gateway keys, set service ports | The same account rules | A separate Unix account and a private home directory |
+| Accounts | Add users, give gateway keys, set the service ports of OpenCode | The same account rules | A separate Unix account and a private home directory |
 
 ## What onbehalf does not do
 
@@ -58,7 +67,7 @@ other changes in their own account.
 - **The rules of a custom agent are not access control.** The `permission`
   block of a shared custom agent only guides the runtime. Unix permissions,
   the gateway and the external systems control access.
-- **The gateway controls the model access, not OpenCode.** Permit outbound
+- **The gateway controls the model access, not the AI harness.** Permit outbound
   traffic from the host only to the gateway. Then no runtime can go around
   the gateway.
 - **It does not make a shared workspace.** Each user clones repositories

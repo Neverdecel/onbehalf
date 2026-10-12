@@ -2,9 +2,9 @@
 
 > The setup is shared. The identity is not. onbehalf gives a team one reviewed AI harness setup on one shared Linux host. The runtime of each user runs in the Unix account of that user, with the logins and the personal model gateway key of that user. Git, GitHub, Azure and the model gateway record each action as that user. There is no shared account and no shared credential. Open source (Apache 2.0), written in Bash, for Ubuntu and Arch Linux.
 
-onbehalf works below the AI harness. OpenCode is the first supported AI harness. LiteLLM is the model gateway. onbehalf works at the Unix layer: accounts, file owners, permissions, links and services. It does not install the AI harness, the model gateway or the work tools. It never keeps, reads or sends a credential. Each user logs in to Git, GitHub CLI, Azure CLI and MCP servers with the login of each tool.
+onbehalf works below the AI harness. The operator selects one AI harness for each host: OpenCode, Claude Code or Codex. LiteLLM is the model gateway. onbehalf works at the Unix layer: accounts, file owners, permissions, links and services. It does not install the AI harness, the model gateway or the work tools. It never keeps, reads or sends a credential. Each user logs in to Git, GitHub CLI, Azure CLI and MCP servers with the login of each tool.
 
-Terms: the "AI harness" is the program (OpenCode). A "runtime" is the running instance of the AI harness for one user. The "stack source" is a Git repository with the `opencode.json`, `AGENTS.md`, custom agents, skills, commands and model catalog of the team. `onbehalf stack install` makes it the "shared stack": read-only, for every user. A personal setting replaces only the shared item with the same name. The project configuration has priority over both. An "operator" runs onbehalf as root. A "user" is a team member with their own Unix account and runtime. The full table is in CONTRIBUTING.md.
+Terms: the "AI harness" is the program (OpenCode, Claude Code or Codex). A "runtime" is the running instance of the AI harness for one user. The "stack source" is a Git repository with the model catalog (`models.json`), `AGENTS.md`, skills, custom agents, commands and harness settings of the team. `onbehalf stack install` makes it the "shared stack": read-only, for every user. A personal setting replaces only the shared item with the same name. The project configuration has priority over both. An "operator" runs onbehalf as root. A "user" is a team member with their own Unix account and runtime. The full table is in CONTRIBUTING.md.
 
 Use onbehalf when:
 
@@ -23,6 +23,7 @@ Main commands for an operator:
 
 - `onbehalf setup`: guided host setup.
 - `stack install DIR`, `user add NAME`, `user remove NAME`.
+- `harness NAME`: change the AI harness of the host.
 - `user sync --group GROUP`: follow an Entra group.
 - `auto-enroll on`: enroll each user at the first SSH login.
 - `operator add NAME`.
@@ -36,7 +37,7 @@ Commands for a user, without root:
 - `tools`: guided logins for the work tools and MCP servers.
 - `restart`.
 
-Status: MVP, version 0.1.0. Tested on Ubuntu 24.04 and Arch Linux with OpenCode 2.0 and LiteLLM 1.104. An automated host test checks each claim. The tests run real OpenCode with a real LiteLLM gateway and a real Forgejo Git server.
+Status: MVP, version 0.1.0. Tested on Ubuntu 24.04 and Arch Linux with OpenCode 2.0 and LiteLLM 1.105, and on Ubuntu 24.04 with Claude Code 2.1 and Codex 0.162. An automated host test checks each claim. The tests run the real AI harness with a real LiteLLM gateway and a real Forgejo Git server.
 
 ## Docs
 
@@ -46,12 +47,12 @@ Status: MVP, version 0.1.0. Tested on Ubuntu 24.04 and Arch Linux with OpenCode 
 - [FAQ](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/docs/faq.md): frequent questions
 - [Operator guide](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/docs/operator-guide.md): host setup, the shared stack, users, enrollment, operators, Entra groups, reports, health alerts, hardening and offboarding
 - [User guide](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/docs/user-guide.md): what each user does without root: log in, start the AI harness, set up the work tools, change settings, add custom agents and skills
-- [Architecture and plan](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/project.md): runtime limits, three configuration levels, the OpenCode adapter contract, credential types, scope, current implementation and later phases
+- [Architecture and plan](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/project.md): runtime limits, three configuration levels, the adapter contracts, credential types, scope, current implementation and later phases
 
 ## Examples
 
 - [Example stack source](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/examples/stack/README.md): the layout of a stack source
-- [Example stack opencode.json](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/examples/stack/opencode/opencode.json): gateway provider and model catalog
+- [Example stack models.json](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/examples/stack/models.json): the model catalog
 - [Example LiteLLM gateway](https://raw.githubusercontent.com/Neverdecel/onbehalf/main/examples/gateway/litellm.yaml): an example gateway configuration, not a production deployment
 
 ## Optional

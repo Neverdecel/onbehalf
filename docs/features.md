@@ -6,7 +6,7 @@ table of claims. The test in `test/checks/` that checks each claim is in the
 
 The tests run on fresh Ubuntu and Arch hosts for each test run. The AI
 harness is real OpenCode with a fake model that always gives the same
-answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
+answer. The Ubuntu host also has real Claude Code and real Codex. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 
 ## Identity and isolation
 
@@ -34,8 +34,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 
 ## One shared stack
 
-- **Reviewed in Git, given read-only.** The team keeps `opencode.json`,
-  `AGENTS.md`, custom agents, skills and commands in a repository.
+- **Reviewed in Git, given read-only.** The team keeps `models.json`,
+  `AGENTS.md`, harness settings, custom agents, skills and commands in a
+  repository.
   `onbehalf stack install` makes this shared stack current, read-only, for
   every user.
 - **Personal overrides.** A personal setting, custom agent or skill replaces

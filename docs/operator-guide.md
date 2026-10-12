@@ -8,11 +8,12 @@ a shared host. For a new installation, do the sections in sequence.
 **Contents**
 
 - [What onbehalf does](#what-onbehalf-does) · [Requirements](#requirements)
-- [Set up a host](#set-up-a-host): [1. OpenCode and a gateway](#step-1-install-opencode-and-run-a-model-gateway) ·
+- [Set up a host](#set-up-a-host): [1. AI harness and a gateway](#step-1-install-the-ai-harness-and-run-a-model-gateway) ·
   [2. Stack source](#step-2-prepare-the-stack-source) ·
   [3. Install and set up](#step-3-install-onbehalf-and-run-the-setup)
 - [What users do without root](#what-users-do-without-root)
 - [Change the shared stack](#change-the-shared-stack) ·
+  [Change the AI harness](#change-the-ai-harness) ·
   [MCP servers with a personal login](#mcp-servers-with-a-personal-login) ·
   [Work tools of the shared stack](#work-tools-of-the-shared-stack)
 - [Add users](#add-users) · [Enroll users at their first login](#enroll-users-at-their-first-login) ·
@@ -22,7 +23,7 @@ a shared host. For a new installation, do the sections in sequence.
 - [Check the host](#check-the-host) · [Check model access](#check-model-access) ·
   [See who uses the runtimes](#see-who-uses-the-runtimes) ·
   [Health checks and alerts](#health-checks-and-alerts) · [First real test](#first-real-test)
-- [Offboard a user](#offboard-a-user) · [Update OpenCode](#update-opencode)
+- [Offboard a user](#offboard-a-user) · [Update the AI harness](#update-the-ai-harness)
 - [Known limitations](#known-limitations) · [Model access fails](#model-access-fails) ·
   [Troubleshooting](#troubleshooting)
 
@@ -43,7 +44,7 @@ user.
   home directory of the user.
 
 onbehalf works at the Unix layer: accounts, file owners, permissions, links
-and services. It does not install, operate or configure OpenCode, the model
+and services. It does not install or operate the AI harness, the model
 gateway or the work tools. It does not manage the logins to Azure, GitHub or
 other tools. Each user logs in to each tool with the usual login of that
 tool. `onbehalf tools` guides a user through those logins, without root.
@@ -59,28 +60,37 @@ table of owners is in the
 
 - Ubuntu (tested: 24.04) or Arch Linux.
 - Root access on the host.
-- OpenCode 2.x, installed for the full host. All users use this one
-  installation.
+- One AI harness, installed for the full host: OpenCode 2.x, Claude Code
+  2.1 or Codex 0.162. All users use this one installation.
 - A model gateway that runs: LiteLLM with PostgreSQL. It can be on the same
-  host or on a different host.
+  host or on a different host. It must serve the API of the AI harness.
 
 ## Set up a host
 
 Do these three steps:
 
-1. Install OpenCode and run a model gateway.
+1. Install the AI harness and run a model gateway.
 2. Prepare the stack source.
 3. Install onbehalf and run `sudo onbehalf setup`.
 
-### Step 1: Install OpenCode and run a model gateway
+### Step 1: Install the AI harness and run a model gateway
 
 onbehalf does not install these applications. Use the documentation of
 each application.
 
-#### OpenCode
+#### AI harness
 
-Install OpenCode for the full host with the OpenCode documentation. For
-example, with npm:
+Select one AI harness for the host. Every user uses it. A host never has
+more than one AI harness.
+
+| AI harness | Name for onbehalf | Command | API that the gateway must serve |
+|---|---|---|---|
+| OpenCode | `opencode` | `opencode` | `/v1/chat/completions` |
+| Claude Code | `claude` | `claude` | `/v1/messages` and `/v1/messages/count_tokens` |
+| Codex | `codex` | `codex` | `/v1/responses` |
+
+Install the AI harness for the full host with its documentation. For
+example, install OpenCode with npm:
 
 ```
 sudo npm install -g --allow-scripts=@opencode/cli @opencode/cli@<version>
@@ -88,6 +98,9 @@ sudo npm install -g --allow-scripts=@opencode/cli @opencode/cli@<version>
 
 Use one version for all users. Do not use a personal installation in a
 home directory for the shared setup.
+
+You can change the AI harness of a host at a later time. See
+[Change the AI harness](#change-the-ai-harness).
 
 #### Model gateway
 
@@ -143,44 +156,81 @@ The team owns it. Keep it in a Git repository of your team. Review each
 change. Start from `examples/stack`:
 
 ```
-opencode/
-  opencode.json   models and settings
-  AGENTS.md       harness instructions for every runtime
-  agents/         shared custom agents; whoami.md shows as whom your tools act
-  skills/         shared skills
+models.json       the model catalog and an optional default model
+AGENTS.md         harness instructions for every runtime
+skills/           shared skills
+opencode/         settings, custom agents and commands of OpenCode
+claude/           settings, custom agents and commands of Claude Code
+codex/            settings of Codex
+tools/            optional: work tools of the team
 ```
 
-The team decides the content. onbehalf keeps only these items for its use:
+The items at the root are for each AI harness. Thus the team keeps its
+stack source when the host changes to a different AI harness. The
+directory of an AI harness is optional.
 
-- `@GATEWAY_URL@`. Use it for the gateway address.
-  `onbehalf stack install` writes the real address in its place. Each
-  provider must use `@GATEWAY_URL@/v1`.
-- The personal key reference `{file:~/.config/onbehalf/gateway.key}`. Each
-  provider must use it as `apiKey`.
-- The file name `opencode.jsonc`. This file is for personal overrides. Do
-  not put it in the stack source.
-- `enabled_providers`. It must list the providers of the stack source, and
-  no other providers.
+The team decides the content. onbehalf writes these items into the
+configuration of the AI harness. Do not set them in the stack source:
 
-> **CAUTION:** Always set `enabled_providers`. Without it, OpenCode adds its
-> built-in providers, for example its free `opencode/*` models. These models
-> use no key. They send prompts and code to a provider that the team did not
-> select, and they do not go through the gateway. `onbehalf stack install`
-> refuses a stack source without `enabled_providers`. `doctor` gives a
-> warning about an installed shared stack without it.
+| File | Do not set |
+|---|---|
+| `opencode/opencode.json` | `providers`, `enabled_providers`, `model` |
+| `claude/managed-settings.json` | `model`, `apiKeyHelper`, `availableModels`, `env.ANTHROPIC_*`, `env.CLAUDE_CODE_USE_*` |
+| `codex/config.toml` | `model`, `model_provider`, the provider `onbehalf` |
+
+Put `AGENTS.md` and each skill in one location only: at the root, or in
+the directory of one AI harness. Do not put the file `opencode.jsonc` in
+the stack source. It is for personal overrides.
 
 Each model is in two locations:
 
 1. An operator deploys the model on the gateway first.
-2. Then the team adds the model name to the model catalog. The model
-   catalog is the enabled `providers.*.models` entries in `opencode.json`.
-   The `modelID` of each model must be a `model_name` of the gateway. If a
-   model has no `modelID`, its entry name must be a `model_name`.
+2. Then the team adds the model name to the model catalog in
+   `models.json`:
+
+   ```json
+   {
+     "model": "gpt-5.4",
+     "models": {
+       "gpt-5.4": { "api": "openai" },
+       "claude-sonnet-4-5": { "api": "anthropic" }
+     }
+   }
+   ```
+
+   Each name in `models` must be a `model_name` of the gateway.
 
 `onbehalf stack install` makes sure that the gateway has each model of the
 model catalog. If a model is not on the gateway, the installation stops and
-changes nothing. A default `model` is optional. If you set it, use one entry
-of the model catalog, in the form `provider/model`.
+changes nothing. A default `model` is optional. Without it, the first model
+is the default model. `api` is optional, and only OpenCode uses it. See
+`examples/stack/README.md`.
+
+#### A stack source of version 0.1.0
+
+A stack source without `models.json` keeps its function, but only for
+OpenCode. Then the enabled `providers.*.models` entries of
+`opencode/opencode.json` are the model catalog, and these rules apply:
+
+- Each provider must use `@GATEWAY_URL@/v1` as `baseURL`.
+  `onbehalf stack install` writes the real address in its place.
+- Each provider must use the personal key reference
+  `{file:~/.config/onbehalf/gateway.key}` as `apiKey`.
+- `enabled_providers` must list the providers of the stack source, and no
+  other providers.
+- The `modelID` of each model must be a `model_name` of the gateway. If a
+  model has no `modelID`, its entry name must be a `model_name`.
+
+> **CAUTION:** Always set `enabled_providers` in such a stack source.
+> Without it, OpenCode adds its built-in providers, for example its free
+> `opencode/*` models. These models use no key. They send prompts and code
+> to a provider that the team did not select, and they do not go through
+> the gateway. `onbehalf stack install` refuses a stack source without
+> `enabled_providers`. `doctor` gives a warning about an installed shared
+> stack without it.
+
+To use Claude Code or Codex, add `models.json`. Then remove `providers`,
+`enabled_providers` and `model` from `opencode.json`.
 
 > **WARNING:** Do not put credentials in the stack source. All users can
 > read the shared stack.
@@ -218,7 +268,7 @@ of the model catalog, in the form `provider/model`.
    installer stops and shows the command to use. To install the missing
    packages automatically, use `sudo ./install.sh --install-deps`. The
    installer installs only the system packages for onbehalf. It does not
-   install OpenCode or the gateway.
+   install the AI harness or the gateway.
 3. Run the setup wizard:
 
    ```
@@ -234,15 +284,19 @@ The wizard first tells you about the roles and the credentials:
   a personal gateway key. Each user logs in to Azure, GitHub and other
   tools.
 
-Then the wizard checks the prerequisites: OpenCode for the full host, and a
-model gateway that runs. If a prerequisite is missing, the wizard stops
+On a new host, the wizard asks for the AI harness first: `opencode`,
+`claude` or `codex`.
+
+Then the wizard checks the prerequisites: the AI harness for the full host,
+and a model gateway that runs. If a prerequisite is missing, the wizard stops
 before it changes the host. It shows what to do. For example, it shows how
 to set up the gateway with Azure AI Foundry models. It also shows how to
 continue: `sudo onbehalf setup`.
 
 Then the wizard does these steps:
 
-1. It connects this host to the gateway.
+1. It connects this host to the gateway. It checks that the gateway serves
+   the API of the AI harness.
 2. It installs your stack source.
 3. It offers [auto-enroll](#enroll-users-at-their-first-login).
 4. It adds users.
@@ -257,7 +311,7 @@ as the first user. See [Check model access](#check-model-access). It shows
 two results: the host configuration and the model access. If the model
 provider refuses the request, the setup is not complete.
 
-The wizard does not install the gateway or OpenCode. It does not replace a
+The wizard does not install the gateway or the AI harness. It does not replace a
 personal configuration, restart runtimes that run, or configure SSH access.
 
 To update onbehalf, read the [changelog](../CHANGELOG.md), get the files of
@@ -297,7 +351,7 @@ remove `/etc/profile.d/onbehalf.sh`. The next installation puts it back.
 use these commands:
 
 ```
-sudo onbehalf init                     # connect to the running gateway
+sudo onbehalf init --harness claude    # connect to the running gateway
 sudo onbehalf stack install <dir>      # install the stack source
 sudo onbehalf user add alice bob       # add users
 sudo onbehalf auto-enroll on           # or: enroll users at their first login
@@ -305,9 +359,14 @@ sudo onbehalf doctor                   # check the host and every user
 sudo onbehalf doctor --model-check     # send one short model request
 ```
 
+`--harness NAME` selects the AI harness: `opencode`, `claude` or `codex`.
+Without it, a new host uses OpenCode. A host that has an AI harness keeps
+it.
+
 `onbehalf init` asks for the gateway URL and the admin key of the gateway
-(`LITELLM_MASTER_KEY`). It keeps nothing until the gateway answers and
-accepts the key. The admin key is in `/etc/onbehalf/gateway-admin.key`.
+(`LITELLM_MASTER_KEY`). It keeps nothing until the gateway answers, accepts
+the key and serves the API of the AI harness. This check sends no model
+request. The admin key is in `/etc/onbehalf/gateway-admin.key`.
 Only root can read this file.
 
 For scripts: `printf %s "$KEY" | sudo onbehalf init --gateway-url URL`.
@@ -317,10 +376,8 @@ For scripts: `printf %s "$KEY" | sudo onbehalf init --gateway-url URL`.
 Each user makes these changes in their own account, without the
 operator. The [user guide](user-guide.md) shows how.
 
-- Personal settings in `~/.config/opencode/opencode.jsonc`, for example a
-  personal default model.
-- Their own custom agents and skills in `~/.config/opencode/agents/` and
-  `~/.config/opencode/skills/`.
+- Personal settings, for example a personal default model.
+- Their own custom agents and skills.
 - Logins to Azure CLI, GitHub, Git, the MCP servers of the shared stack and
   other tools. `onbehalf tools` guides them. The first interactive login
   offers it one time.
@@ -333,10 +390,18 @@ The operator does these tasks, because they must have root:
 
 - Add and remove accounts and personal gateway keys.
 - Install a new version of the shared stack.
-- Install system packages and OpenCode for the full host.
+- Install system packages and the AI harness for the full host.
 
 An operator can be root, or an account that can run only `sudo onbehalf`.
 See [Operators](#operators).
+
+The personal files are in the directory of the AI harness:
+
+| AI harness | Personal settings | Personal items |
+|---|---|---|
+| OpenCode | `~/.config/opencode/opencode.jsonc` | `agents/`, `skills/` and `commands/` in `~/.config/opencode/` |
+| Claude Code | `~/.claude/settings.json` | `agents/`, `skills/` and `commands/` in `~/.claude/` |
+| Codex | `~/.codex/config.toml` | `skills/` in `~/.codex/` |
 
 For a new model, an operator deploys it on the gateway first. Then the team
 changes the stack source. See
@@ -354,11 +419,25 @@ Each installation makes a release in `/opt/onbehalf/stack/releases/<id>`.
 The id is a hash of the content. `/opt/onbehalf/stack/current` points to the
 current release.
 
-The shared `opencode.json` is a link in the `~/.config/opencode/` directory
-of each user. OpenCode V2 reads this file first. Then it reads the
-personal `opencode.jsonc`. A personal setting replaces the shared setting
-with the same name. The other shared settings stay. The project
-configuration has a higher priority.
+Each AI harness gets the shared settings in a different way:
+
+- **OpenCode.** The shared `opencode.json` is a link in the
+  `~/.config/opencode/` directory of each user. OpenCode V2 reads this
+  file first. Then it reads the personal `opencode.jsonc`. A personal
+  setting replaces the shared setting with the same name. The other shared
+  settings stay. The project configuration has a higher priority.
+- **Claude Code.** `/etc/claude-code/managed-settings.json` is a link to
+  the current release. Managed settings have priority over the personal
+  settings and the project settings. The default model is an exception: a
+  personal `model` in `~/.claude/settings.json` has priority.
+- **Codex.** `/etc/codex/config.toml` is a link to the current release.
+  Each setting in the personal `~/.codex/config.toml` has priority.
+
+If the host already has one of the two files in `/etc`, the installation
+stops. Move its settings into the stack source and remove the file.
+
+The harness instructions are a link in the directory of the AI harness of
+each user: `AGENTS.md` for OpenCode and Codex, `CLAUDE.md` for Claude Code.
 
 Shared directories, for example `agents/` and `skills/`, become personal
 directories. They contain a link for each shared item. A personal item
@@ -376,12 +455,13 @@ Before the new shared stack becomes current, the command does these steps:
 Enrollment uses the same model catalog. When you remove a model, the
 users lose access to it. A rollback puts back the previous model catalog.
 It does not replace keys or personal files. The gateway controls this
-access, not the OpenCode configuration that a user can change.
+access, not the configuration of the AI harness that a user can change.
 
 A personal key permits these routes only:
 
 - The list of models.
-- OpenAI or Anthropic inference.
+- The API of the AI harness of the host. For example, a key on a host with
+  Codex permits only the responses API.
 - The model use of the user (`/user/daily/activity`). For a personal key,
   the gateway gives only the use of that user.
 
@@ -405,8 +485,10 @@ The host and the gateway do not change together in one atomic step.
 
 ### All users get the change at the same time
 
-The command restarts all OpenCode services that run, because a service that
-runs keeps its old configuration.
+On a host with OpenCode, the command restarts all OpenCode services that
+run, because a service that runs keeps its old configuration. Claude Code
+and Codex have no service. Each new session reads the changed shared stack,
+and a session that runs continues.
 
 > **CAUTION:** A restart stops the work of each runtime at that time. Each
 > user has one service for all sessions. Thus a restart stops every
@@ -427,8 +509,13 @@ same content gives the same release id.
 
 ### MCP servers with a personal login
 
-Define MCP servers in the stack source, under `mcp.servers`, the same as the
-other OpenCode settings. Each user logs in with their own account.
+This section applies to a host with OpenCode. On a host with Claude Code or
+Codex, `onbehalf tools` does not show MCP servers. There, each user logs in
+with the AI harness: `/mcp` in a Claude Code session, or
+`codex mcp login <server>`.
+
+Define MCP servers in `opencode/opencode.json` of the stack source, under
+`mcp.servers`, the same as the other OpenCode settings. Each user logs in with their own account.
 
 > **WARNING:** Do not put a token in the stack source. Every user can read
 > the shared stack.
@@ -523,11 +610,14 @@ For each name, the command does these steps:
 3. It makes a personal gateway key in `~/.config/onbehalf/gateway.key`
    (mode 600). The key permits only the model catalog. When you run the
    command again, it keeps the key and updates the models of the key.
-4. It links the shared stack into `~/.config/opencode/`.
-5. It gives the runtime of the user a personal port.
+4. It links the shared stack into the directory of the AI harness:
+   `~/.config/opencode/`, `~/.claude/` or `~/.codex/`.
+5. On a host with OpenCode, it gives the runtime of the user a personal
+   port.
 
 OpenCode 2.x uses the same service port for each account. Without a
-personal port, only one user on the host can start OpenCode.
+personal port, only one user on the host can start OpenCode. Claude Code
+and Codex have no service and no port.
 
 If the login permission of the host already sets who is a user, you do
 not have to add each user. See
@@ -554,11 +644,13 @@ sudo onbehalf user add --replace-config alice
 ```
 
 The JSON file stays as `opencode.json.before-onbehalf`. The JSONC override
-stays active. `--replace-config` also makes a backup of each personal item
-that has the name of a shared item. It does not replace full personal
-custom agent directories or skill directories. The backups of named
-directories are in `~/.config/onbehalf/backups/`. OpenCode does not look
-for items in that directory.
+stays active.
+
+For each AI harness, `--replace-config` also makes a backup of each
+personal item that has the name of a shared item. It does not replace full
+personal custom agent directories or skill directories. The backups of
+named directories are in `~/.config/onbehalf/backups/`. The AI harness does
+not look for items in that directory.
 
 ## Enroll users at their first login
 
@@ -573,7 +665,7 @@ sudo onbehalf auto-enroll on
 
 When a user opens an SSH session for the first time, sshd runs the
 enrollment as root. The user gets the same setup as with `user add`: a
-personal gateway key, the shared stack and a personal service port. The
+personal gateway key and the shared stack. The
 first login takes a few seconds more. The subsequent logins only record the
 login time.
 
@@ -699,7 +791,7 @@ The operator opens the runtime account, and then works as a user:
 
 ```
 sudo onbehalf operator shell
-opencode
+opencode                         # or: claude, codex
 ```
 
 In the runtime account, log in to Azure, GitHub and other tools with your
@@ -712,15 +804,15 @@ If you have a usual account and an administrator account in Entra, use the
 usual account. An operator can open only their own runtime account. Root
 can open each runtime account: `onbehalf operator shell <operator>`.
 
-> **WARNING:** Do not run `opencode` in your operator account. A runtime
-> there can run `sudo onbehalf`. It also has no gateway key, so it sees only
-> the built-in models of OpenCode, not the team models.
+> **WARNING:** Do not run the AI harness in your operator account. A
+> runtime there can run `sudo onbehalf`. It also has no gateway key, so it
+> cannot use the team models.
 
-Each OpenCode command starts a background service, also `opencode models`.
-Thus, in the login shell of an operator, `opencode` only shows the runtime
-account. `opencode service stop` and `opencode --version` still work. This
-is a guide, not a control. `doctor` and the login give a warning while
-OpenCode runs in an operator account.
+In the login shell of an operator, the commands `opencode`, `claude` and
+`codex` only show the runtime account. The options for the version and the
+help still work, and also `opencode service stop`. This is a guide, not a
+control. `doctor` and the login give a warning while the AI harness runs in
+an operator account.
 
 To restart the runtime of your runtime account, run this command from your
 own account. For example, do this after you change its configuration:
@@ -809,6 +901,38 @@ If the team uses one shared account for the AI harness now, do these steps:
    users could read them.
 6. Run `sudo onbehalf doctor`. It shows the other login accounts that are
    not users.
+
+## Change the AI harness
+
+To change the AI harness of a host, do these steps:
+
+1. Install the new AI harness for the full host.
+2. Make sure that the stack source has `models.json`, and that the shared
+   stack is from that stack source.
+3. Make sure that the gateway serves the API of the new AI harness.
+4. Run the command:
+
+   ```
+   sudo onbehalf harness codex            # or: opencode, claude
+   ```
+
+The command does each check before it changes the host. If a check fails,
+the host keeps its AI harness. Then the command does these steps:
+
+1. It gives the gateway key of each user the routes of the new API.
+2. It stops the runtimes of the old AI harness.
+3. It removes the links of the old AI harness from each user.
+4. It gives each user the links of the new AI harness.
+
+> **CAUTION:** The command stops the work of each runtime at that time.
+> Change the AI harness outside of the work hours of the team.
+
+Each user keeps the gateway key, the personal settings and the private
+state of the old AI harness. Tell the users the new command. Then run
+`sudo onbehalf doctor`.
+
+If the gateway fails during the change, the host keeps its AI harness. Run
+the command again.
 
 ## Check the host
 
@@ -999,6 +1123,11 @@ The automated tests use mock models and a local Git server. Do the same
 test one time on a real host, with real model access and your own account.
 Each step only reads data.
 
+The steps show the commands of OpenCode. On a host with Claude Code, use
+`claude -p` in step 3. On a host with Codex, use `codex exec`. The `whoami`
+custom agent of step 5 is for OpenCode. With a different AI harness, ask
+the same question in a usual session.
+
 1. **Install the shared stack.** Install the reviewed stack source. It
    contains the example custom agent `whoami`. Then run
    `sudo onbehalf doctor`.
@@ -1066,16 +1195,17 @@ The command cannot revoke access in other systems. Also do these steps:
 - Remove the user from the GitHub organization.
 - Revoke the other cloud access of the user.
 
-## Update OpenCode
+## Update the AI harness
 
-The operator updates OpenCode with the OpenCode documentation. onbehalf does
+The operator updates the AI harness with its documentation. onbehalf does
 not update it.
 
 1. Install the new version for the full host, for example with npm.
-2. Tell the users to restart their runtime with `onbehalf restart`. Or
-   restart all runtimes at the same time with
+2. On a host with OpenCode, tell the users to restart their runtime with
+   `onbehalf restart`. Or restart all runtimes at the same time with
    `sudo onbehalf restart --all`. A restart stops the work of each runtime
-   at that time.
+   at that time. On a host with Claude Code or Codex, each new session uses
+   the new version.
 3. Run `sudo onbehalf doctor`.
 
 ## Known limitations
@@ -1090,8 +1220,22 @@ not update it.
   list of skills after the first request of a session.
 - **The commit author is only Git configuration.** The push credential
   shows who pushed. Signed commits are planned.
-- **The tests do not cover the Anthropic API route yet.** The tests cover
-  the OpenAI API route. See `examples/stack/README.md`.
+- **The tests do not cover the Anthropic API route of OpenCode yet.** For
+  OpenCode, the tests cover the OpenAI API route. See
+  `examples/stack/README.md`.
+- **Claude Code: managed settings win.** A user cannot override a shared
+  setting of Claude Code. The default model is the only exception.
+- **Claude Code: no clear error for a refused model.** When the gateway
+  refuses a model, Claude Code tries again until its time limit.
+- **Codex: personal settings win.** A user can select a different provider
+  in `~/.codex/config.toml`. That provider must have personal credentials.
+  The gateway key still permits only the model catalog.
+- **Claude Code and Codex: fewer tests.** The tests for Claude Code and
+  Codex run only on Ubuntu. They cover fewer items than the tests for
+  OpenCode. See [Features](features.md).
+- **A different API can lose features.** The gateway changes the API for a
+  model of a different provider, for example a Claude model behind Codex.
+  Some model features can be missing.
 
 ## Model access fails
 

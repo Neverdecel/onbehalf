@@ -1,0 +1,7 @@
+{
+  "model": "gpt-5.4",
+  "models": {
+    "gpt-5.4": { "api": "openai" },
+    "claude-sonnet-4-5": { "api": "anthropic" }
+  }
+}
