@@ -243,18 +243,18 @@ To use Claude Code or Codex, add `models.json`. Then remove `providers`,
    - Clone the release tag:
 
      ```
-     git clone --branch v0.1.0 https://github.com/Neverdecel/onbehalf.git
+     git clone --branch v0.2.0 https://github.com/Neverdecel/onbehalf.git
      cd onbehalf
      ```
 
-   - Download `onbehalf-0.1.0.tar.gz` from the
+   - Download `onbehalf-0.2.0.tar.gz` from the
      [releases](https://github.com/Neverdecel/onbehalf/releases). Make sure
      that GitHub Actions of this repository built the tarball, then extract
      it:
 
      ```
-     gh attestation verify onbehalf-0.1.0.tar.gz -R Neverdecel/onbehalf
-     tar -xzf onbehalf-0.1.0.tar.gz && cd onbehalf-0.1.0
+     gh attestation verify onbehalf-0.2.0.tar.gz -R Neverdecel/onbehalf
+     tar -xzf onbehalf-0.2.0.tar.gz && cd onbehalf-0.2.0
      ```
 
    The [changelog](../CHANGELOG.md) tells what each release changes.

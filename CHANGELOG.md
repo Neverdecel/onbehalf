@@ -6,6 +6,13 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+No changes yet.
+
+## 0.2.0 (2026-10-12)
+
+This version adds Claude Code and Codex as AI harnesses. The operator
+selects one AI harness for each host.
+
 ### Shared stack
 
 - A stack source can have `models.json` as its model catalog, and
@@ -22,7 +29,6 @@ in `lib/onbehalf/VERSION`.
   the AI harness. The check sends no model request.
 - `doctor --model-check`, `status --model-check` and the health probe
   send their request with the API of the AI harness.
-
 - `sudo onbehalf harness NAME` changes the AI harness of a host. It
   checks the command, the shared stack and the gateway first. Then it
   updates the routes of each gateway key and stops the runtimes of the
@@ -74,6 +80,13 @@ in `lib/onbehalf/VERSION`.
 - Recorded casts show the operator setup, the first login of a user and
   the report. The README, the site and the guides show them. `make demo`
   records them again from a clean test host. See `demo/README.md`.
+
+### Upgrade
+
+Get the files of this version and run the installer again. A host keeps
+OpenCode as its AI harness, and its stack source keeps its function. Then
+run `sudo onbehalf doctor`. To use Claude Code or Codex, see the
+[operator guide](https://github.com/Neverdecel/onbehalf/blob/main/docs/operator-guide.md#change-the-ai-harness).
 
 ## 0.1.0 (2026-10-09)
 
