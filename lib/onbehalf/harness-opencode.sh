@@ -89,6 +89,8 @@ harness_opencode_stack_problem() {
 
 # The shared settings are links into the release. Nothing goes into /etc.
 harness_opencode_activate() { :; }
+harness_opencode_deactivate() { :; }
+harness_opencode_user_unlink() { harness_unlink_all "$1/.config/opencode" "$ONBEHALF_STACK/current/opencode"; }
 
 # The runtime: the OpenCode service of the user.
 harness_opencode_service() { :; }

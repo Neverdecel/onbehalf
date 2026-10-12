@@ -23,6 +23,13 @@ in `lib/onbehalf/VERSION`.
 - `doctor --model-check`, `status --model-check` and the health probe
   send their request with the API of the AI harness.
 
+- `sudo onbehalf harness NAME` changes the AI harness of a host. It
+  checks the command, the shared stack and the gateway first. Then it
+  updates the routes of each gateway key and stops the runtimes of the
+  old AI harness. It removes the links of the old AI harness and gives
+  each user the links of the new AI harness. Each user keeps the gateway
+  key, the personal settings and the private state.
+
 ### Claude Code
 
 - `onbehalf init --harness claude` selects Claude Code. The stack source

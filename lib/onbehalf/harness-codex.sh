@@ -56,6 +56,11 @@ harness_codex_activate() {
   ok "Codex uses the system configuration of the shared stack"
 }
 
+harness_codex_deactivate() {
+  [ "$(link_of "$CODEX_CONFIG")" != "$ONBEHALF_STACK/current/codex/config.toml" ] || rm -f "$CODEX_CONFIG"
+}
+harness_codex_user_unlink() { harness_unlink_all "$1/.codex" "$ONBEHALF_STACK/current/codex"; }
+
 harness_codex_stack_problem() {
   [ "$(link_of "$CODEX_CONFIG")" != "$ONBEHALF_STACK/current/codex/config.toml" ] || return 0
   echo "Codex does not use the system configuration of the shared stack ($CODEX_CONFIG): it does not use the gateway"
