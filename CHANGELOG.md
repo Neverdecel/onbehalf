@@ -22,6 +22,8 @@ in `lib/onbehalf/VERSION`.
   `unknown`, from rules for the tool name and the command. A stack source
   can add rules in `telemetry/classes.json`. They come before the default
   rules.
+- `examples/telemetry/dashboards.sh` makes four Langfuse dashboards for
+  each user: usage and adoption, cost, tool calls and reliability.
 - The installer now checks for `openssl`.
 
 ## 0.2.0 (2026-10-12)
