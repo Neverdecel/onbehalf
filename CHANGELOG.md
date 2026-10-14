@@ -6,6 +6,14 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+### Work tools
+
+- A shared MCP server with a personal login can have `"disabled": true`
+  in the stack. Then OpenCode does not show it to a user who did not log
+  in. After a login with `onbehalf tools`, onbehalf turns it on for that
+  user in `opencode.jsonc`. Each stack install updates these copies. See
+  the operator guide, section "MCP servers with a personal login".
+
 ### Telemetry
 
 - Spans identify the shared stack, the harness and the telemetry plugin.

@@ -103,7 +103,7 @@ step. Then it starts the usual login of that tool:
 | GitHub CLI | It runs `gh auth login`. Then it checks the login with `gh auth status`. |
 | Azure CLI | It runs `az login --use-device-code` and shows the account and the tenant. If your account has a link to Entra ID, it makes sure that you used that account. |
 | Tools of the team | Your operator can add more tools, for example Vault. The wizard runs the usual login of that tool. |
-| MCP servers | Only with OpenCode. It shows the MCP servers of the team that use your own login. Then it runs `opencode mcp auth NAME`. |
+| MCP servers | Only with OpenCode. It shows the MCP servers of the team that use your own login. Then it runs `opencode mcp auth NAME`. If the team server is off until a login, the wizard turns it on for you in `~/.config/opencode/opencode.jsonc`. |
 
 At the end, a summary shows the tools that are ready. It also shows the
 command for the other tools, for example `onbehalf tools gh`. To stop only

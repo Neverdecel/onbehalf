@@ -163,6 +163,12 @@ harness_opencode_port_release() {
 harness_opencode_stack_changed() {
   local u=$1 home=$2 group=$3 restart=$4
   harness_opencode_link "$u" "$home" "$group" no
+  # The user's copies of the shared MCP servers follow the new stack. As the
+  # user: the files are theirs.
+  if [ -s "$home/.config/onbehalf/mcp-on" ]; then
+    as_user "$u" "onbehalf tools --sync" >/dev/null 2>&1 \
+      || warn "could not update the MCP servers in $home/.config/opencode/opencode.jsonc"
+  fi
   # A running service keeps the config it started with.
   if [ "$restart" = yes ] && pgrep -u "$u" -f 'serve --service' >/dev/null; then
     as_user "$u" "opencode service restart" >/dev/null

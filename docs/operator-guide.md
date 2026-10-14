@@ -522,17 +522,32 @@ Define MCP servers in `opencode/opencode.json` of the stack source, under
 
 A remote server with OAuth becomes a work tool in `onbehalf tools`, next to
 Git, GitHub CLI and Azure CLI. Users see it in the menu and in
-`onbehalf status`. They log in with `opencode mcp auth <server>`:
+`onbehalf status`. They log in with `opencode mcp auth <server>`.
+
+Set `"disabled": true` on each server with a personal login. Then OpenCode
+does not show the server to a user who did not log in, and does not show a
+login warning for it:
 
 ```json
 {
   "mcp": {
     "servers": {
-      "tracker": { "type": "remote", "url": "https://mcp.tracker.example/mcp" }
+      "tracker": { "type": "remote", "url": "https://mcp.tracker.example/mcp", "disabled": true }
     }
   }
 }
 ```
+
+After a login with `onbehalf tools`, onbehalf turns the server on for that
+user only. It puts a copy of the server entry, with `"disabled": false`, in
+the `opencode.jsonc` file of the user. OpenCode does not merge a part of a
+server entry, so the copy is the full entry. Then onbehalf restarts the
+OpenCode service of the user.
+
+Each `onbehalf stack install` updates these copies to the new stack. If
+the stack does not have the server now, onbehalf removes the copy. A user
+who logged in before you set `"disabled": true` must log in again with
+`onbehalf tools <server>`.
 
 onbehalf does not show these servers as work tools:
 
