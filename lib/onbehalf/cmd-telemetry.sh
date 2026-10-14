@@ -318,8 +318,13 @@ telemetry_check() {
     return 0
   fi
   local code
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST \
-    "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT/v1/traces" 2>/dev/null) || code=000
+  # After a SIGHUP, the Collector starts again: give it a few seconds.
+  for _ in 1 2 3 4 5; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST \
+      "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT/v1/traces" 2>/dev/null) || code=000
+    [ "$code" = 000 ] || break
+    sleep 1
+  done
   if [ "$code" = 401 ]; then
     ok "the OTel Collector accepts telemetry on port $ONBEHALF_TELEMETRY_PORT, only with a key, to $ONBEHALF_TELEMETRY_EXPORT"
     info "the tool classes come from $(telemetry_classes_file)"
