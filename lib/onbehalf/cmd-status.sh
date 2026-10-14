@@ -42,6 +42,7 @@ cmd_status() {
     fix "ask your operator to run: sudo onbehalf user add $u"
   fi
   harness check "$u" "$HOME"
+  telemetry_user_check "$u" "$HOME"
 
   heading "Model access"
   if [ "$check_model" = no ]; then

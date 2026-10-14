@@ -129,6 +129,7 @@ user_add_one() {
   fi
 
   harness user_add "$u" "$home" "$group" "$replace"
+  telemetry_user_add "$u" "$home" "$group"
 
   groups=$(privileged_groups_of "$u")
   if [ -n "$groups" ]; then
@@ -210,6 +211,8 @@ user_remove_one() {
     entra_unlink "$u"
     ok "removed the link to Entra"
   fi
+  # The gateway key is gone now, so the Collector refuses the key of the user.
+  telemetry_user_remove
 }
 
 # user_stop NAME UID: stop every process of a user.

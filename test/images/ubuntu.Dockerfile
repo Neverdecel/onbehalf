@@ -34,3 +34,11 @@ COPY codex/package.json codex/package-lock.json /opt/codex/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefix /opt/codex --omit=dev \
     && ln -s /opt/codex/node_modules/.bin/codex /usr/local/bin/codex
+
+# The OTel Collector for the checks of onbehalf telemetry, from the official
+# image, pinned by digest. The otelcol-contrib package makes the same group.
+# Only the Ubuntu host has it.
+COPY --from=otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1 \
+    /otelcol-contrib /usr/local/bin/otelcol-contrib
+RUN groupadd --system otelcol-contrib \
+    && useradd --system -g otelcol-contrib -d /nonexistent -s /usr/sbin/nologin otelcol-contrib

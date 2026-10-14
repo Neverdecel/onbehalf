@@ -43,14 +43,14 @@ case $ID in
     pm_install="apt-get install -y"
     pm_update="apt-get update"
     declare -A pkg=([curl]=curl [jq]=jq [git]=git [runuser]=util-linux [getent]=libc-bin
-      [useradd]=passwd [usermod]=passwd [userdel]=passwd [pkill]=procps [pgrep]=procps)
+      [useradd]=passwd [usermod]=passwd [userdel]=passwd [pkill]=procps [pgrep]=procps [openssl]=openssl)
     ;;
   arch)
     ok "$PRETTY_NAME"
     pm_install="pacman -S --noconfirm --needed"
     pm_update="pacman -Sy"
     declare -A pkg=([curl]=curl [jq]=jq [git]=git [runuser]=util-linux [getent]=glibc
-      [useradd]=shadow [usermod]=shadow [userdel]=shadow [pkill]=procps-ng [pgrep]=procps-ng)
+      [useradd]=shadow [usermod]=shadow [userdel]=shadow [pkill]=procps-ng [pgrep]=procps-ng [openssl]=openssl)
     ;;
   *)
     err "$PRETTY_NAME is not supported. onbehalf supports Ubuntu and Arch"
@@ -85,6 +85,8 @@ install -d -m 0755 "$prefix/bin" "$prefix/lib/onbehalf" "$prefix/lib/onbehalf/to
 install -m 0644 "$src"/lib/onbehalf/*.sh "$src/lib/onbehalf/VERSION" "$prefix/lib/onbehalf/"
 rm -f "$prefix"/lib/onbehalf/tools/*.sh
 install -m 0644 "$src"/lib/onbehalf/tools/*.sh "$prefix/lib/onbehalf/tools/"
+install -d -m 0755 "$prefix/lib/onbehalf/telemetry"
+install -m 0644 "$src"/lib/onbehalf/telemetry/*.js "$prefix/lib/onbehalf/telemetry/"
 install -m 0755 "$src/bin/onbehalf" "$prefix/bin/onbehalf"
 install -d -m 0755 /etc/profile.d
 install -m 0644 "$src/lib/onbehalf/login-profile.sh" /etc/profile.d/onbehalf.sh

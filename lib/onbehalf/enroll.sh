@@ -316,5 +316,6 @@ cmd_user_prune() {
     [ -n "$uid" ] || harness user_remove "$u"
     ok "$u: the files stay. The next login gives a new key"
   done
+  [ "$n" -eq 0 ] || [ "$dry" = yes ] || telemetry_user_remove
   [ "$n" -gt 0 ] || ok "none"
 }

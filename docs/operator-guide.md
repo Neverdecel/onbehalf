@@ -1117,6 +1117,87 @@ probe)", not as a user. `health off` revokes the probe key.
 
 `doctor` shows if the checks run, and when they ran last.
 
+## Telemetry
+
+`onbehalf telemetry` sends the tool calls and the model steps of each user
+to an OpenTelemetry (OTel) backend. Each span shows the Unix account that
+did the action. Only OpenCode is supported now.
+
+The backend gets these spans:
+
+- **A tool call:** the tool name, the command of a shell tool call, the
+  exit code, the result and the duration.
+- **A model step:** the model, the tokens, the finish reason and the
+  duration.
+
+The spans use the OTel GenAI semantic conventions. The backend never gets a
+prompt, a model answer or a tool output.
+
+How it works:
+
+1. onbehalf links the telemetry plugin into the OpenCode configuration of
+   each user. The plugin reads the session events of OpenCode. OpenCode
+   itself exports no tool data.
+2. The plugin sends the spans to the OTel Collector on the host, on
+   `127.0.0.1:4318`. It sends the personal telemetry key of the user.
+3. The Collector accepts only a valid key. It sets `user.name` from the
+   key. Thus a user cannot send spans as a different user.
+4. The Collector sends the spans to the backend of the operator.
+
+To set up telemetry:
+
+1. Install the OTel Collector package `otelcol-contrib`. The package makes
+   the group `otelcol-contrib`.
+2. Start the telemetry. The URL is the OTLP/HTTP address of the backend:
+
+   ```
+   sudo onbehalf telemetry on --export https://otel.example.com
+   ```
+
+   The command asks for the authorization header of the backend. Give an
+   empty value if the backend does not use a header. Without a terminal, the
+   command reads the header on stdin.
+3. Set this line in `/etc/otelcol-contrib/otelcol-contrib.conf`:
+
+   ```
+   OTELCOL_OPTIONS="--config=/etc/onbehalf/telemetry/otelcol.yaml"
+   ```
+
+4. Restart the Collector: `sudo systemctl restart otelcol-contrib`.
+5. Restart the runtimes: `sudo onbehalf restart --all`.
+6. Run `sudo onbehalf doctor`. It shows if the Collector accepts telemetry
+   only with a key.
+
+For Langfuse, use `--export https://LANGFUSE/api/public/otel`. The header is
+`Basic` and the base64 value of `PUBLIC_KEY:SECRET_KEY`.
+
+| File | Who can read it | Contents |
+|---|---|---|
+| `/etc/onbehalf/telemetry.conf` | root | The settings |
+| `/etc/onbehalf/telemetry.json` | All accounts | The address of the Collector, for the plugin |
+| `/etc/onbehalf/telemetry/otelcol.yaml` | root, the Collector | The Collector configuration |
+| `/etc/onbehalf/telemetry/htpasswd` | root, the Collector | The hashes of the telemetry keys |
+| `/etc/onbehalf/telemetry/export-auth` | root, the Collector | The authorization header of the backend |
+| `~/.config/onbehalf/telemetry.key` | The user | The personal telemetry key |
+
+`user add` and the enrollment at login give each user a key. `user remove`
+and `user prune` remove the user from the Collector. onbehalf then sends
+`SIGHUP` to the Collector, and the Collector reads its configuration again.
+Do not change `otelcol.yaml`. onbehalf writes it again.
+
+Limits:
+
+- A user can remove the plugin from their own account. Then the backend gets
+  no spans of that user. The user cannot send spans as a different user.
+- The command of a shell tool call can contain a secret, for example a
+  token in an argument. Give access to the backend only to the operators
+  and the audit team.
+- The split between tool calls that read and tool calls that change a
+  system comes in a later version.
+
+To stop the telemetry: `sudo onbehalf telemetry off`. The Collector then
+refuses all keys, and the runtimes stop the spans after their next start.
+
 ## First real test
 
 The automated tests use mock models and a local Git server. Do the same

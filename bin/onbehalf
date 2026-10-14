@@ -5,7 +5,7 @@ set -Eeuo pipefail
 trap 'echo "onbehalf: failed at ${BASH_SOURCE[0]##*/}:$LINENO: $BASH_COMMAND" >&2' ERR
 
 ONBEHALF_LIB=${ONBEHALF_LIB:-$(readlink -f "$(dirname "$(readlink -f "$0")")/../lib/onbehalf")}
-for f in common ui menu cmd-init cmd-harness cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-status harness harness-opencode harness-claude harness-codex tools; do
+for f in common ui menu cmd-init cmd-harness cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-telemetry cmd-status harness harness-opencode harness-claude harness-codex tools; do
   # shellcheck source=/dev/null
   . "$ONBEHALF_LIB/$f.sh"
 done
@@ -49,6 +49,11 @@ Operator commands (as root):
                                     check each MIN minutes (default 10). Send
                                     an alert when a problem starts or stops
   health off | alert-test           stop the checks | send a test alert
+  telemetry on --export URL [--port PORT]
+                                    send the tool calls and model steps of each
+                                    user to the OTel backend at URL, through the
+                                    OTel Collector of the host (OpenCode only)
+  telemetry off                     stop the telemetry
 
 User commands:
   status [--model-check] [--model MODEL]
@@ -121,6 +126,10 @@ case "${1:-} ${2:-}" in
   "health "*)
     shift
     cmd_health "$@"
+    ;;
+  "telemetry "*)
+    shift
+    cmd_telemetry "$@"
     ;;
   "report "*)
     shift
