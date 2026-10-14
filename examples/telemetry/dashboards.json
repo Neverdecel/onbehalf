@@ -1,0 +1,641 @@
+{
+  "dashboards": [
+    {
+      "name": "onbehalf: usage and adoption",
+      "description": "Who uses the runtimes, and how much. A task is one prompt.",
+      "widgets": [
+        {
+          "name": "Active users",
+          "description": "Users with one or more spans",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [],
+          "metrics": [
+            {
+              "measure": "uniqueUserIds",
+              "agg": "count"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "name": "Sessions",
+          "description": "OpenCode sessions with one or more spans",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [],
+          "metrics": [
+            {
+              "measure": "uniqueSessionIds",
+              "agg": "count"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "name": "Tasks",
+          "description": "Prompts",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "AGENT"
+            }
+          ]
+        },
+        {
+          "name": "Tasks per user",
+          "description": "Prompts of each user",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "AGENT"
+            }
+          ]
+        },
+        {
+          "name": "Sessions per user",
+          "description": "OpenCode sessions of each user",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "uniqueSessionIds",
+              "agg": "count"
+            }
+          ],
+          "filters": []
+        },
+        {
+          "name": "Tool calls per user",
+          "description": "All tool calls of each user",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "onbehalf: cost",
+      "description": "Tokens and cost of the model steps. Langfuse calculates the cost from the model prices in the project settings.",
+      "widgets": [
+        {
+          "name": "Cost per user",
+          "description": "USD",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalCost",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Cost per model",
+          "description": "USD",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "providedModelName"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalCost",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Tokens per user",
+          "description": "Input and output tokens",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalTokens",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Tokens per model",
+          "description": "Input and output tokens",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "providedModelName"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalTokens",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Cost per model over time",
+          "description": "USD",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [
+            {
+              "field": "providedModelName"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalCost",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Cost per user and model",
+          "description": "USD and tokens",
+          "chartType": "PIVOT_TABLE",
+          "dimensions": [
+            {
+              "field": "userId"
+            },
+            {
+              "field": "providedModelName"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "totalCost",
+              "agg": "sum"
+            },
+            {
+              "measure": "totalTokens",
+              "agg": "sum"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "onbehalf: tool calls",
+      "description": "Tool calls of each tool and user. The class read, write or unknown comes from the rules of the OTel Collector.",
+      "widgets": [
+        {
+          "name": "Tool calls per tool",
+          "description": "All tool calls",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "name"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            }
+          ]
+        },
+        {
+          "name": "Failed tool calls per tool",
+          "description": "Tool calls with the level ERROR, for example an exit code that is not 0",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "name"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            },
+            {
+              "column": "level",
+              "operator": "=",
+              "type": "string",
+              "value": "ERROR"
+            }
+          ]
+        },
+        {
+          "name": "All tool calls per user",
+          "description": "Compare with the write and read tool calls per user",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            }
+          ]
+        },
+        {
+          "name": "Write tool calls per user",
+          "description": "Tool calls that change a system or a file",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            },
+            {
+              "column": "metadata",
+              "operator": "=",
+              "type": "stringObject",
+              "key": "tool_class",
+              "value": "write"
+            }
+          ]
+        },
+        {
+          "name": "Read tool calls per user",
+          "description": "Tool calls that only read",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            },
+            {
+              "column": "metadata",
+              "operator": "=",
+              "type": "stringObject",
+              "key": "tool_class",
+              "value": "read"
+            }
+          ]
+        },
+        {
+          "name": "Unknown tool calls per user",
+          "description": "Tool calls without a rule. Add rules in telemetry/classes.json of the stack source",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            },
+            {
+              "column": "metadata",
+              "operator": "=",
+              "type": "stringObject",
+              "key": "tool_class",
+              "value": "unknown"
+            }
+          ]
+        },
+        {
+          "name": "Tool calls per tool and result",
+          "description": "DEFAULT is a success, ERROR is a failure",
+          "chartType": "PIVOT_TABLE",
+          "dimensions": [
+            {
+              "field": "name"
+            },
+            {
+              "field": "level"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "onbehalf: reliability",
+      "description": "Latency and errors. A failed task shows where a session stopped.",
+      "widgets": [
+        {
+          "name": "Model latency per model",
+          "description": "p95 of the model steps, in ms",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "providedModelName"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "latency",
+              "agg": "p95"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "GENERATION"
+            }
+          ]
+        },
+        {
+          "name": "Task duration",
+          "description": "p50 and p95 of the prompts, in ms",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [],
+          "metrics": [
+            {
+              "measure": "latency",
+              "agg": "p50"
+            },
+            {
+              "measure": "latency",
+              "agg": "p95"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "AGENT"
+            }
+          ]
+        },
+        {
+          "name": "Tool latency per tool",
+          "description": "p95 of the tool calls, in ms",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "name"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "latency",
+              "agg": "p95"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "TOOL"
+            }
+          ]
+        },
+        {
+          "name": "Errors over time",
+          "description": "Spans with the level ERROR, for each type",
+          "chartType": "LINE_TIME_SERIES",
+          "dimensions": [
+            {
+              "field": "type"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "level",
+              "operator": "=",
+              "type": "string",
+              "value": "ERROR"
+            }
+          ]
+        },
+        {
+          "name": "Failed tasks per user",
+          "description": "Prompts that ended with an error or an interruption",
+          "chartType": "HORIZONTAL_BAR",
+          "dimensions": [
+            {
+              "field": "userId"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "type",
+              "operator": "=",
+              "type": "string",
+              "value": "AGENT"
+            },
+            {
+              "column": "level",
+              "operator": "=",
+              "type": "string",
+              "value": "ERROR"
+            }
+          ]
+        },
+        {
+          "name": "Errors per user and type",
+          "description": "Where the sessions of each user break down",
+          "chartType": "PIVOT_TABLE",
+          "dimensions": [
+            {
+              "field": "userId"
+            },
+            {
+              "field": "type"
+            }
+          ],
+          "metrics": [
+            {
+              "measure": "count",
+              "agg": "count"
+            }
+          ],
+          "filters": [
+            {
+              "column": "level",
+              "operator": "=",
+              "type": "string",
+              "value": "ERROR"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

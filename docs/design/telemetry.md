@@ -84,7 +84,10 @@ frequently in use on the host.
    stack. onbehalf makes Collector `transform` statements from it. The
    class is in `tool.class`, and in the metadata key `tool_class` for
    Langfuse.
-4. Dashboards in Langfuse for each user.
+4. Dashboards in Langfuse for each user, as code: `dashboards.json` and
+   `dashboards.sh` in `examples/telemetry`. Langfuse groups by the user
+   only as a list of the top values, and it cannot group by metadata. Thus
+   the read-and-write split is widgets side by side.
 5. Claude Code and Codex, with their native OTel export and the same
    Collector.
 

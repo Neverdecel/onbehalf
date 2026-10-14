@@ -64,6 +64,8 @@ Do these steps as root on the host.
    onbehalf doctor
    ```
 
+6. Make the dashboards: `./dashboards.sh`.
+
 ## Open Langfuse
 
 Langfuse listens only on the host. Open an SSH tunnel from your computer:
@@ -75,6 +77,34 @@ ssh -L 3000:127.0.0.1:3000 HOST
 Then open `http://localhost:3000`. Log in with `LANGFUSE_ADMIN_EMAIL` and
 `LANGFUSE_ADMIN_PASSWORD`. Sign-up is off. The first account adds the other
 accounts in the settings of the organization.
+
+## Dashboards
+
+`dashboards.json` defines four dashboards. Each one shows the data for
+each user:
+
+| Dashboard | Widgets |
+|---|---|
+| `onbehalf: usage and adoption` | Active users, sessions and tasks over time. Tasks, sessions and tool calls per user |
+| `onbehalf: cost` | Cost and tokens per user and per model, cost over time, a table of user and model |
+| `onbehalf: tool calls` | Tool calls and failed tool calls per tool. All, write, read and unknown tool calls per user. A table of tool and result |
+| `onbehalf: reliability` | Latency per model and per tool, task duration, errors over time, failed tasks per user, a table of user and error type |
+
+Make or replace the dashboards, as root:
+
+```
+cd /etc/onbehalf-telemetry
+./dashboards.sh
+```
+
+The script uses the API keys in `.env`. Run it again after a change to
+`dashboards.json`. It replaces the dashboards and widgets with the same
+names. Langfuse calls its dashboard API "unstable": a new Langfuse version
+can change it.
+
+Langfuse cannot group by a metadata key and cannot divide two values. Thus
+the read-and-write split is three widgets with the same users: all tool
+calls, write tool calls and read tool calls.
 
 ## Cost
 
