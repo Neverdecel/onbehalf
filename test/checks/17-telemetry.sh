@@ -95,6 +95,47 @@ if [ "$FAILED" != 0 ]; then
   tail -20 "$backend/collector.log" | sed 's/^/        /'
 fi
 
+# The tool classes. The client gives the class read: the Collector replaces it.
+tool_span() { # tool_span USER KEYFILE COMMAND: the HTTP status of one tool span
+  local body
+  body=$(jq -nc --arg c "$3" --arg t "$(openssl rand -hex 16)" --arg s "$(openssl rand -hex 8)" '{resourceSpans: [{resource: {},
+    scopeSpans: [{spans: [{traceId: $t, spanId: $s, name: "execute_tool shell", kind: 1, startTimeUnixNano: "1", endTimeUnixNano: "2",
+    attributes: [{key: "gen_ai.operation.name", value: {stringValue: "execute_tool"}}, {key: "gen_ai.tool.name", value: {stringValue: "shell"}},
+      {key: "process.command_line", value: {stringValue: $c}}, {key: "tool.class", value: {stringValue: "read"}}]}]}]}]}')
+  as "$1" "curl -s -o /dev/null -w '%{http_code}' -u \"$1:\$(cat $2)\" -H 'content-type: application/json' --data '$body' http://127.0.0.1:4318/v1/traces"
+}
+# class COMMAND CLASS: the backend got the command with that class. The
+# protobuf has no line ends, so the check searches the bytes after the command.
+class() {
+  for _ in $(seq 1 20); do
+    cat "$backend"/out/req-* 2>/dev/null | tr '\n\0' '  ' | grep -aqP "\\Q$1\\E.{0,400}?tool\\.class.{1,8}$2" && return 0
+    sleep 1
+  done
+  return 1
+}
+key=/home/carol/.config/onbehalf/telemetry.key
+for c in "kubectl delete pod web-1" "kubectl get pods -A" "make build"; do tool_span carol "$key" "$c" >/dev/null; done
+check "the Collector gives the class write to kubectl delete, not the class of the client" class "kubectl delete pod web-1" write
+check "the Collector gives the class read to kubectl get" class "kubectl get pods -A" read
+check "the Collector gives the class unknown to a command without a rule" class "make build" unknown
+check "the class is also a metadata key for Langfuse" got "langfuse.observation.metadata.tool_class"
+
+stack=$(mktemp -d)
+cp -R /src/test/stack/. "$stack"
+mkdir "$stack/telemetry"
+echo '{"rules": [{"class": "read", "command": "(?!x)"}]}' >"$stack/telemetry/classes.json"
+out=$(onbehalf stack install "$stack" 2>&1)
+check "stack install refuses a tool class pattern with lookaround" grep -q "no lookaround" <<<"$out"
+echo '{"rules": [{"class": "write", "command": "\\bmake\\s+deploy\\b"}]}' >"$stack/telemetry/classes.json"
+out=$(onbehalf stack install "$stack" 2>&1)
+check "stack install gives the tool classes of the shared stack to the Collector" \
+  grep -q "the Collector uses the tool classes of $ONBEHALF_STACK/current/telemetry/classes.json" <<<"$out"
+sleep 2
+tool_span carol "$key" "make deploy now" >/dev/null
+check "the Collector uses the rules of the shared stack" class "make deploy now" write
+onbehalf stack install /src/test/stack >/dev/null 2>&1
+rm -rf "$stack"
+
 # A removed user: the Collector refuses the key.
 cp /home/carol/.config/onbehalf/telemetry.key "$backend/carol.key"
 chmod 0644 "$backend/carol.key"

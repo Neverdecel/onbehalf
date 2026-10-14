@@ -56,7 +56,7 @@ onbehalf makes the spans.
 | Identity | A personal telemetry key for each user, the same model as the gateway key. The Collector checks the key (`basicauth`, htpasswd file) and sets `user.name` from `auth.username`. A value in the span cannot change it. |
 | Collector | The operator installs `otelcol-contrib`. onbehalf writes its configuration. The Collector reads it again at `SIGHUP`. |
 | Content | The command of a shell tool call goes to the backend, because it is necessary for the audit. A prompt, a model answer and a tool output never go. |
-| Classification | In the Collector, from the tool name and the command. The rules are data in the shared stack. Step 2. |
+| Classification | In the Collector, from the tool name and the command. The rules are data: the default rules of onbehalf, or `telemetry/classes.json` of the shared stack. The first rule that agrees gives the class. |
 
 ## Spans
 
@@ -81,7 +81,9 @@ frequently in use on the host.
 2. The example backend `examples/telemetry`: the Collector and Langfuse,
    with Docker Compose.
 3. The classes `read`, `write` and `unknown`. A rules file in the shared
-   stack. onbehalf makes Collector `transform` statements from it.
+   stack. onbehalf makes Collector `transform` statements from it. The
+   class is in `tool.class`, and in the metadata key `tool_class` for
+   Langfuse.
 4. Dashboards in Langfuse for each user.
 5. Claude Code and Codex, with their native OTel export and the same
    Collector.

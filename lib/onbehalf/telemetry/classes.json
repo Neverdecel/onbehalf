@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {"class": "write", "tool": "edit|write|patch|multiedit|apply_patch"},
+    {"class": "read", "tool": "read|glob|grep|list|ls|webfetch|websearch|codesearch|todoread|todowrite|skill|task"},
+
+    {"class": "write", "command": "\\b(terraform|tofu)\\s+(apply|destroy|import|taint|untaint|state\\s+(rm|mv|push|replace-provider))\\b"},
+    {"class": "write", "command": "\\baz(\\s+[a-z][a-z0-9-]*)*\\s+(create|delete|update|set|add|remove|start|stop|restart|deallocate|deploy|import|purge|assign|invoke|upload|run|reset|rotate|renew|approve|cancel|failover|move|swap|scale|resize)\\b"},
+    {"class": "write", "command": "\\bkubectl\\s+(apply|create|delete|edit|patch|replace|scale|autoscale|rollout\\s+(restart|undo|pause|resume)|set|label|annotate|drain|cordon|uncordon|taint|exec|cp|run|expose)\\b"},
+    {"class": "write", "command": "\\bhelm\\s+(install|upgrade|uninstall|delete|rollback)\\b"},
+    {"class": "write", "command": "\\bgh\\s+((pr|issue)\\s+(create|merge|close|reopen|edit|comment|review|ready)|release\\s+(create|delete|edit|upload)|repo\\s+(create|delete|edit|fork|rename|archive)|api\\s.*(-X|--method)\\s*(POST|PUT|PATCH|DELETE))\\b"},
+    {"class": "write", "command": "\\bgit\\s+(push|commit|merge|rebase|reset|tag|cherry-pick|revert|stash|checkout|switch|restore|clean|rm|mv)\\b"},
+    {"class": "write", "command": "\\baws(\\s+[a-z][a-z0-9-]*)*\\s+(create|delete|put|update|modify|terminate|run|start|stop|reboot|attach|detach|associate|disassociate|tag|untag)-[a-z0-9-]+|\\baws\\s+s3\\s+(cp|mv|rm|sync|mb|rb)\\b"},
+    {"class": "write", "command": "\\bdocker\\s+(run|rm|rmi|stop|kill|push|build|exec|compose\\s+(up|down|rm|stop|restart))\\b"},
+    {"class": "write", "command": "(^|[;&|]\\s*)(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|tee|dd|truncate)\\s|\\bsed\\s+(-[a-zA-Z]*i|--in-place)"},
+
+    {"class": "read", "command": "\\b(terraform|tofu)\\s+(plan|show|validate|output|fmt|graph|providers|version|state\\s+(list|show))\\b"},
+    {"class": "read", "command": "\\baz(\\s+[a-z][a-z0-9-]*)*\\s+(list|show|get-[a-z-]+|list-[a-z-]+|query|version|wait|exists|check-name)\\b"},
+    {"class": "read", "command": "\\bkubectl\\s+(get|describe|logs|top|explain|api-resources|api-versions|version|cluster-info|config\\s+(view|get-contexts|current-context)|auth\\s+can-i|diff)\\b"},
+    {"class": "read", "command": "\\bhelm\\s+(list|ls|status|get|history|template|show|search|lint|version)\\b"},
+    {"class": "read", "command": "\\bgh\\s+((pr|issue|run|release|repo|workflow)\\s+(list|view|status|checks|diff|watch)|api|search|auth\\s+status)\\b"},
+    {"class": "read", "command": "\\bgit\\s+(status|log|diff|show|branch|fetch|blame|remote|rev-parse|ls-files|grep|describe)\\b"},
+    {"class": "read", "command": "\\baws(\\s+[a-z][a-z0-9-]*)*\\s+(describe|list|get)-[a-z0-9-]+|\\baws\\s+s3\\s+ls\\b"},
+    {"class": "read", "command": "\\bdocker\\s+(ps|images|logs|inspect|version|info|compose\\s+(ps|logs|config))\\b"},
+    {"class": "read", "command": "^\\s*(ls|cat|head|tail|grep|rg|find|echo|pwd|wc|jq|which|whoami|id|date|env|printenv|stat|file|du|df|tree|diff|sort|uniq|cut|awk|ps)\\b"}
+  ]
+}

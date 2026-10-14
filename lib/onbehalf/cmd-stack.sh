@@ -54,6 +54,7 @@ cmd_stack_install() {
   mv -T "$ONBEHALF_STACK/current.new" "$ONBEHALF_STACK/current"
   ok "shared stack $id is current"
   harness activate
+  telemetry_stack_changed
 
   # Every user gets the change now: new links, and running services restart.
   # --no-restart leaves running services on the old config until they restart.
