@@ -1196,8 +1196,45 @@ Limits:
 - The command of a shell tool call can contain a secret, for example a
   token in an argument. Give access to the backend only to the operators
   and the audit team.
-- The split between tool calls that read and tool calls that change a
-  system comes in a later version.
+
+### Tool classes
+
+The Collector gives each tool call the attribute `tool.class`:
+
+- `read`: the call only reads, for example `az group list`,
+  `terraform plan` or `kubectl get`.
+- `write`: the call changes a system or a file, for example
+  `terraform apply`, `az group delete` or `git push`.
+- `unknown`: no rule agrees with the call.
+
+The rules are data. onbehalf has default rules in
+`/usr/local/lib/onbehalf/telemetry/classes.json`. To add your own rules, put
+a file `telemetry/classes.json` in the stack source. Its rules come before
+the default rules, so a rule of the team can also change a default. The
+team can then review the rules with the other parts of the shared stack:
+
+```json
+{
+  "rules": [
+    {"class": "write", "command": "\\bterraform\\s+(apply|destroy)\\b"},
+    {"class": "read", "command": "\\bterraform\\s+(plan|show)\\b"},
+    {"class": "read", "tool": "read|glob|grep"}
+  ]
+}
+```
+
+- `tool` is a pattern for the full tool name. `command` is a pattern for a
+  part of the command of a shell tool call. A rule with both must agree
+  with both.
+- The first rule that agrees gives the class. Put the `write` rules first.
+  Then a command such as `terraform plan && terraform apply` is `write`.
+- The patterns use the Go (RE2) syntax. Lookaround and back references are
+  not permitted.
+
+`onbehalf stack install` checks the rules. Then it gives them to the
+Collector. A client cannot give a class: the Collector removes it first.
+The Collector also writes the class in the metadata key `tool_class`,
+because Langfuse can filter only on a metadata key at the top level.
 
 To stop the telemetry: `sudo onbehalf telemetry off`. The Collector then
 refuses all keys, and the runtimes stop the spans after their next start.

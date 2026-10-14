@@ -177,6 +177,10 @@ stack_validate() {
   fi
   stack_shared_valid "$1"
   harness_validate "$1"
+  if [ -e "$1/telemetry/classes.json" ]; then
+    telemetry_classes_valid "$1/telemetry/classes.json" \
+      || die "telemetry/classes.json must be {\"rules\": [...]}. Each rule has the class read or write, and a pattern in tool or command, or both. Use Go (RE2) patterns: no lookaround, no back reference"
+  fi
   local f id
   for f in "$1"/tools/*.json; do
     [ -e "$f" ] || continue

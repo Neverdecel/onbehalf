@@ -18,6 +18,10 @@ in `lib/onbehalf/VERSION`.
   as child spans. Each span has the OpenCode session and the user.
 - `examples/telemetry` runs the OTel Collector and Langfuse with Docker
   Compose.
+- The Collector gives each tool call the class `read`, `write` or
+  `unknown`, from rules for the tool name and the command. A stack source
+  can add rules in `telemetry/classes.json`. They come before the default
+  rules.
 - The installer now checks for `openssl`.
 
 ## 0.2.0 (2026-10-12)

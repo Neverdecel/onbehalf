@@ -131,10 +131,64 @@ telemetry_disable() {
   info "the Collector configuration stays in $TELEMETRY_DIR. Stop the Collector if nothing else uses it"
 }
 
+# The files of the tool class rules, in order: telemetry/classes.json of
+# the shared stack, then the default rules of onbehalf. A team adds only its
+# own rules, and a rule of the team comes before a default rule.
+telemetry_classes_files() {
+  local f="$ONBEHALF_STACK/current/telemetry/classes.json"
+  [ ! -e "$f" ] || echo "$f"
+  echo "$ONBEHALF_LIB/telemetry/classes.json"
+}
+
+# telemetry_classes_valid FILE: {"rules": [RULE...]}. A rule has the class
+# read or write, and a pattern for the tool name, for the command, or both.
+# The Collector uses Go (RE2) patterns: no lookaround and no back reference.
+telemetry_classes_valid() {
+  jq -e '
+    def pattern: type == "string" and length > 0 and length <= 2000 and
+      (test("\\(\\?<?[=!]|\\\\[1-9]") | not) and (try ("" | test(.) | true) catch false);
+    type == "object" and (keys == ["rules"]) and (.rules | type == "array" and length > 0) and
+    all(.rules[]; type == "object" and (keys - ["class", "tool", "command"] | length == 0) and
+      (.class == "read" or .class == "write") and (has("tool") or has("command")) and
+      ((has("tool") | not) or (.tool | pattern)) and ((has("command") | not) or (.command | pattern)))
+  ' "$1" >/dev/null 2>&1
+}
+
+# The OTTL statements of the tool classes, one YAML list item on each line.
+# A client cannot give a class: the Collector removes it first. The first
+# rule that agrees gives the class. A tool call without a rule is unknown.
+# Langfuse can filter only on a metadata key at the top level, so the class
+# is also in langfuse.observation.metadata.tool_class.
+telemetry_classes_statements() {
+  jq -s '{rules: map(.rules) | add}' "$@" | jq -r --arg q "'" '
+    def item: "      - " + $q + gsub($q; $q + $q) + $q;
+    def tool: "span.attributes[\"gen_ai.operation.name\"] == \"execute_tool\" and span.attributes[\"tool.class\"] == nil";
+    ("delete_key(span.attributes, \"tool.class\")" | item),
+    ("delete_key(span.attributes, \"langfuse.observation.metadata.tool_class\")" | item),
+    (.rules[] | . as $r | [tool] +
+      (if .tool then ["IsMatch(span.attributes[\"gen_ai.tool.name\"], " + ("^(?:" + .tool + ")$" | tojson) + ")"] else [] end) +
+      (if .command then ["IsMatch(span.attributes[\"process.command_line\"], " + (.command | tojson) + ")"] else [] end) |
+      "set(span.attributes[\"tool.class\"], " + ($r.class | tojson) + ") where " + join(" and ") | item),
+    ("set(span.attributes[\"tool.class\"], \"unknown\") where " + tool | item),
+    ("set(span.attributes[\"langfuse.observation.metadata.tool_class\"], span.attributes[\"tool.class\"]) where span.attributes[\"tool.class\"] != nil" | item)
+  '
+}
+
+# For stack install: the Collector uses the tool classes of the new stack.
+telemetry_stack_changed() {
+  telemetry_on || return 0
+  telemetry_collector_write
+  telemetry_reload
+  ok "the Collector uses the tool classes of $(telemetry_classes_files | paste -sd' ' | sed 's/ / and /')"
+}
+
 # The Collector: an OTLP/HTTP receiver on the loopback address that accepts
 # only the telemetry keys of the users, then the backend of the operator.
 telemetry_collector_write() {
-  local headers=""
+  local headers="" classes
+  local files
+  mapfile -t files < <(telemetry_classes_files)
+  classes=$(telemetry_classes_statements "${files[@]}") || die "could not read the tool classes in ${files[*]}"
   if [ -e "$TELEMETRY_DIR/export-auth" ]; then
     headers=$'\n    headers:\n      authorization: ${file:'"$TELEMETRY_DIR"$'/export-auth}'
   fi
@@ -171,6 +225,11 @@ processors:
       - key: user.name
         from_context: auth.username
         action: upsert
+  # The class of each tool call: read, write or unknown.
+  transform/onbehalf:
+    error_mode: ignore
+    trace_statements:
+$classes
   resource/onbehalf:
     attributes:
       - key: user.name
@@ -194,7 +253,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp/onbehalf]
-      processors: [attributes/onbehalf, resource/onbehalf, batch]
+      processors: [attributes/onbehalf, transform/onbehalf, resource/onbehalf, batch]
       exporters: [otlp_http/backend]
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"
@@ -262,10 +321,16 @@ telemetry_check() {
     return 0
   fi
   local code
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST \
-    "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT/v1/traces" 2>/dev/null) || code=000
+  # After a SIGHUP, the Collector starts again: give it a few seconds.
+  for _ in 1 2 3 4 5; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST \
+      "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT/v1/traces" 2>/dev/null) || code=000
+    [ "$code" = 000 ] || break
+    sleep 1
+  done
   if [ "$code" = 401 ]; then
     ok "the OTel Collector accepts telemetry on port $ONBEHALF_TELEMETRY_PORT, only with a key, to $ONBEHALF_TELEMETRY_EXPORT"
+    info "the tool classes come from $(telemetry_classes_files | paste -sd' ' | sed 's/ / and /')"
   elif [ "$code" = 000 ]; then
     err "the OTel Collector does not answer on port $ONBEHALF_TELEMETRY_PORT"
     fix "start otelcol-contrib with --config=$TELEMETRY_DIR/otelcol.yaml. See the operator guide, section 'Telemetry'"

@@ -86,7 +86,7 @@ install -m 0644 "$src"/lib/onbehalf/*.sh "$src/lib/onbehalf/VERSION" "$prefix/li
 rm -f "$prefix"/lib/onbehalf/tools/*.sh
 install -m 0644 "$src"/lib/onbehalf/tools/*.sh "$prefix/lib/onbehalf/tools/"
 install -d -m 0755 "$prefix/lib/onbehalf/telemetry"
-install -m 0644 "$src"/lib/onbehalf/telemetry/*.js "$prefix/lib/onbehalf/telemetry/"
+install -m 0644 "$src"/lib/onbehalf/telemetry/*.js "$src"/lib/onbehalf/telemetry/*.json "$prefix/lib/onbehalf/telemetry/"
 install -m 0755 "$src/bin/onbehalf" "$prefix/bin/onbehalf"
 install -d -m 0755 /etc/profile.d
 install -m 0644 "$src/lib/onbehalf/login-profile.sh" /etc/profile.d/onbehalf.sh

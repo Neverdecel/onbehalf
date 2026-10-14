@@ -123,6 +123,13 @@ each `api` value of `models.json`:
 If the Anthropic route causes problems, remove `"api": "anthropic"` from
 the model. The gateway translates the request.
 
+## Tool classes for the telemetry
+
+A stack source can have `telemetry/classes.json`: the rules that give each
+tool call the class `read` or `write`. Its rules come before the default
+rules of onbehalf. See the operator guide, section "Tool classes". This example
+has no file, so the default rules apply.
+
 ## A stack source of version 0.1.0
 
 A stack source without `models.json` keeps its function. Then the enabled
