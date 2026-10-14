@@ -48,7 +48,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: docker-compose
-    directories: [/test, /examples/gateway]
+    directories: [/test, /examples/gateway, /examples/telemetry]
     schedule:
       interval: weekly
     groups:

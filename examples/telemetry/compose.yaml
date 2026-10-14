@@ -1,0 +1,160 @@
+# Telemetry backend: the OTel Collector and Langfuse, on the host of
+# onbehalf. See README.md for the steps. Run it as root in
+# /etc/onbehalf-telemetry:
+#
+#   cp .env.example .env && chmod 600 .env   # then fill in the values
+#   docker compose up -d
+#
+# The services listen only on 127.0.0.1. Users must not be in the docker
+# group: that gives root access.
+name: onbehalf-telemetry
+
+x-langfuse-env: &langfuse-env
+  NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+  DATABASE_URL: postgresql://langfuse:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/langfuse
+  SALT: ${SALT:?set in .env}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set in .env}
+  # Do not send usage data of this Langfuse to the Langfuse company.
+  TELEMETRY_ENABLED: "false"
+  CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+  CLICKHOUSE_URL: http://clickhouse:8123
+  CLICKHOUSE_USER: langfuse
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set in .env}
+  CLICKHOUSE_CLUSTER_ENABLED: "false"
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: langfuse
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?set in .env}
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_AUTH: ${REDIS_AUTH:?set in .env}
+
+services:
+  # The Collector of onbehalf. `onbehalf telemetry on` writes its
+  # configuration and the telemetry keys in /etc/onbehalf/telemetry. The
+  # host network lets the runtimes send to 127.0.0.1:4318, and lets
+  # onbehalf send SIGHUP to the process otelcol-contrib after a user change.
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1
+    restart: unless-stopped
+    command: ["--config=/etc/onbehalf/telemetry/otelcol.yaml"]
+    # The group otelcol-contrib of the host can read the configuration.
+    user: "10001:${OTELCOL_GID:?set in .env}"
+    network_mode: host
+    volumes:
+      - /etc/onbehalf/telemetry:/etc/onbehalf/telemetry:ro
+    depends_on:
+      langfuse-web:
+        condition: service_healthy
+
+  langfuse-web:
+    image: langfuse/langfuse:4.47.0@sha256:74376cff9caad24edb50bedce04053e1d2031942f14a5d6001e7046d825e2bd3
+    restart: unless-stopped
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?set in .env}
+      # The first organization, project, API keys and account. Langfuse makes
+      # them at the first start. The Collector uses the API keys.
+      LANGFUSE_INIT_ORG_ID: onbehalf
+      LANGFUSE_INIT_ORG_NAME: onbehalf
+      LANGFUSE_INIT_PROJECT_ID: onbehalf
+      LANGFUSE_INIT_PROJECT_NAME: onbehalf
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?set in .env}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?set in .env}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_ADMIN_EMAIL:?set in .env}
+      LANGFUSE_INIT_USER_NAME: ${LANGFUSE_ADMIN_NAME:-ops}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_ADMIN_PASSWORD:?set in .env}
+      AUTH_DISABLE_SIGNUP: "true"
+    # Only this host can reach Langfuse. Open it with an SSH tunnel.
+    ports:
+      - 127.0.0.1:3000:3000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://$$(hostname -i):3000/api/public/health || exit 1"]
+      interval: 5s
+      retries: 60
+    depends_on: &langfuse-depends
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:4.47.0@sha256:3fe007098e3dcd89fe546256b2e1eec417e9e44b4366683cdc70dc63bbc6a59b
+    restart: unless-stopped
+    environment: *langfuse-env
+    depends_on: *langfuse-depends
+
+  postgres:
+    image: postgres:17.11-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: langfuse
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 3s
+      retries: 30
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.12.11.4@sha256:8a790dd3468db22b1d4e7b18a176f378ff5ff6053b9c48dd4ea1fa71a24c5ba6
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?set in .env}
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      retries: 30
+
+  # Object storage for the events of Langfuse. The command makes the bucket.
+  minio:
+    image: cgr.dev/chainguard/minio:latest@sha256:2136d593beacf4461187035eca949fe49abd589d5079735025c711ca58fee0c8
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" /data'
+    environment:
+      MINIO_ROOT_USER: langfuse
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set in .env}
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      retries: 30
+
+  redis:
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    restart: unless-stopped
+    command: ["--requirepass", "${REDIS_AUTH:?set in .env}", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 3s
+      retries: 30
+    environment:
+      REDIS_PASSWORD: ${REDIS_AUTH:?set in .env}
+
+volumes:
+  postgres:
+  clickhouse:
+  clickhouse-logs:
+  minio:
+  redis:

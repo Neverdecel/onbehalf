@@ -14,6 +14,10 @@ in `lib/onbehalf/VERSION`.
   OpenCode is supported. See the operator guide, section "Telemetry".
 - The operator installs `otelcol-contrib`. onbehalf writes its
   configuration and gives each user a personal telemetry key.
+- Each prompt is a task: one trace, with the model steps and tool calls
+  as child spans. Each span has the OpenCode session and the user.
+- `examples/telemetry` runs the OTel Collector and Langfuse with Docker
+  Compose.
 - The installer now checks for `openssl`.
 
 ## 0.2.0 (2026-10-12)
