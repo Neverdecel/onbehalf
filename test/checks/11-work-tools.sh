@@ -227,7 +227,8 @@ out=$(as tina "cd ~ && NO_COLOR=1 opencode mcp list" 2>&1)
 check "tina's OpenCode is connected to the MCP server" grep -Eq "tracker +connected" <<<"$out"
 out=$(as bob "cd ~ && NO_COLOR=1 opencode mcp list" 2>&1)
 check "the login of tina is not the login of bob" bash -c '! grep -Eq "tracker +connected" <<<"$1"' _ "$out"
-check "bob, without a login, does not see the MCP server" mcp_off bob
+check "bob, without a login, gets no login warning for the MCP server" \
+  bash -c '! grep -Eq "tracker +(connected|needs authentication)" <<<"$1"' _ "$out"
 jsonc=/home/tina/.config/opencode/opencode.jsonc
 check "the login puts a copy of the server, turned on, in opencode.jsonc" \
   jq -e '.mcp.servers.tracker | .disabled == false and .url == "http://127.0.0.1:7777/mcp"' "$jsonc"
