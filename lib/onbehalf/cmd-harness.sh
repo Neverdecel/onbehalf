@@ -30,6 +30,7 @@ cmd_harness() {
   missing=$(ONBEHALF_HARNESS=$new gateway_api_missing)
   [ -z "$missing" ] || die "the gateway does not serve the API of $label: ${missing//$'\n'/ }. The AI harness did not change"
   ok "the gateway serves the API of $label"
+  ! telemetry_on || die "telemetry supports only OpenCode for now. Stop it first: sudo onbehalf telemetry off"
 
   # The gateway keys get the routes of the new AI harness first. If the
   # gateway fails, the host keeps its AI harness. Run the command again.

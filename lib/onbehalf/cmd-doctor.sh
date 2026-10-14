@@ -194,6 +194,7 @@ doctor_host() {
 
   enroll_check
   health_check
+  telemetry_check
   operator_check
   [ -z "$(entra_group)" ] || ok "users follow the Entra group $(entra_group)"
   # The map decides who sync adds and removes; users must not change it.
@@ -246,6 +247,7 @@ doctor_user() {
   fi
 
   harness check "$u" "$home"
+  telemetry_user_check "$u" "$home"
 
   local models policy=models
   ! models=$(stack_models "$ONBEHALF_STACK/current" 2>/dev/null) \

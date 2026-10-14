@@ -6,7 +6,15 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
-No changes yet.
+### Telemetry
+
+- `onbehalf telemetry on --export URL` sends the tool calls and the model
+  steps of each user to an OpenTelemetry backend, through the OTel
+  Collector of the host. Each span has the Unix account of the user. Only
+  OpenCode is supported. See the operator guide, section "Telemetry".
+- The operator installs `otelcol-contrib`. onbehalf writes its
+  configuration and gives each user a personal telemetry key.
+- The installer now checks for `openssl`.
 
 ## 0.2.0 (2026-10-12)
 
