@@ -177,6 +177,11 @@ cmd_tools() {
     tools_list
     return 0
   fi
+  # For onbehalf stack install: the user's copies of the shared MCP servers.
+  if [ "${1:-}" = --sync ]; then
+    tool_mcp_sync
+    return
+  fi
   tools_terminal || die "onbehalf tools must have a terminal"
   [ ! -r "$ONBEHALF_ETC/onbehalf.conf" ] || load_conf
   tools_load

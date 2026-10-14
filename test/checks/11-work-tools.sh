@@ -186,7 +186,7 @@ node /src/test/fixtures/fake-mcp.js &
 mcp_pid=$!
 cp -a /src/test/stack "$T/stack"
 jq '.mcp.servers = {
-      tracker: {type: "remote", url: "http://127.0.0.1:7777/mcp"},
+      tracker: {type: "remote", url: "http://127.0.0.1:7777/mcp", disabled: true},
       static: {type: "remote", url: "http://127.0.0.1:7777/mcp", headers: {Authorization: "Bearer {env:NONE}"}},
       off: {type: "remote", url: "http://127.0.0.1:7777/mcp", enabled: false}}' \
   /src/test/stack/opencode/opencode.json >"$T/stack/opencode/opencode.json"
@@ -201,6 +201,17 @@ check "the MCP connections follow in their own group" \
 check "an empty line is between the groups" \
   test "$(line '^ *MCP connections$' "$out")" = $(($(line '3) .* Azure CLI ' "$out") + 2))
 check "MCP servers without a personal login are not" bash -c '! grep -Eq "\) .*(static|off) " <<<"$1"' _ "$out"
+# mcp_off USER: OpenCode of USER lists tracker as off. Just after OpenCode
+# starts, the list can be empty for some seconds.
+mcp_off() {
+  local i
+  for ((i = 0; i < 15; i++)); do
+    as "$1" "cd ~ && NO_COLOR=1 opencode mcp list" 2>&1 | grep -Eq "tracker +disabled" && return 0
+    sleep 1
+  done
+  return 1
+}
+check "before the login, the shared MCP server is off in OpenCode" mcp_off tina
 start tina "ONBEHALF_PLAIN=1 onbehalf tools mcp:tracker"
 await "Open this address in your browser" 90
 url=$(plain <"$T/out" | grep -oE 'http://127\.0\.0\.1:7777/authorize[^[:space:]]+' | head -1)
@@ -216,8 +227,17 @@ out=$(as tina "cd ~ && NO_COLOR=1 opencode mcp list" 2>&1)
 check "tina's OpenCode is connected to the MCP server" grep -Eq "tracker +connected" <<<"$out"
 out=$(as bob "cd ~ && NO_COLOR=1 opencode mcp list" 2>&1)
 check "the login of tina is not the login of bob" bash -c '! grep -Eq "tracker +connected" <<<"$1"' _ "$out"
+check "bob, without a login, does not see the MCP server" mcp_off bob
+jsonc=/home/tina/.config/opencode/opencode.jsonc
+check "the login puts a copy of the server, turned on, in opencode.jsonc" \
+  jq -e '.mcp.servers.tracker | .disabled == false and .url == "http://127.0.0.1:7777/mcp"' "$jsonc"
+jq '.mcp.servers.tracker.url = "http://127.0.0.1:7777/mcp?v=2"' "$T/stack/opencode/opencode.json" >"$T/oc.json"
+mv "$T/oc.json" "$T/stack/opencode/opencode.json"
+onbehalf stack install "$T/stack" >/dev/null 2>&1
+check "a stack install updates the copy" jq -e '.mcp.servers.tracker.url == "http://127.0.0.1:7777/mcp?v=2"' "$jsonc"
 kill "$mcp_pid" 2>/dev/null
 onbehalf stack install /src/test/stack >/dev/null 2>&1
+check "a stack without the server removes the copy" jq -e '.mcp.servers.tracker == null' "$jsonc"
 
 # Work tools of the shared stack: the operator adds tools/ID.json, no change
 # to onbehalf. A file that is not correct stops the install.

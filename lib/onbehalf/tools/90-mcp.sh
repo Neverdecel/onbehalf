@@ -8,10 +8,75 @@
 # 127.0.0.1 of this host. Over SSH that address is not reachable from the
 # user's computer, so the user pastes it here and onbehalf opens it on
 # this host, as the user.
+#
+# A shared server with "disabled": true stays off for a user until their
+# login: OpenCode then shows no server that the user cannot use. After the
+# login, onbehalf puts a copy of the server, turned on, in the personal
+# opencode.jsonc. OpenCode does not merge a part of a server, so the copy is
+# the full entry. ~/.config/onbehalf/mcp-on records the copies of onbehalf;
+# each stack install updates them (onbehalf tools --sync).
 
 TOOLS_DISCOVER+=(tool_mcp_discover)
 
 tool_mcp_config() { echo "${ONBEHALF_STACK:-/opt/onbehalf/stack}/current/opencode/opencode.json"; }
+tool_mcp_personal() { echo "$HOME/.config/opencode/opencode.jsonc"; }
+tool_mcp_record() { echo "$HOME/.config/onbehalf/mcp-on"; }
+
+# tool_mcp_write NAME...: in opencode.jsonc, a copy of each shared server that
+# is off by default, turned on. A server that is not off by default, or not
+# in the stack now, gets no copy. Fails if the file is not plain JSON.
+tool_mcp_write() {
+  local f tmp
+  f=$(tool_mcp_personal)
+  [ ! -L "$f" ] || return 1
+  tmp=$(umask 077 && mktemp "$f.XXXXXX") || return 1
+  if { cat "$f" 2>/dev/null || echo '{}'; } | jq --slurpfile s "$(tool_mcp_config)" '
+    reduce $ARGS.positional[] as $n (.;
+      ($s[0].mcp.servers[$n] // {}) as $e
+      | if $e.disabled == true then .mcp.servers[$n] = $e + {disabled: false}
+        else del(.mcp.servers[$n]) end)' --args "$@" >"$tmp" 2>/dev/null; then
+    mv -f "$tmp" "$f"
+  else
+    rm -f "$tmp"
+    return 1
+  fi
+}
+
+# tool_mcp_on NAME: turn the server on for this user after the login. If
+# opencode.jsonc is not plain JSON, show the user what to add.
+tool_mcp_on() {
+  local r names
+  r=$(tool_mcp_record)
+  [ "$(jq -r --arg n "$1" '.mcp.servers[$n].disabled' "$(tool_mcp_config)")" = true ] || return 0
+  (
+    umask 077
+    mkdir -p "${r%/*}"
+    { cat "$r" 2>/dev/null || :; } | grep -Fxv "$1" >"$r.new" || :
+    echo "$1" >>"$r.new"
+    mv -f "$r.new" "$r"
+  )
+  mapfile -t names <"$r"
+  if tool_mcp_write "${names[@]}"; then
+    (cd ~ && opencode service restart) >/dev/null 2>&1 || :
+    return 0
+  fi
+  printf '\n  %s!%s Could not change %s. Add this to it:\n\n' "$_y" "$_0" "$(tool_mcp_personal)"
+  jq --arg n "$1" '{mcp: {servers: {($n): (.mcp.servers[$n] + {disabled: false})}}}' "$(tool_mcp_config)" | sed 's/^/    /'
+  printf '\n  Then: opencode service restart\n'
+}
+
+# For onbehalf stack install: update the copies to the current stack, and
+# remove a copy when the stack has no such server now.
+tool_mcp_sync() {
+  local r names keep
+  r=$(tool_mcp_record)
+  [ -s "$r" ] || return 0
+  mapfile -t names <"$r"
+  tool_mcp_write "${names[@]}" || return 1
+  keep=$(jq -r '.mcp.servers // {} | to_entries[] | select(.value.disabled == true) | .key' "$(tool_mcp_config)")
+  grep -Fxf <(printf '%s\n' "$keep") "$r" >"$r.new" || :
+  mv -f "$r.new" "$r"
+}
 
 # Names of the shared MCP servers that need a personal login.
 tool_mcp_servers() {
@@ -62,6 +127,14 @@ tool_mcp_state() {
   case $status in
     connected) TOOL_STATE=ok TOOL_DETAIL="connected" ;;
     "needs authentication") TOOL_STATE=todo TOOL_DETAIL="not logged in" ;;
+    # Off until the login. After a login it is off only if the copy failed.
+    disabled)
+      if grep -Fqx "$1" "$(tool_mcp_record)" 2>/dev/null; then
+        TOOL_STATE=warn TOOL_DETAIL="logged in, but off in $(tool_mcp_personal)"
+      else
+        TOOL_STATE=todo TOOL_DETAIL="not logged in"
+      fi
+      ;;
     "") TOOL_STATE=todo TOOL_DETAIL="not connected" ;;
     *) TOOL_STATE=warn TOOL_DETAIL=$status ;;
   esac
@@ -117,6 +190,7 @@ tool_mcp_setup() {
   fi
   rm -f "$out"
   [ "$rc" = 0 ] || return "$rc"
+  tool_mcp_on "$name"
   # OpenCode connects again after the login; wait for it.
   for ((i = 0; i < 15; i++)); do
     tool_mcp_state "$name"
