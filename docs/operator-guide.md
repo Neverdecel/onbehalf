@@ -1125,6 +1125,8 @@ did the action. Only OpenCode is supported now.
 
 The backend gets these spans:
 
+- **A task:** one prompt and the model steps and tool calls that answer
+  it. All spans of a task are in one trace, with the session of OpenCode.
 - **A tool call:** the tool name, the command of a shell tool call, the
   exit code, the result and the duration.
 - **A model step:** the model, the tokens, the finish reason and the
@@ -1169,7 +1171,9 @@ To set up telemetry:
    only with a key.
 
 For Langfuse, use `--export https://LANGFUSE/api/public/otel`. The header is
-`Basic` and the base64 value of `PUBLIC_KEY:SECRET_KEY`.
+`Basic` and the base64 value of `PUBLIC_KEY:SECRET_KEY`. The example
+[`examples/telemetry`](../examples/telemetry/README.md) runs the Collector
+and Langfuse on the host, with Docker Compose.
 
 | File | Who can read it | Contents |
 |---|---|---|

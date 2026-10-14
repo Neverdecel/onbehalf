@@ -159,6 +159,18 @@ receivers:
 
 processors:
   # The identity comes from the key, never from the spans of the user.
+  # Backends such as Langfuse read the user from each span, not from the
+  # resource. A user value of the client is removed first.
+  attributes/onbehalf:
+    actions:
+      - pattern: ^(langfuse\.user\..*|enduser\..*)$
+        action: delete
+      - key: user.id
+        from_context: auth.username
+        action: upsert
+      - key: user.name
+        from_context: auth.username
+        action: upsert
   resource/onbehalf:
     attributes:
       - key: user.name
@@ -174,11 +186,15 @@ exporters:
     endpoint: $ONBEHALF_TELEMETRY_EXPORT$headers
 
 service:
+  # No metrics of the Collector itself: they use port 8888 of the host.
+  telemetry:
+    metrics:
+      level: none
   extensions: [basicauth/onbehalf]
   pipelines:
     traces:
       receivers: [otlp/onbehalf]
-      processors: [resource/onbehalf, batch]
+      processors: [attributes/onbehalf, resource/onbehalf, batch]
       exporters: [otlp_http/backend]
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"

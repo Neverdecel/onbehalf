@@ -62,19 +62,28 @@ onbehalf makes the spans.
 
 | Span | Attributes |
 |---|---|
+| `invoke_agent AGENT` | The root span of a task (one prompt). `gen_ai.operation.name`, `gen_ai.agent.name`, `error.type` |
 | `execute_tool NAME` | `gen_ai.operation.name`, `gen_ai.tool.name`, `gen_ai.tool.call.id`, `gen_ai.conversation.id`, `process.command_line` (shell only), `process.exit.code`, `error.type` |
 | `chat MODEL` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.conversation.id`, `gen_ai.response.finish_reasons`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `error.type` |
 
-All spans of one session are in one trace. The Collector adds `user.name`
-and `host.name`.
+All spans of one task are in one trace. Each span has `session.id`. The
+Collector sets `user.id` and `user.name` on each span, because Langfuse
+reads the user from the span and not from the resource. It also adds
+`host.name`. Before that, it removes the user attributes of the client.
+
+The Collector does not send its own metrics. Its default port 8888 is
+frequently in use on the host.
 
 ## Steps
 
 1. `onbehalf telemetry on|off`, the plugin, the telemetry keys and the
    Collector configuration with the identity. (This change.)
-2. The classes `read`, `write` and `unknown`. A rules file in the shared
+2. The example backend `examples/telemetry`: the Collector and Langfuse,
+   with Docker Compose.
+3. The classes `read`, `write` and `unknown`. A rules file in the shared
    stack. onbehalf makes Collector `transform` statements from it.
-3. Claude Code and Codex, with their native OTel export and the same
+4. Dashboards in Langfuse for each user.
+5. Claude Code and Codex, with their native OTel export and the same
    Collector.
 
 ## Limits
@@ -83,5 +92,5 @@ and `host.name`.
   gets no spans of that user. The user cannot send spans as a different
   user.
 - The command can contain a secret, for example a token in an argument.
-- This is not yet the audit log of the sessions of phase 2. Step 2 and
-  step 3 make it a part of that log.
+- This is not yet the audit log of the sessions of phase 2. Step 3 and
+  step 5 make it a part of that log.

@@ -81,6 +81,9 @@ done
 check "the backend gets the tool call of alice, with its command" got "echo onbehalf-telemetry-probe"
 check "the backend gets the tool call as a GenAI span" got "execute_tool shell"
 check "the backend gets the model steps" got "chat agent-model"
+check "the backend gets the task of the prompt" got "invoke_agent"
+check "the spans have the OpenCode session" got "session.id"
+check "the Collector sets user.id on each span, for backends such as Langfuse" got "user.id"
 check "the Collector sends the authorization of the backend" got '"authorization":"Bearer test-backend-key"'
 # The fake model gives the text onbehalf-agent-done after a tool call.
 check "the backend gets no model answer" bash -c '! grep -aq onbehalf-agent-done "$@"' _ "$backend"/out/req-*
