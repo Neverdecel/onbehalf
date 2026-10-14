@@ -1208,10 +1208,10 @@ The Collector gives each tool call the attribute `tool.class`:
 - `unknown`: no rule agrees with the call.
 
 The rules are data. onbehalf has default rules in
-`/usr/local/lib/onbehalf/telemetry/classes.json`. To use your own rules, put
-a file `telemetry/classes.json` in the stack source. It replaces the default
-rules. The team can then review the rules with the other parts of the
-shared stack:
+`/usr/local/lib/onbehalf/telemetry/classes.json`. To add your own rules, put
+a file `telemetry/classes.json` in the stack source. Its rules come before
+the default rules, so a rule of the team can also change a default. The
+team can then review the rules with the other parts of the shared stack:
 
 ```json
 {

@@ -131,12 +131,13 @@ telemetry_disable() {
   info "the Collector configuration stays in $TELEMETRY_DIR. Stop the Collector if nothing else uses it"
 }
 
-# The rules of the tool classes: telemetry/classes.json of the shared stack,
-# or else the default rules of onbehalf.
-telemetry_classes_file() {
+# The files of the tool class rules, in order: telemetry/classes.json of
+# the shared stack, then the default rules of onbehalf. A team adds only its
+# own rules, and a rule of the team comes before a default rule.
+telemetry_classes_files() {
   local f="$ONBEHALF_STACK/current/telemetry/classes.json"
-  [ -e "$f" ] || f="$ONBEHALF_LIB/telemetry/classes.json"
-  echo "$f"
+  [ ! -e "$f" ] || echo "$f"
+  echo "$ONBEHALF_LIB/telemetry/classes.json"
 }
 
 # telemetry_classes_valid FILE: {"rules": [RULE...]}. A rule has the class
@@ -159,7 +160,7 @@ telemetry_classes_valid() {
 # Langfuse can filter only on a metadata key at the top level, so the class
 # is also in langfuse.observation.metadata.tool_class.
 telemetry_classes_statements() {
-  jq -r --arg q "'" '
+  jq -s '{rules: map(.rules) | add}' "$@" | jq -r --arg q "'" '
     def item: "      - " + $q + gsub($q; $q + $q) + $q;
     def tool: "span.attributes[\"gen_ai.operation.name\"] == \"execute_tool\" and span.attributes[\"tool.class\"] == nil";
     ("delete_key(span.attributes, \"tool.class\")" | item),
@@ -170,7 +171,7 @@ telemetry_classes_statements() {
       "set(span.attributes[\"tool.class\"], " + ($r.class | tojson) + ") where " + join(" and ") | item),
     ("set(span.attributes[\"tool.class\"], \"unknown\") where " + tool | item),
     ("set(span.attributes[\"langfuse.observation.metadata.tool_class\"], span.attributes[\"tool.class\"]) where span.attributes[\"tool.class\"] != nil" | item)
-  ' "$1"
+  '
 }
 
 # For stack install: the Collector uses the tool classes of the new stack.
@@ -178,14 +179,16 @@ telemetry_stack_changed() {
   telemetry_on || return 0
   telemetry_collector_write
   telemetry_reload
-  ok "the Collector uses the tool classes of $(telemetry_classes_file)"
+  ok "the Collector uses the tool classes of $(telemetry_classes_files | paste -sd' ' | sed 's/ / and /')"
 }
 
 # The Collector: an OTLP/HTTP receiver on the loopback address that accepts
 # only the telemetry keys of the users, then the backend of the operator.
 telemetry_collector_write() {
   local headers="" classes
-  classes=$(telemetry_classes_statements "$(telemetry_classes_file)") || die "could not read the tool classes in $(telemetry_classes_file)"
+  local files
+  mapfile -t files < <(telemetry_classes_files)
+  classes=$(telemetry_classes_statements "${files[@]}") || die "could not read the tool classes in ${files[*]}"
   if [ -e "$TELEMETRY_DIR/export-auth" ]; then
     headers=$'\n    headers:\n      authorization: ${file:'"$TELEMETRY_DIR"$'/export-auth}'
   fi
@@ -327,7 +330,7 @@ telemetry_check() {
   done
   if [ "$code" = 401 ]; then
     ok "the OTel Collector accepts telemetry on port $ONBEHALF_TELEMETRY_PORT, only with a key, to $ONBEHALF_TELEMETRY_EXPORT"
-    info "the tool classes come from $(telemetry_classes_file)"
+    info "the tool classes come from $(telemetry_classes_files | paste -sd' ' | sed 's/ / and /')"
   elif [ "$code" = 000 ]; then
     err "the OTel Collector does not answer on port $ONBEHALF_TELEMETRY_PORT"
     fix "start otelcol-contrib with --config=$TELEMETRY_DIR/otelcol.yaml. See the operator guide, section 'Telemetry'"

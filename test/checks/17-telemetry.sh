@@ -133,6 +133,8 @@ check "stack install gives the tool classes of the shared stack to the Collector
 sleep 2
 tool_span carol "$key" "make deploy now" >/dev/null
 check "the Collector uses the rules of the shared stack" class "make deploy now" write
+tool_span carol "$key" "kubectl get nodes" >/dev/null
+check "the default rules apply after the rules of the shared stack" class "kubectl get nodes" read
 onbehalf stack install /src/test/stack >/dev/null 2>&1
 rm -rf "$stack"
 
