@@ -1135,6 +1135,25 @@ The backend gets these spans:
 - **A model step:** the model, the tokens, the finish reason and the
   duration.
 
+Each span records the shared-stack content ID at plugin load, the harness
+version, the onbehalf version and the telemetry plugin content ID.
+Langfuse shows the stack ID as `release` and the plugin ID as `version`.
+A runtime that has not restarted keeps its previous stack ID.
+Personal overrides can change its behavior. The stack ID does not identify
+the complete personal configuration.
+
+Input tokens include uncached input, cache reads and cache writes. Output
+tokens include text output and reasoning. Separate attributes give each
+category. Compare costs only after the backend has prices for these
+categories. For Langfuse, include prices for `input_cached_tokens`,
+`input_cache_creation` and `output_reasoning_tokens` when the model uses them.
+
+Tool spans give the loaded skill name and a safe error category when
+available. Skill activation events contain the name, but never the skill
+text. Error messages and error response bodies stay private.
+The task result is `completed`, `failed` or `interrupted`.
+`completed` does not mean that the answer was correct or useful.
+
 The spans use the OTel GenAI semantic conventions. The backend never gets a
 prompt, a model answer or a tool output.
 
@@ -1199,6 +1218,20 @@ Limits:
 - The first line of a command can contain a secret, for example a token in
   an argument. Give access to the backend only to the operators
   and the audit team.
+  The plugin replaces commands with common credential forms with
+  `[redacted]`. An unmarked secret can still pass this check.
+  Keep credentials out of command arguments.
+
+The plugin keeps at most 1000 queued spans and exports at most 200 per
+request. It retries a failed batch at most three times, with a delay.
+It does not retry an OTLP partial acceptance, because this duplicates
+accepted spans. Shutdown permits at most three more requests.
+The next exported batch gives cumulative `telemetry_export_failures`,
+`telemetry_dropped_spans` and `telemetry_event_errors` metadata.
+These counts start again when the plugin loads.
+Safe warnings in the runtime log report failures even if no export succeeds.
+Check the Collector logs for failures between the Collector and the backend.
+This is a bounded memory queue, not a durable audit log.
 
 ### Tool classes
 
@@ -1246,6 +1279,29 @@ because Langfuse can filter only on a metadata key at the top level.
 
 To stop the telemetry: `sudo onbehalf telemetry off`. The Collector then
 refuses all keys, and the runtimes stop the spans after their next start.
+
+### Compare shared-stack changes
+
+Use the same small test set for the previous and proposed shared stack:
+
+| Test | Expected result |
+|---|---|
+| Ask for the runtime identity | The answer names the correct test account and role. |
+| Load a test skill | The trace records the skill name without its text. |
+| Run a read-only test command | The trace records the tool, result, duration and class. |
+| Run a command that exits with code 124 | The trace records a timeout, not a useful answer. |
+
+Run these tests in a test account with synthetic data and approved model
+access. Do not read private sessions to make a test set.
+The regression checks in `test/checks/17-telemetry.sh` verify the export
+contract without a production model or a production credential.
+
+Use the built-in scores in Langfuse for human feedback on a task trace.
+Use the categorical score `task_usefulness`: `useful`, `needs_correction`
+or `failed`. A reviewer assigns the score after they check the result.
+Do not infer this score from the task status.
+Compare the score, tool failures, duration and token categories by `release`.
+Keep the model and test set the same. Record personal overrides separately.
 
 ## First real test
 

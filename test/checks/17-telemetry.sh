@@ -7,9 +7,11 @@
 set -uo pipefail
 . /src/test/lib.sh
 
+check "the telemetry plugin passes the synthetic checks" node --experimental-vm-modules /src/test/fixtures/telemetry-plugin.mjs
+
 if ! command -v otelcol-contrib >/dev/null; then
   echo "  skip  the OTel Collector is not installed on this test host"
-  exit 0
+  exit "$FAILED"
 fi
 
 dir=/etc/onbehalf/telemetry
