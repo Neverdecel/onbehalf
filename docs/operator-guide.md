@@ -1128,7 +1128,10 @@ The backend gets these spans:
 - **A task:** one prompt and the model steps and tool calls that answer
   it. All spans of a task are in one trace, with the session of OpenCode.
 - **A tool call:** the tool name, the command of a shell tool call, the
-  exit code, the result and the duration.
+  exit code, the result and the duration. The Collector keeps only the
+  first line of the command, with a maximum of 300 characters, and the
+  length of the full command. Thus the body of an inline script does not
+  get to the backend.
 - **A model step:** the model, the tokens, the finish reason and the
   duration.
 
@@ -1193,8 +1196,8 @@ Limits:
 
 - A user can remove the plugin from their own account. Then the backend gets
   no spans of that user. The user cannot send spans as a different user.
-- The command of a shell tool call can contain a secret, for example a
-  token in an argument. Give access to the backend only to the operators
+- The first line of a command can contain a secret, for example a token in
+  an argument. Give access to the backend only to the operators
   and the audit team.
 
 ### Tool classes
@@ -1228,6 +1231,11 @@ team can then review the rules with the other parts of the shared stack:
   with both.
 - The first rule that agrees gives the class. Put the `write` rules first.
   Then a command such as `terraform plan && terraform apply` is `write`.
+- The rules see the full command, also the body of an inline script. A
+  script gets `write` from the default rules if it has an HTTP POST, PUT,
+  PATCH or DELETE. A write command in list form also gives `write`, for
+  example `['az', 'group', 'delete']`. A different script stays `unknown`,
+  because a wrong `read` is worse than `unknown`.
 - The patterns use the Go (RE2) syntax. Lookaround and back references are
   not permitted.
 

@@ -55,7 +55,7 @@ onbehalf makes the spans.
 | Data source for OpenCode | A plugin of onbehalf, `lib/onbehalf/telemetry/opencode.js`. It reads the session events and sends OTLP/JSON spans. |
 | Identity | A personal telemetry key for each user, the same model as the gateway key. The Collector checks the key (`basicauth`, htpasswd file) and sets `user.name` from `auth.username`. A value in the span cannot change it. |
 | Collector | The operator installs `otelcol-contrib`. onbehalf writes its configuration. The Collector reads it again at `SIGHUP`. |
-| Content | The command of a shell tool call goes to the backend, because it is necessary for the audit. A prompt, a model answer and a tool output never go. |
+| Content | The backend gets the first line of a shell command, with a maximum of 300 characters. It is necessary for the audit. The rules see the full command. The body of an inline script, a prompt, a model answer and a tool output never go. |
 | Classification | In the Collector, from the tool name and the command. The rules are data: `telemetry/classes.json` of the shared stack, then the default rules of onbehalf. The first rule that agrees gives the class. |
 
 ## Spans

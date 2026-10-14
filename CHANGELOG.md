@@ -24,6 +24,12 @@ in `lib/onbehalf/VERSION`.
   rules.
 - `examples/telemetry/dashboards.sh` makes four Langfuse dashboards for
   each user: usage and adoption, cost, tool calls and reliability.
+- The Collector keeps only the first line of a command, with a maximum of
+  300 characters, and its full length. The rules see the full command. Thus
+  the body of an inline script, with paths and tokens, does not get to the
+  backend.
+- More default class rules: a script or `curl` with an HTTP write method,
+  a write command in list form, `--help`, `--version` and `command -v`.
 - The installer now checks for `openssl`.
 
 ## 0.2.0 (2026-10-12)
