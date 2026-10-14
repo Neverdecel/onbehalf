@@ -120,6 +120,16 @@ check "the Collector gives the class read to kubectl get" class "kubectl get pod
 check "the Collector gives the class unknown to a command without a rule" class "make build" unknown
 check "the class is also a metadata key for Langfuse" got "langfuse.observation.metadata.tool_class"
 
+# An inline script: the Collector classifies the full command, then keeps
+# only its first line. The body, with a token, does not reach the backend.
+script=$(printf 'python3 - <<EOF # onbehalf-script-test\ntoken = "onbehalf-secret-marker"\nrequest(url, method="DELETE")\nEOF')
+tool_span carol "$key" "$script" >/dev/null
+tool_span carol "$key" "command -v az kubectl" >/dev/null
+check "a script with an HTTP DELETE gets the class write" class "python3 - <<EOF # onbehalf-script-test" write
+check "command -v gets the class read" class "command -v az kubectl" read
+check "the backend gets the length of the full command" got "process.command_line.length"
+check "the backend gets no line after the first line of a command" bash -c '! grep -aq onbehalf-secret-marker "$@"' _ "$backend"/out/req-*
+
 stack=$(mktemp -d)
 cp -R /src/test/stack/. "$stack"
 mkdir "$stack/telemetry"

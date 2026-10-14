@@ -230,6 +230,15 @@ processors:
     error_mode: ignore
     trace_statements:
 $classes
+  # After the classes: keep only the first line of a command, at most 300
+  # characters. An inline script can contain paths, IDs and tokens. The
+  # length of the full command stays.
+  transform/onbehalf-command:
+    error_mode: ignore
+    trace_statements:
+      - 'set(span.attributes["process.command_line.length"], Len(span.attributes["process.command_line"])) where span.attributes["process.command_line"] != nil'
+      - 'replace_pattern(span.attributes["process.command_line"], "(?s)\\\\n.*", "")'
+      - 'set(span.attributes["process.command_line"], Substring(span.attributes["process.command_line"], 0, 300)) where span.attributes["process.command_line"] != nil and Len(span.attributes["process.command_line"]) > 300'
   resource/onbehalf:
     attributes:
       - key: user.name
@@ -253,7 +262,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp/onbehalf]
-      processors: [attributes/onbehalf, transform/onbehalf, resource/onbehalf, batch]
+      processors: [attributes/onbehalf, transform/onbehalf, transform/onbehalf-command, resource/onbehalf, batch]
       exporters: [otlp_http/backend]
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"

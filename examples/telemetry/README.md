@@ -23,8 +23,9 @@ configuration for this Collector.
 | The OpenCode session | `session.id` | A session |
 | The Unix account | `user.id`, from the telemetry key | A user |
 
-The command of a shell tool call is in the metadata of the tool observation,
-in `process.command_line`. Langfuse gets no prompt, no answer and no tool
+The metadata of a tool observation has the first line of the shell
+command in `process.command_line`, with a maximum of 300 characters. `process.command_line.length` is the length of the full
+command. Langfuse gets no prompt, no answer and no tool
 output.
 
 ## Set up
