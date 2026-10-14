@@ -8,6 +8,14 @@ in `lib/onbehalf/VERSION`.
 
 ### Telemetry
 
+- Spans identify the shared stack, the harness and the telemetry plugin.
+  Token totals include cache and reasoning categories without double counts.
+  Skill names, safe error categories and task results support comparisons.
+- Failed telemetry exports retry within a fixed memory limit. Metadata and
+  safe warnings report export failures and dropped spans.
+- Commands with common credential forms are replaced with `[redacted]`.
+  Unmarked secrets can still pass this check. Keep credentials out of
+  command arguments.
 - `onbehalf telemetry on --export URL` sends the tool calls and the model
   steps of each user to an OpenTelemetry backend, through the OTel
   Collector of the host. Each span has the Unix account of the user. Only
