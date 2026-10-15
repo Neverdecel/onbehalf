@@ -83,6 +83,9 @@ async function boot(events, responses = [], hookCalls = []) {
 }
 const spans = (request) => request.resourceSpans[0].scopeSpans[0].spans;
 const attrs = (span) => Object.fromEntries(span.attributes.map(({ key, value }) => [key, Object.values(value)[0]]));
+// Langfuse's direct type mapping is case-sensitive; uppercase wire values
+// fall back to GenAI inference and turn a Code Mode container into a TOOL.
+const observationTypes = { span: "SPAN", event: "EVENT", tool: "TOOL", agent: "AGENT", generation: "GENERATION" };
 
 const sample = await boot([
   start(), stepStart(), stepEnd(),
@@ -106,6 +109,7 @@ for (const s of recorded) {
   if (s !== root) assert.equal(s.parentSpanId, root.spanId);
 }
 const generation = attrs(recorded.find((s) => s.name === "chat test-model"));
+for (const s of recorded) assert.ok(observationTypes[attrs(s)["langfuse.observation.type"]]);
 assert.equal(generation["gen_ai.usage.input_tokens"], 27);
 assert.equal(generation["gen_ai.usage.output_tokens"], 12);
 assert.equal(generation["gen_ai.usage.cache_read.input_tokens"], 11);
@@ -144,6 +148,7 @@ const timing = await boot([
 await timing.cleanup();
 const timed = timing.requests.flatMap(spans);
 const wrapper = timed.find((s) => s.name === "execute_tool execute");
+assert.equal(observationTypes[attrs(wrapper)["langfuse.observation.type"]], "SPAN");
 const inner = timed.filter((s) => s.name === "execute_tool datadog_search_logs");
 assert.equal(inner.length, 2);
 for (const s of inner) assert.equal(s.parentSpanId, wrapper.spanId);
@@ -208,7 +213,7 @@ const ambiguousSpans = ambiguous.requests.flatMap(spans);
 const ambiguousTools = ambiguousSpans.filter(s => s.name === "execute_tool datadog_search_logs");
 assert.equal(ambiguousTools.length, 2);
 for (const s of ambiguousTools) {
-  assert.equal(attrs(s)["langfuse.observation.type"], "EVENT");
+  assert.equal(observationTypes[attrs(s)["langfuse.observation.type"]], "EVENT");
   assert.equal(attrs(s)["langfuse.observation.metadata.execution_observed"], false);
   assert.equal(attrs(s)["langfuse.observation.metadata.execution_match"], "ambiguous");
   assert.equal(s.startTimeUnixNano, s.endTimeUnixNano);
@@ -236,7 +241,7 @@ for (const exactInput of [firstInput, secondInput]) {
   assert.equal(results.length, 2);
   const actualFailure = results.find(s => s.status.code === 2);
   assert.equal(attrs(actualFailure)["error.type"], "permission_denied");
-  assert.equal(attrs(actualFailure)["langfuse.observation.type"], "TOOL");
+  assert.equal(observationTypes[attrs(actualFailure)["langfuse.observation.type"]], "TOOL");
   assert.ok(BigInt(actualFailure.endTimeUnixNano) > BigInt(actualFailure.startTimeUnixNano));
   assert.equal(results.filter(s => attrs(s)["langfuse.observation.metadata.execution_match"] === "ambiguous").length, 1);
   assert.ok(results.every(s => attrs(s)["error.type"] !== "incomplete"));
@@ -256,7 +261,7 @@ for (const terminal of ["session.execution.interrupted", "session.execution.succ
   assert.equal(counters["langfuse.observation.metadata.tool_failure_count"], 0);
   assert.equal(counters["langfuse.observation.metadata.tool_unobserved_count"], 1);
   assert.equal(counters["langfuse.observation.metadata.tool_interruption_count"], terminal.endsWith("interrupted") ? 1 : 0);
-  assert.equal(attrs(missingSpans.find(s => s.name === "execute_tool shell"))["langfuse.observation.type"], "EVENT");
+  assert.equal(observationTypes[attrs(missingSpans.find(s => s.name === "execute_tool shell"))["langfuse.observation.type"]], "EVENT");
   assert.equal(missingSpans.find(s => s.name === "execute_tool shell").status.code, 0);
   if (terminal.endsWith("interrupted")) assert.equal(missingSpans.find(s => s.name.startsWith("invoke_agent")).status.code, 0);
 }

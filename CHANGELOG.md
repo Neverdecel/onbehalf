@@ -6,6 +6,9 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+- Send lowercase Langfuse observation types so Code Mode containers remain
+  spans and unobserved results remain events, not tool-latency samples.
+
 - Add tool execution spans inside Code Mode, first-response times and task
   counters. Export fixed command labels and authenticated user pseudonyms
   instead of raw commands, account names and host names.
