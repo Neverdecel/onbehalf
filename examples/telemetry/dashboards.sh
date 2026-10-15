@@ -8,11 +8,12 @@
 # The dashboard API of Langfuse is "unstable": a new Langfuse version can
 # change it.
 set -euo pipefail
+file=dashboards.json
+if [ $# -gt 1 ]; then file=$(readlink -f -- "$2"); fi
 cd "$(dirname "$(readlink -f "$0")")"
 # shellcheck source=/dev/null
 . ./.env
 api_url="${1:-http://127.0.0.1:3000}/api/public/unstable"
-file=${2:-dashboards.json}
 # Read the complete source before any dashboard changes.
 jq -e '.dashboards | type == "array" and length > 0' "$file" >/dev/null
 

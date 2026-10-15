@@ -18,7 +18,7 @@ mkdir "$dashboard_test/bin"
 cat >"$dashboard_test/bin/curl" <<'EOF'
 #!/usr/bin/env bash
 touch "$DASHBOARD_TEST_CALLED"
-echo '{"data": [], "meta": {"totalPages": 1}}'
+echo '{"id": "test-dashboard", "data": [], "meta": {"totalPages": 1}}'
 EOF
 chmod +x "$dashboard_test/bin/curl"
 if DASHBOARD_TEST_CALLED="$dashboard_test/called" PATH="$dashboard_test/bin:$PATH" bash "$dashboard_test/dashboards.sh" http://127.0.0.1:1 "$dashboard_test/empty.json" >/dev/null 2>&1; then
@@ -27,6 +27,12 @@ else
   check "the dashboard publisher refuses an empty source" true
 fi
 check "the invalid dashboard source sends no API request" test ! -e "$dashboard_test/called"
+mkdir "$dashboard_test/caller"
+echo '{"dashboards": [{"name": "relative-source", "description": "Test", "widgets": []}]}' >"$dashboard_test/caller/source.json"
+echo '{"dashboards": [{"name": "wrong-source", "description": "Test", "widgets": []}]}' >"$dashboard_test/source.json"
+out=$(cd "$dashboard_test/caller" && DASHBOARD_TEST_CALLED="$dashboard_test/called" PATH="$dashboard_test/bin:$PATH" bash "$dashboard_test/dashboards.sh" http://127.0.0.1:1 source.json 2>&1)
+check "the dashboard source resolves from the caller directory" grep -q 'relative-source' <<<"$out"
+check "the dashboard source does not resolve from the script directory" bash -c '! grep -q wrong-source <<<"$1"' _ "$out"
 rm -rf "$dashboard_test"
 
 if ! command -v otelcol-contrib >/dev/null; then
@@ -37,7 +43,13 @@ fi
 dir=/etc/onbehalf/telemetry
 backend=$(mktemp -d)
 chmod 0755 "$backend"
-# The test backend: keep each request body (OTLP protobuf, unzipped) and its headers.
+# Use the Collector's JSON encoding in tests so assertions do not depend on
+# protobuf attribute order. Production export keeps its default encoding.
+json_export() {
+  sed -i '/^  otlp_http\/backend:/a\    encoding: json' "$dir/otelcol.yaml"
+  pkill -HUP -x otelcol-contrib 2>/dev/null || true
+}
+# The test backend keeps structured OTLP JSON and HTTP headers.
 cat >"$backend/server.js" <<'EOF'
 const http = require("http"), fs = require("fs"), zlib = require("zlib");
 let n = 0;
@@ -47,9 +59,9 @@ http.createServer((req, res) => {
   req.on("end", () => {
     let body = Buffer.concat(chunks);
     if (req.headers["content-encoding"] === "gzip") body = zlib.gunzipSync(body);
-    fs.writeFileSync(`${process.argv[2]}/req-${++n}`, JSON.stringify(req.headers) + "\n" + body.toString("latin1"));
-    res.writeHead(200, { "content-type": "application/x-protobuf" });
-    res.end();
+    fs.writeFileSync(`${process.argv[2]}/req-${++n}`, JSON.stringify({ headers: req.headers, payload: JSON.parse(body.toString()) }));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end("{}");
   });
 }).listen(14320, "127.0.0.1");
 EOF
@@ -61,6 +73,7 @@ out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127
 check "telemetry on succeeds" test $? -eq 0
 sed 's/^/        /' <<<"$out"
 check "telemetry on tells that the Collector does not run yet" grep -q "the OTel Collector does not answer" <<<"$out"
+json_export
 check "the Collector configuration is valid" otelcol-contrib validate --config "$dir/otelcol.yaml"
 check "the users cannot read the telemetry keys of the Collector" denied alice "cat $dir/htpasswd"
 check "the users cannot read the authorization of the backend" denied alice "cat $dir/export-auth"
@@ -81,6 +94,14 @@ check "user add gives carol a telemetry key" grep -q "has a personal telemetry k
 check "carol is a user of the Collector after user add" grep -q '^carol:' "$dir/htpasswd"
 out=$(onbehalf doctor 2>&1)
 check "doctor: the Collector accepts telemetry only with a key" grep -q "accepts telemetry on port 4318, only with a key" <<<"$out"
+cp -p "$dir/otelcol.yaml" "$backend/current.yaml"
+sed -i '/^# onbehalf telemetry schema:/d' "$dir/otelcol.yaml"
+stale_hash=$(sha256sum "$dir/otelcol.yaml")
+out=$(onbehalf doctor 2>&1)
+check "doctor warns when an upgrade leaves stale privacy configuration" grep -q 'telemetry configuration is outdated' <<<"$out"
+check "doctor gives the explicit configuration migration step" grep -q 'existing backend authorization' <<<"$out"
+check "doctor does not change the Collector configuration" test "$(sha256sum "$dir/otelcol.yaml")" = "$stale_hash"
+mv "$backend/current.yaml" "$dir/otelcol.yaml"
 out=$(onbehalf doctor --user alice 2>&1)
 check "doctor: OpenCode of alice sends the tool calls" grep -q "OpenCode sends the tool calls" <<<"$out"
 
@@ -96,8 +117,12 @@ check "the Collector accepts the key of carol" test "$(post carol carol /home/ca
 onbehalf restart alice >/dev/null 2>&1
 as alice "cd ~ && timeout 180 opencode run --auto -m onbehalf/agent-model 'RUN: echo onbehalf-telemetry-probe'" >/dev/null 2>&1
 check "OpenCode of alice stops after the run" test $? -eq 0
-# The backend keeps OTLP protobuf: search the files as text with grep -a.
+# Keep substring checks for content exclusion; use decoded spans for behavior.
 got() { grep -aqF -- "$1" "$backend"/out/req-* 2>/dev/null; }
+exported_spans() {
+  jq -s '[.[].payload.resourceSpans[].scopeSpans[].spans[] |
+    .attributes = ((.attributes // []) | map({key, value: (.value | to_entries[0].value)}) | from_entries)]' "$backend"/out/req-* 2>/dev/null
+}
 for _ in $(seq 1 20); do
   ! got "execute_tool shell" || break
   sleep 1
@@ -111,6 +136,26 @@ check "the Collector sets user.id on each span, for backends such as Langfuse" g
 check "the Collector sends the authorization of the backend" got '"authorization":"Bearer test-backend-key"'
 # The fake model gives the text onbehalf-agent-done after a tool call.
 check "the backend gets no model answer" bash -c '! grep -aq onbehalf-agent-done "$@"' _ "$backend"/out/req-*
+
+# Real plugin output must reach the classifier with no private arguments.
+as alice 'touch /tmp/onbehalf-telemetry-delete-test'
+for command in 'ls /tmp' 'rm /tmp/onbehalf-telemetry-delete-test' 'false'; do
+  as alice "cd ~ && timeout 180 opencode run --auto -m onbehalf/agent-model 'RUN: $command'" >/dev/null 2>&1
+  check "the real shell telemetry run stops: $command" test $? -eq 0
+done
+shell_results() {
+  exported_spans | jq -e '
+    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.type"] == "TOOL" and
+      .attributes["langfuse.observation.metadata.command_summary"] == "ls" and .attributes["tool.class"] == "read") and
+    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.metadata.command_summary"] == "rm" and
+      .attributes["tool.class"] == "write" and (.attributes["process.exit.code"] | tonumber) == 0) and
+    any(.[]; .name == "execute_tool shell" and (.attributes["process.exit.code"] | tonumber) == 1 and .attributes["error.type"] == "exit_code")' >/dev/null
+}
+for _ in $(seq 1 20); do
+  shell_results && break
+  sleep 1
+done
+check "real plugin spans preserve read/write classes and shell failures" shell_results
 
 # A real Code Mode run: concurrent calls have the same outer call ID.
 cat >/home/alice/.config/opencode/plugins/telemetry-probe.js <<'EOF'
@@ -134,9 +179,30 @@ for _ in $(seq 1 20); do
   ! got "execute_tool telemetry_test_probe" || break
   sleep 1
 done
-check "the backend gets actual Code Mode child tool spans" got "execute_tool telemetry_test_probe"
+codemode_results() {
+  exported_spans | jq -e '
+    [.[] | select(.name == "execute_tool telemetry_test_probe")] as $children |
+    [.[] | select(.name == "execute_tool execute")] as $containers |
+    $containers[0] as $container |
+    [.[] | select(.traceId == $container.traceId and (.name | startswith("invoke_agent")))] as $tasks |
+    ($children | length) == 2 and ($containers | length) == 1 and ($tasks | length) == 1 and
+    ($tasks[0].attributes["langfuse.observation.metadata.tool_call_count"] | tonumber) == 2 and
+    ($tasks[0].attributes["langfuse.observation.metadata.tool_failure_count"] | tonumber) == 0 and
+    $container.attributes["langfuse.observation.type"] == "SPAN" and
+    all($children[]; .parentSpanId == $container.spanId and .traceId == $container.traceId and
+      .attributes["langfuse.observation.type"] == "TOOL" and
+      .attributes["langfuse.observation.metadata.execution_observed"] == true and
+      (.status.code == 1 or .status.code == "STATUS_CODE_OK") and
+      (.endTimeUnixNano | tonumber) > (.startTimeUnixNano | tonumber)) and
+    ($children[0].startTimeUnixNano | tonumber) < ($children[1].endTimeUnixNano | tonumber) and
+    ($children[1].startTimeUnixNano | tonumber) < ($children[0].endTimeUnixNano | tonumber)' >/dev/null
+}
+for _ in $(seq 1 20); do
+  codemode_results && break
+  sleep 1
+done
+check "real Code Mode calls have exact counts, parent links, results and overlapping durations" codemode_results
 check "the backend gets model first-token time" got "langfuse.observation.completion_start_time"
-check "the backend gets task tool counts" got "langfuse.observation.metadata.tool_call_count"
 check "the backend gets no Code Mode result" bash -c '! grep -aq PRIVATE_CODEMODE_OUTPUT "$@"' _ "$backend"/out/req-*
 rm /home/alice/.config/opencode/plugins/telemetry-probe.js
 spoof=$(grep -al onbehalf-spoof-test "$backend"/out/req-* | head -1)
@@ -160,10 +226,11 @@ tool_span() { # tool_span USER KEYFILE COMMAND: the HTTP status of one tool span
   TOOL_SPAN_ID=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].spanId' <<<"$body")
   as "$1" "curl -s -o /dev/null -w '%{http_code}' -u \"$1:\$(cat $2)\" -H 'content-type: application/json' --data '$body' http://127.0.0.1:4318/v1/traces"
 }
-# class SPAN_ID CLASS: classification survives without the command.
+# Match the exact span's call ID and class, independent of attribute order.
 class() {
   for _ in $(seq 1 20); do
-    cat "$backend"/out/req-* 2>/dev/null | tr '\n\0' '  ' | grep -aqP "\\Q$1\\E.{0,400}?tool\\.class.{1,8}$2" && return 0
+    exported_spans | jq -e --arg id "$1" --arg class "$2" 'any(.[];
+      .attributes["gen_ai.tool.call.id"] == $id and .attributes["tool.class"] == $class)' >/dev/null && return 0
     sleep 1
   done
   return 1
@@ -195,6 +262,7 @@ echo '{"rules": [{"class": "write", "command": "\\bmake\\s+deploy\\b"}]}' >"$sta
 out=$(onbehalf stack install "$stack" 2>&1)
 check "stack install gives the tool classes of the shared stack to the Collector" \
   grep -q "the Collector uses the tool classes of $ONBEHALF_STACK/current/telemetry/classes.json" <<<"$out"
+json_export
 sleep 2
 tool_span carol "$key" "make deploy now" >/dev/null
 check "the Collector uses the rules of the shared stack" class "$TOOL_SPAN_ID" write

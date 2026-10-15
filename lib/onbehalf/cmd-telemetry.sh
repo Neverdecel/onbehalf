@@ -201,6 +201,7 @@ telemetry_collector_write() {
   fi
   cat >"$TELEMETRY_DIR/otelcol.yaml.new" <<EOF
 # Written by onbehalf telemetry on. Do not change it: onbehalf writes it again.
+# onbehalf telemetry schema: 2
 extensions:
   basicauth/onbehalf:
     htpasswd:
@@ -253,6 +254,8 @@ $classes
         "langfuse.observation.type", "langfuse.observation.completion_start_time",
         "langfuse.observation.metadata.tool_class", "langfuse.observation.metadata.skill_name",
         "langfuse.observation.metadata.command_summary", "langfuse.observation.metadata.execution_observed",
+        "langfuse.observation.metadata.execution_match", "langfuse.observation.metadata.tool_interruption_count",
+        "langfuse.observation.metadata.tool_unobserved_count",
         "langfuse.observation.metadata.uncached_input_tokens", "langfuse.observation.metadata.text_output_tokens",
         "langfuse.observation.metadata.time_to_first_token_ms", "langfuse.observation.metadata.time_to_first_text_ms",
         "langfuse.observation.metadata.retry_count", "langfuse.observation.metadata.retry_attempt",
@@ -341,6 +344,11 @@ telemetry_check() {
   if [ "$ONBEHALF_TELEMETRY" != yes ]; then
     info "telemetry is off: sudo onbehalf telemetry on --export URL"
     return 0
+  fi
+  if ! grep -qxF '# onbehalf telemetry schema: 2' "$TELEMETRY_DIR/otelcol.yaml" 2>/dev/null \
+    || [ ! -s "$TELEMETRY_DIR/identity-salt" ]; then
+    warn "the telemetry configuration is outdated; the Collector can still export account and host names"
+    fix "run sudo onbehalf telemetry on --export $ONBEHALF_TELEMETRY_EXPORT with the existing backend authorization, then reload the Collector"
   fi
   local code
   # After a SIGHUP, the Collector starts again: give it a few seconds.

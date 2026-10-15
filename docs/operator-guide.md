@@ -1156,6 +1156,9 @@ The first non-empty text fragment gives the time to first text.
 Reasoning fragments count for model first-token time, but not first-text time.
 The plugin never exports these fragments.
 Tasks record model steps, actual tool calls, tool failures and scheduled retries.
+User interruptions and unobserved executions have separate counters.
+Ambiguous, incomplete and interrupted executions have type `EVENT`, not `TOOL`.
+They do not supply a guessed tool duration to latency charts.
 Generation spans record first-token time and retries. Missing observations stay
 absent, not zero. Timing without a stream boundary has explicit metadata.
 
@@ -1172,9 +1175,9 @@ category. Compare costs only after the backend has prices for these
 categories. For Langfuse, include prices for `input_cached_tokens`,
 `input_cache_creation` and `output_reasoning_tokens` when the model uses them.
 
-Tool spans give the loaded skill name and a safe error category when
-available. Skill activation events contain the name, but never the skill
-text. Error messages and error response bodies stay private.
+Tool spans give a safe error category when available. Only confirmed skill
+activation events contain the loaded skill name, never arguments or skill text.
+Error messages and error response bodies stay private.
 The task result is `completed`, `failed` or `interrupted`.
 `completed` does not mean that the answer was correct or useful.
 
@@ -1237,6 +1240,13 @@ and `user prune` remove the user from the Collector. onbehalf then sends
 `SIGHUP` to the Collector, and the Collector reads its configuration again.
 Do not change `otelcol.yaml`. onbehalf writes it again.
 
+After an upgrade, run `sudo onbehalf doctor`. It warns if the privacy
+configuration is outdated. An updated plugin alone does not update the Collector.
+Regenerate the configuration with `sudo onbehalf telemetry on --export URL`.
+Keep the existing destination and supply its existing private authorization.
+Reload the Collector, then arrange runtime restarts with affected users.
+The check detects stale files; it does not prove that the Collector loaded them.
+
 Limits:
 
 - A user can remove the plugin from their own account. Then the backend gets
@@ -1296,6 +1306,12 @@ team can then review the rules with the other parts of the shared stack:
   stay `unknown`. Rules for private arguments cannot match these labels.
   Older clients can send full commands to the local Collector.
   The Collector classifies them, then removes them before export.
+- Fixed labels cover common `kubectl`, Git, Terraform, Helm, Azure group/VM/AKS,
+  RTK, Docker, GitHub CLI and AWS S3 actions, plus basic shell utilities.
+  For example, `rm`, `docker run`, `gh pr merge` and `aws s3 rm` remain writes.
+  Other commands, `gh api`, scripts and mutation flags without a safe label
+  remain `unknown`. Legacy rules stay for older clients; they cannot recover
+  private arguments that a new client does not send.
 - The patterns use the Go (RE2) syntax. Lookaround and back references are
   not permitted.
 

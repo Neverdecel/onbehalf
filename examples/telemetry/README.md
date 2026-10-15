@@ -28,6 +28,8 @@ Langfuse gets no raw commands, arguments, prompts, answers or tool output.
 Code Mode containers have type `SPAN`; their actual tool calls have child spans.
 Model spans include first-token time. Task metadata includes first-text time,
 tool counts, failures, model steps and scheduled retries.
+Interruptions and unobserved executions have separate counters. Their event
+observations do not supply tool durations to latency charts.
 
 Keep the pseudonym secret outside backend backups. Restrict backend access
 and confirm the approved retention period. Historical data stays unchanged.

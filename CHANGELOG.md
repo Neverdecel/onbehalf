@@ -9,6 +9,9 @@ in `lib/onbehalf/VERSION`.
 - Add tool execution spans inside Code Mode, first-response times and task
   counters. Export fixed command labels and authenticated user pseudonyms
   instead of raw commands, account names and host names.
+  After an upgrade, regenerate the telemetry configuration with its existing
+  destination and authorization. `doctor` warns about stale privacy configuration.
+  Keep cancellations and missing timing separate from tool failures and latency.
 
 ### Work tools
 

@@ -15,7 +15,7 @@
     {"class": "write", "command": "\\bgit\\s+(push|commit|merge|rebase|reset|tag|cherry-pick|revert|stash|checkout|switch|restore|clean|rm|mv)\\b"},
     {"class": "write", "command": "\\baws(\\s+[a-z][a-z0-9-]*)*\\s+(create|delete|put|update|modify|terminate|run|start|stop|reboot|attach|detach|associate|disassociate|tag|untag)-[a-z0-9-]+|\\baws\\s+s3\\s+(cp|mv|rm|sync|mb|rb)\\b"},
     {"class": "write", "command": "\\bdocker\\s+(run|rm|rmi|stop|kill|push|build|exec|compose\\s+(up|down|rm|stop|restart))\\b"},
-    {"class": "write", "command": "(^|[;&|]\\s*)(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|tee|dd|truncate)\\s|\\bsed\\s+(-[a-zA-Z]*i|--in-place)"},
+    {"class": "write", "command": "(^|[;&|]\\s*)(rm|mv|cp|mkdir|rmdir|touch|chmod|chown|ln|tee|dd|truncate)(\\s|$)|\\bsed\\s+(-[a-zA-Z]*i|--in-place)"},
 
     {"class": "read", "command": "\\b(terraform|tofu)\\s+(plan|show|validate|output|fmt|graph|providers|version|state\\s+(list|show))\\b"},
     {"class": "read", "command": "\\baz(\\s+[a-z][a-z0-9-]*)*\\s+(list|show|get-[a-z-]+|list-[a-z-]+|query|version|wait|exists|check-name)\\b"},
