@@ -341,13 +341,17 @@ tool_span() { # tool_span USER KEYFILE COMMAND: the HTTP status of one tool span
       {key: "private.input", value: {stringValue: "PRIVATE_ARGUMENT"}},
       {key: "gen_ai.tool.call.id", value: {stringValue: $s}}]}]}]}]}')
   TOOL_SPAN_ID=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].spanId' <<<"$body")
+  TOOL_SPAN_BODY=$body TOOL_SPAN_USER=$1 TOOL_SPAN_KEYFILE=$2
   as "$1" "curl -s -o /dev/null -w '%{http_code}' -u \"$1:\$(cat $2)\" -H 'content-type: application/json' --data '$body' http://127.0.0.1:4318/v1/traces"
 }
 # Match the exact span's call ID and class, independent of attribute order.
 class() {
+  local span=$TOOL_SPAN_BODY
   for _ in $(seq 1 20); do
     exported_spans | jq -e --arg id "$1" --arg class "$2" 'any(.[];
       .attributes["gen_ai.tool.call.id"] == $id and .attributes["tool.class"] == $class)' >/dev/null && return 0
+    # A reload can reject the first export; retry this exact test span.
+    post "$TOOL_SPAN_USER" "$TOOL_SPAN_USER" "$TOOL_SPAN_KEYFILE" >/dev/null
     sleep 1
   done
   return 1
