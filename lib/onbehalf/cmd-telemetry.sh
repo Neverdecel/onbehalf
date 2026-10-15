@@ -108,7 +108,7 @@ telemetry_enable() {
   done
   telemetry_users_write
   ok "each user has a personal telemetry key and the telemetry plugin"
-  info "the plugin sends the tool name, the command, the result, the duration and the tokens. Never a prompt, an answer or a tool output"
+  info "the plugin sends tool names, fixed command labels, results, duration and tokens. Never prompts, answers, arguments or tool output"
   info "a runtime that runs now sends spans after its next start: sudo onbehalf restart --all"
   telemetry_reload
   telemetry_check
@@ -195,8 +195,13 @@ telemetry_collector_write() {
   touch "$TELEMETRY_DIR/htpasswd"
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/htpasswd"
   chmod 0640 "$TELEMETRY_DIR/htpasswd"
+  # Keep the secret across configuration reloads so pseudonyms stay stable.
+  if [ ! -s "$TELEMETRY_DIR/identity-salt" ]; then
+    openssl rand -hex 32 | tr -d '\n' | install -o root -g "$TELEMETRY_GROUP" -m 0640 /dev/stdin "$TELEMETRY_DIR/identity-salt"
+  fi
   cat >"$TELEMETRY_DIR/otelcol.yaml.new" <<EOF
 # Written by onbehalf telemetry on. Do not change it: onbehalf writes it again.
+# onbehalf telemetry schema: 2
 extensions:
   basicauth/onbehalf:
     htpasswd:
@@ -230,23 +235,34 @@ processors:
     error_mode: ignore
     trace_statements:
 $classes
-  # After the classes: keep only the first line of a command, at most 300
-  # characters. An inline script can contain paths, IDs and tokens. The
-  # length of the full command stays.
-  transform/onbehalf-command:
-    error_mode: ignore
+  # Fail closed if the privacy transform fails. The backend gets no account
+  # name, host name, raw command, arguments, output or unknown attributes.
+  transform/onbehalf-privacy:
+    error_mode: propagate
     trace_statements:
-      - 'set(span.attributes["process.command_line.length"], Len(span.attributes["process.command_line"])) where span.attributes["process.command_line"] != nil'
-      - 'replace_pattern(span.attributes["process.command_line"], "(?s)\\\\n.*", "")'
-      - 'set(span.attributes["process.command_line"], Substring(span.attributes["process.command_line"], 0, 300)) where span.attributes["process.command_line"] != nil and Len(span.attributes["process.command_line"]) > 300'
-  resource/onbehalf:
-    attributes:
-      - key: user.name
-        from_context: auth.username
-        action: upsert
-      - key: host.name
-        value: $(uname -n)
-        action: upsert
+      - 'set(span.attributes["user.id"], SHA256(Concat([span.attributes["user.name"], "\${file:$TELEMETRY_DIR/identity-salt}"], ":")))'
+      - 'keep_keys(resource.attributes, ["service.name", "service.version", "onbehalf.harness"])'
+      - >-
+        keep_keys(span.attributes, ["user.id", "session.id", "gen_ai.operation.name", "gen_ai.agent.name",
+        "gen_ai.tool.name", "gen_ai.tool.type", "gen_ai.tool.call.id", "gen_ai.conversation.id",
+        "gen_ai.provider.name", "gen_ai.request.model", "gen_ai.response.finish_reasons",
+        "gen_ai.usage.input_tokens", "gen_ai.usage.output_tokens", "gen_ai.usage.cache_read.input_tokens",
+        "gen_ai.usage.cache_creation.input_tokens", "gen_ai.usage.reasoning.output_tokens",
+        "process.exit.code", "error.type", "tool.class", "langfuse.release", "langfuse.version",
+        "langfuse.trace.metadata.stack_id", "langfuse.trace.metadata.telemetry_version",
+        "langfuse.trace.metadata.harness_version", "langfuse.trace.metadata.onbehalf_version",
+        "langfuse.observation.type", "langfuse.observation.completion_start_time",
+        "langfuse.observation.metadata.tool_class", "langfuse.observation.metadata.skill_name",
+        "langfuse.observation.metadata.command_summary", "langfuse.observation.metadata.execution_observed",
+        "langfuse.observation.metadata.execution_match", "langfuse.observation.metadata.tool_interruption_count",
+        "langfuse.observation.metadata.tool_unobserved_count",
+        "langfuse.observation.metadata.uncached_input_tokens", "langfuse.observation.metadata.text_output_tokens",
+        "langfuse.observation.metadata.time_to_first_token_ms", "langfuse.observation.metadata.time_to_first_text_ms",
+        "langfuse.observation.metadata.retry_count", "langfuse.observation.metadata.retry_attempt",
+        "langfuse.observation.metadata.stream_boundary_observed", "langfuse.observation.metadata.task_result",
+        "langfuse.observation.metadata.tool_call_count", "langfuse.observation.metadata.tool_failure_count",
+        "langfuse.observation.metadata.model_step_count", "langfuse.observation.metadata.telemetry_export_failures",
+        "langfuse.observation.metadata.telemetry_dropped_spans", "langfuse.observation.metadata.telemetry_event_errors"])
   batch: {}
 
 exporters:
@@ -262,7 +278,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp/onbehalf]
-      processors: [attributes/onbehalf, transform/onbehalf, transform/onbehalf-command, resource/onbehalf, batch]
+      processors: [attributes/onbehalf, transform/onbehalf, transform/onbehalf-privacy, batch]
       exporters: [otlp_http/backend]
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"
@@ -328,6 +344,11 @@ telemetry_check() {
   if [ "$ONBEHALF_TELEMETRY" != yes ]; then
     info "telemetry is off: sudo onbehalf telemetry on --export URL"
     return 0
+  fi
+  if ! grep -qxF '# onbehalf telemetry schema: 2' "$TELEMETRY_DIR/otelcol.yaml" 2>/dev/null \
+    || [ ! -s "$TELEMETRY_DIR/identity-salt" ]; then
+    warn "the telemetry configuration is outdated; the Collector can still export account and host names"
+    fix "run sudo onbehalf telemetry on --export $ONBEHALF_TELEMETRY_EXPORT with the existing backend authorization, then reload the Collector"
   fi
   local code
   # After a SIGHUP, the Collector starts again: give it a few seconds.

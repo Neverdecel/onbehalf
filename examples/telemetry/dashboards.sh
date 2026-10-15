@@ -3,16 +3,19 @@
 # .env. Run it as root in /etc/onbehalf-telemetry. Run it again after a
 # change: it replaces the dashboards and widgets with the same names.
 #
-#   ./dashboards.sh [LANGFUSE_URL]    (default http://127.0.0.1:3000)
+#   ./dashboards.sh [LANGFUSE_URL] [DASHBOARDS_FILE]
 #
 # The dashboard API of Langfuse is "unstable": a new Langfuse version can
 # change it.
 set -euo pipefail
+file=dashboards.json
+if [ $# -gt 1 ]; then file=$(readlink -f -- "$2"); fi
 cd "$(dirname "$(readlink -f "$0")")"
 # shellcheck source=/dev/null
 . ./.env
 api_url="${1:-http://127.0.0.1:3000}/api/public/unstable"
-file=dashboards.json
+# Read the complete source before any dashboard changes.
+jq -e '.dashboards | type == "array" and length > 0' "$file" >/dev/null
 
 # api METHOD PATH [JSON]. The keys go to curl in a file descriptor, never on
 # the command line: each account can read the command lines in /proc.

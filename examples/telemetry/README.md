@@ -21,12 +21,19 @@ configuration for this Collector.
 | A model step | `chat MODEL` | A generation, with the model and the tokens |
 | A tool call | `execute_tool TOOL` | A tool observation. A failed command has the level ERROR |
 | The OpenCode session | `session.id` | A session |
-| The Unix account | `user.id`, from the telemetry key | A user |
+| The authenticated user | Pseudonymous `user.id`, from the telemetry key and a private secret | A user |
 
-The metadata of a tool observation has the first line of the shell
-command in `process.command_line`, with a maximum of 300 characters. `process.command_line.length` is the length of the full
-command. Langfuse gets no prompt, no answer and no tool
-output.
+Tool metadata has a fixed `command_summary`, for example `kubectl get`.
+Langfuse gets no raw commands, arguments, prompts, answers or tool output.
+Code Mode containers have type `SPAN`; their actual tool calls have child spans.
+Model spans include first-token time. Task metadata includes first-text time,
+tool counts, failures, model steps and scheduled retries.
+Interruptions and unobserved executions have separate counters. Their event
+observations do not supply tool durations to latency charts.
+
+Keep the pseudonym secret outside backend backups. Restrict backend access
+and confirm the approved retention period. Historical data stays unchanged.
+See the [operator guide](../../docs/operator-guide.md#telemetry) for privacy limits.
 
 ## Set up
 

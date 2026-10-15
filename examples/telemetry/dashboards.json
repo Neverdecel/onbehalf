@@ -580,7 +580,7 @@
         },
         {
           "name": "Failed tasks per user",
-          "description": "Prompts that ended with an error or an interruption",
+          "description": "Prompts that ended with an error. User interruptions are excluded",
           "chartType": "HORIZONTAL_BAR",
           "dimensions": [
             {

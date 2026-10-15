@@ -25,6 +25,10 @@ function decide(body) {
   if (last.role === "tool") return { text: DONE };
   const hasShell = (body.tools || []).some((t) => t.function && t.function.name === "shell");
   const user = [...msgs].reverse().find((m) => m.role === "user");
+  const code = user && /^RUN_CODE: (.+)$/m.exec(text(user.content));
+  if (code && (body.tools || []).some((t) => t.function?.name === "execute")) {
+    return { tool: { name: "execute", args: { code: code[1] } } };
+  }
   const run = user && /^RUN: (.+)$/m.exec(text(user.content));
   if (run && hasShell) return { tool: { name: "shell", args: { command: run[1] } } };
   return { text: "onbehalf-agent-idle" };

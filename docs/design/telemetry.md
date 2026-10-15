@@ -55,7 +55,9 @@ onbehalf makes the spans.
 | Data source for OpenCode | A plugin of onbehalf, `lib/onbehalf/telemetry/opencode.js`. It reads the session events and sends OTLP/JSON spans. |
 | Identity | A personal telemetry key for each user, the same model as the gateway key. The Collector checks the key (`basicauth`, htpasswd file) and sets `user.name` from `auth.username`. A value in the span cannot change it. |
 | Collector | The operator installs `otelcol-contrib`. onbehalf writes its configuration. The Collector reads it again at `SIGHUP`. |
-| Content | The backend gets the first line of a shell command, with a maximum of 300 characters. It is necessary for the audit. The rules see the full command. The body of an inline script, a prompt, a model answer and a tool output never go. |
+| Content | The backend gets fixed command labels, never raw commands, arguments, prompts, answers or output. Unknown commands stay unknown. |
+| Performance | Execution hooks observe actual tools, including Code Mode children. Model spans end at the stream boundary. Tasks record counters and first-text time. |
+| Privacy | The Collector derives a stable pseudonym from the authenticated account and a private secret. It removes account names, host names and unknown attributes. |
 | Classification | In the Collector, from the tool name and the command. The rules are data: `telemetry/classes.json` of the shared stack, then the default rules of onbehalf. The first rule that agrees gives the class. |
 
 ## Spans
@@ -63,13 +65,13 @@ onbehalf makes the spans.
 | Span | Attributes |
 |---|---|
 | `invoke_agent AGENT` | The root span of a task (one prompt). `gen_ai.operation.name`, `gen_ai.agent.name`, `error.type` |
-| `execute_tool NAME` | `gen_ai.operation.name`, `gen_ai.tool.name`, `gen_ai.tool.call.id`, `gen_ai.conversation.id`, `process.command_line` (shell only), `process.exit.code`, `error.type` |
+| `execute_tool NAME` | `gen_ai.operation.name`, `gen_ai.tool.name`, `gen_ai.tool.call.id`, `gen_ai.conversation.id`, fixed command label, `process.exit.code`, `error.type` |
 | `chat MODEL` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.conversation.id`, `gen_ai.response.finish_reasons`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `error.type` |
 
 All spans of one task are in one trace. Each span has `session.id`. The
-Collector sets `user.id` and `user.name` on each span, because Langfuse
-reads the user from the span and not from the resource. It also adds
-`host.name`. Before that, it removes the user attributes of the client.
+Collector sets the pseudonymous `user.id` on each span, because Langfuse
+reads the user from the span and not from the resource. It removes
+account names, host names and unknown attributes before export.
 
 The Collector does not send its own metrics. Its default port 8888 is
 frequently in use on the host.
@@ -96,6 +98,7 @@ frequently in use on the host.
 - A user can remove the plugin from their own account. Then the backend
   gets no spans of that user. The user cannot send spans as a different
   user.
-- The command can contain a secret, for example a token in an argument.
+- Historical telemetry can still contain commands and account names.
+- Code Mode HTTP extensions have no tool execution hooks.
 - This is not yet the audit log of the sessions of phase 2. Step 3 and
   step 5 make it a part of that log.

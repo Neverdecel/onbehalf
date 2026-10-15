@@ -1135,20 +1135,34 @@ probe)", not as a user. `health off` revokes the probe key.
 ## Telemetry
 
 `onbehalf telemetry` sends the tool calls and the model steps of each user
-to an OpenTelemetry (OTel) backend. Each span shows the Unix account that
-did the action. Only OpenCode is supported now.
+to an OpenTelemetry (OTel) backend. Each span has a stable user pseudonym.
+Only OpenCode is supported now.
 
 The backend gets these spans:
 
 - **A task:** one prompt and the model steps and tool calls that answer
   it. All spans of a task are in one trace, with the session of OpenCode.
-- **A tool call:** the tool name, the command of a shell tool call, the
-  exit code, the result and the duration. The Collector keeps only the
-  first line of the command, with a maximum of 300 characters, and the
-  length of the full command. Thus the body of an inline script does not
-  get to the backend.
+- **A tool call:** the tool name, exit code, safe error category and
+  execution duration. Shell calls have fixed labels, such as `kubectl get`.
+  Arguments and scripts stay private. Unrecognized commands have the label
+  `unknown`. Code Mode calls have child spans for the tools they execute.
+  The Code Mode container has type `SPAN`, not `TOOL`, to prevent double counts.
 - **A model step:** the model, the tokens, the finish reason and the
   duration.
+
+Execution hooks measure tool duration without tool-input generation time.
+Model duration ends at the response-stream boundary, before tool settlement.
+The first non-empty text fragment gives the time to first text.
+Reasoning fragments count for model first-token time, but not first-text time.
+The plugin never exports these fragments.
+Tasks record model steps, actual tool calls, tool failures and scheduled retries.
+User interruptions and unobserved executions have separate counters.
+Ambiguous, incomplete and interrupted executions have type `EVENT`, not `TOOL`.
+They do not supply a guessed tool duration to latency charts.
+Unknown outcomes and user interruptions retain neutral span status, not ERROR.
+Real tool failures still have ERROR status, even if their timing is unknown.
+Generation spans record first-token time and retries. Missing observations stay
+absent, not zero. Timing without a stream boundary has explicit metadata.
 
 Each span records the shared-stack content ID at plugin load, the harness
 version, the onbehalf version and the telemetry plugin content ID.
@@ -1163,9 +1177,9 @@ category. Compare costs only after the backend has prices for these
 categories. For Langfuse, include prices for `input_cached_tokens`,
 `input_cache_creation` and `output_reasoning_tokens` when the model uses them.
 
-Tool spans give the loaded skill name and a safe error category when
-available. Skill activation events contain the name, but never the skill
-text. Error messages and error response bodies stay private.
+Tool spans give a safe error category when available. Only confirmed skill
+activation events contain the loaded skill name, never arguments or skill text.
+Error messages and error response bodies stay private.
 The task result is `completed`, `failed` or `interrupted`.
 `completed` does not mean that the answer was correct or useful.
 
@@ -1179,8 +1193,9 @@ How it works:
    itself exports no tool data.
 2. The plugin sends the spans to the OTel Collector on the host, on
    `127.0.0.1:4318`. It sends the personal telemetry key of the user.
-3. The Collector accepts only a valid key. It sets `user.name` from the
-   key. Thus a user cannot send spans as a different user.
+3. The Collector accepts only a valid key. It derives the user pseudonym
+   from the authenticated account and a private host secret.
+   Client-supplied user attributes cannot change this identity.
 4. The Collector sends the spans to the backend of the operator.
 
 To set up telemetry:
@@ -1219,6 +1234,7 @@ and Langfuse on the host, with Docker Compose.
 | `/etc/onbehalf/telemetry/otelcol.yaml` | root, the Collector | The Collector configuration |
 | `/etc/onbehalf/telemetry/htpasswd` | root, the Collector | The hashes of the telemetry keys |
 | `/etc/onbehalf/telemetry/export-auth` | root, the Collector | The authorization header of the backend |
+| `/etc/onbehalf/telemetry/identity-salt` | root, the Collector | The secret for stable user pseudonyms |
 | `~/.config/onbehalf/telemetry.key` | The user | The personal telemetry key |
 
 `user add` and the enrollment at login give each user a key. `user remove`
@@ -1226,16 +1242,25 @@ and `user prune` remove the user from the Collector. onbehalf then sends
 `SIGHUP` to the Collector, and the Collector reads its configuration again.
 Do not change `otelcol.yaml`. onbehalf writes it again.
 
+After an upgrade, run `sudo onbehalf doctor`. It warns if the privacy
+configuration is outdated. An updated plugin alone does not update the Collector.
+Regenerate the configuration with `sudo onbehalf telemetry on --export URL`.
+Keep the existing destination and supply its existing private authorization.
+Reload the Collector, then arrange runtime restarts with affected users.
+The check detects stale files; it does not prove that the Collector loaded them.
+
 Limits:
 
 - A user can remove the plugin from their own account. Then the backend gets
   no spans of that user. The user cannot send spans as a different user.
-- The first line of a command can contain a secret, for example a token in
-  an argument. Give access to the backend only to the operators
-  and the audit team.
-  The plugin replaces commands with common credential forms with
-  `[redacted]`. An unmarked secret can still pass this check.
-  Keep credentials out of command arguments.
+- Give access to the backend only to approved operators and reviewers.
+  Pseudonymous data remains personal data, especially with precise timestamps.
+  Keep the identity secret outside the backend and its backups.
+  Review backend retention before use. This command does not configure retention.
+- The Collector removes raw commands, account names, host names and unknown
+  attributes, also from older clients. This does not remove historical records.
+- Code Mode HTTP extensions do not use tool execution hooks.
+  Their duration remains part of the outer span, without a separate tool span.
 
 The plugin keeps at most 1000 queued spans and exports at most 200 per
 request. It retries a failed batch at most three times, with a delay.
@@ -1279,11 +1304,16 @@ team can then review the rules with the other parts of the shared stack:
   with both.
 - The first rule that agrees gives the class. Put the `write` rules first.
   Then a command such as `terraform plan && terraform apply` is `write`.
-- The rules see the full command, also the body of an inline script. A
-  script gets `write` from the default rules if it has an HTTP POST, PUT,
-  PATCH or DELETE. A write command in list form also gives `write`, for
-  example `['az', 'group', 'delete']`. A different script stays `unknown`,
-  because a wrong `read` is worse than `unknown`.
+- New clients send only fixed command labels. Compound commands and scripts
+  stay `unknown`. Rules for private arguments cannot match these labels.
+  Older clients can send full commands to the local Collector.
+  The Collector classifies them, then removes them before export.
+- Fixed labels cover common `kubectl`, Git, Terraform, Helm, Azure group/VM/AKS,
+  RTK, Docker, GitHub CLI and AWS S3 actions, plus basic shell utilities.
+  For example, `rm`, `docker run`, `gh pr merge` and `aws s3 rm` remain writes.
+  Other commands, `gh api`, scripts and mutation flags without a safe label
+  remain `unknown`. Legacy rules stay for older clients; they cannot recover
+  private arguments that a new client does not send.
 - The patterns use the Go (RE2) syntax. Lookaround and back references are
   not permitted.
 
