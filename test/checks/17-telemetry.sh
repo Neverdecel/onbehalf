@@ -46,18 +46,10 @@ chmod 0755 "$backend"
 # Use the Collector's JSON encoding in tests so assertions do not depend on
 # protobuf attribute order. Production export keeps its default encoding.
 json_export() {
-  local ready=0
-  if [ -e "$backend/collector.log" ]; then
-    ready=$(grep -cF 'Everything is ready. Begin running and processing data.' "$backend/collector.log" || true)
-  fi
-  sed -i '/^  otlp_http\/backend:/a\    encoding: json' "$dir/otelcol.yaml"
-  if pkill -HUP -x otelcol-contrib 2>/dev/null; then
-    for _ in $(seq 1 30); do
-      [ "$(grep -cF 'Everything is ready. Begin running and processing data.' "$backend/collector.log" || true)" -le "$ready" ] || return 0
-      sleep 1
-    done
-    return 1
-  fi
+  # A readiness log can belong to an earlier reload. Exact-span assertions
+  # below, not log timing, establish that the desired mode is active.
+  sed -i '/^  otlp_http\/backend:/a\    encoding: json' "$dir/otelcol.yaml" || return 1
+  pkill -HUP -x otelcol-contrib 2>/dev/null || true
 }
 # The test backend keeps structured OTLP JSON and HTTP headers.
 cat >"$backend/server.js" <<'EOF'
@@ -100,7 +92,7 @@ check "telemetry requires a value for identity mode" test $? -ne 0
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 sed 's/^/        /' <<<"$out"
 check "telemetry on tells that the Collector does not run yet" grep -q "the OTel Collector does not answer" <<<"$out"
-json_export
+check "the test JSON export configuration is staged" json_export
 check "the Collector configuration is valid" otelcol-contrib validate --config "$dir/otelcol.yaml"
 check "the users cannot read the telemetry keys of the Collector" denied alice "cat $dir/htpasswd"
 check "the users cannot read the authorization of the backend" denied alice "cat $dir/export-auth"
@@ -256,7 +248,7 @@ span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-named-id
     {key: "process.command_line", value: {stringValue: "echo PRIVATE_NAMED_ARGUMENT"}}]' <<<"$original_span")
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity named 2>&1)
 check "named identity mode succeeds" test $? -eq 0
-json_export
+check "the named-mode JSON export configuration is staged" json_export
 check "named mode is saved" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' /etc/onbehalf/telemetry.conf
 out=$(onbehalf doctor 2>&1)
 check "doctor states that names are visible to backend readers" grep -q 'configured identity: named' <<<"$out"
@@ -277,15 +269,19 @@ post_identity() {
 }
 check "named mode uses carol, not the forged alice identity" post_identity onbehalf-named-identity-test carol
 check "named mode does not export private command arguments" bash -c '! grep -aq PRIVATE_NAMED_ARGUMENT "$@"' _ "$backend"/out/req-*
+check "named mode removes forged resource identity and host fields" bash -c '
+  jq -se "all(.[].payload.resourceSpans[]; all(.resource.attributes[]?; .key != \"user.id\" and .key != \"user.name\" and .key != \"host.name\"))" "$@" >/dev/null' _ "$backend"/out/req-*
 
 # A generation failure must not persist a privacy choice that was not applied.
 conf=/etc/onbehalf/telemetry.conf
 cp -p /usr/local/lib/onbehalf/telemetry/classes.json "$backend/valid-classes.json"
 printf 'invalid-json\n' >/usr/local/lib/onbehalf/telemetry/classes.json
-before_failure=$(sha256sum "$conf" "$dir/otelcol.yaml")
-out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity pseudonymous 2>&1)
-check "telemetry reports failed Collector generation" test $? -ne 0
-check "failed generation preserves the saved mode and YAML" test "$(sha256sum "$conf" "$dir/otelcol.yaml")" = "$before_failure"
+before_failure=$(sha256sum "$conf" "$dir/otelcol.yaml" "$dir/export-auth")
+for authorization in 'Bearer different-backend-key' ''; do
+  out=$(printf '%s' "$authorization" | onbehalf telemetry on --export http://127.0.0.1:14321 --identity pseudonymous 2>&1)
+  check "telemetry reports failed Collector generation" test $? -ne 0
+  check "failed generation preserves settings, YAML and backend authorization" test "$(sha256sum "$conf" "$dir/otelcol.yaml" "$dir/export-auth")" = "$before_failure"
+done
 mv "$backend/valid-classes.json" /usr/local/lib/onbehalf/telemetry/classes.json
 
 cp -p "$dir/otelcol.yaml" "$backend/matching-mode.yaml"
@@ -310,17 +306,25 @@ out=$(onbehalf telemetry off 2>&1)
 check "telemetry off preserves named identity selection" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' "$conf"
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 check "telemetry on restores the saved named mode after off" test $? -eq 0
-json_export
+check "the restored named-mode JSON export configuration is staged" json_export
 check "named mode is retained after off and on" post_identity onbehalf-named-identity-test carol
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 check "an omitted identity flag retains the selected named mode" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' /etc/onbehalf/telemetry.conf
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity pseudonymous 2>&1)
 check "switching back to pseudonymous succeeds" test $? -eq 0
-json_export
+check "the pseudonymous-mode JSON export configuration is staged" json_export
 span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-pseudonymous-identity-test"' <<<"$original_span")
 check "pseudonymous mode still accepts the original key" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
 check "switching back restores the original pseudonym" post_identity onbehalf-pseudonymous-identity-test "$pseudonym"
 check "mode changes preserve the pseudonym secret" test "$(sha256sum "$dir/identity-salt")" = "$salt_hash"
+out=$(printf '' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
+check "an empty authorization can be selected" test $? -eq 0
+check "empty authorization removes the old header file" test ! -e "$dir/export-auth"
+check "empty authorization leaves no stale file reference" bash -c '! grep -q export-auth "$1"' _ "$dir/otelcol.yaml"
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
+check "authorization can be restored after removal" test $? -eq 0
+check "restored authorization has a generated reference" grep -q export-auth "$dir/otelcol.yaml"
+check "the restored authorization JSON export is staged" json_export
 span=$original_span
 if [ "$FAILED" != 0 ]; then
   echo "        the Collector log:"
@@ -375,7 +379,7 @@ echo '{"rules": [{"class": "write", "command": "\\bmake\\s+deploy\\b"}]}' >"$sta
 out=$(onbehalf stack install "$stack" 2>&1)
 check "stack install gives the tool classes of the shared stack to the Collector" \
   grep -q "the Collector uses the tool classes of $ONBEHALF_STACK/current/telemetry/classes.json" <<<"$out"
-json_export
+check "the stack-rule JSON export configuration is staged" json_export
 sleep 2
 tool_span carol "$key" "make deploy now" >/dev/null
 check "the Collector uses the rules of the shared stack" class "$TOOL_SPAN_ID" write

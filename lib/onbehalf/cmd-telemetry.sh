@@ -60,7 +60,7 @@ cmd_telemetry() {
 }
 
 telemetry_enable() {
-  local auth=""
+  local auth="" has_auth=no
   while [ $# -gt 0 ]; do
     case $1 in
       --export)
@@ -95,13 +95,16 @@ telemetry_enable() {
     auth=$(cat)
   fi
   install -d -o root -g "$TELEMETRY_GROUP" -m 0750 "$TELEMETRY_DIR"
-  if [ -n "$auth" ]; then
-    printf %s "$auth" | install -o root -g "$TELEMETRY_GROUP" -m 0640 /dev/stdin "$TELEMETRY_DIR/export-auth"
-  else
-    rm -f "$TELEMETRY_DIR/export-auth"
-  fi
+  [ -z "$auth" ] || has_auth=yes
   ONBEHALF_TELEMETRY=yes
-  telemetry_collector_write
+  # Generate first; a failure must not replace credentials for the old backend.
+  telemetry_collector_generate "$has_auth"
+  if [ -n "$auth" ]; then
+    printf %s "$auth" | install -o root -g "$TELEMETRY_GROUP" -m 0640 /dev/stdin "$TELEMETRY_DIR/export-auth.new"
+    mv "$TELEMETRY_DIR/export-auth.new" "$TELEMETRY_DIR/export-auth"
+  fi
+  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
+  [ -n "$auth" ] || rm -f "$TELEMETRY_DIR/export-auth"
   telemetry_save
   ok "saved $TELEMETRY_CONF (root only)"
   ok "wrote the Collector configuration $TELEMETRY_DIR/otelcol.yaml"
@@ -192,6 +195,13 @@ telemetry_stack_changed() {
 # The Collector: an OTLP/HTTP receiver on the loopback address that accepts
 # only the telemetry keys of the users, then the backend of the operator.
 telemetry_collector_write() {
+  telemetry_collector_generate
+  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
+}
+
+# Stage YAML before authorization changes. yes/no selects the pending header;
+# callers without a pending header keep the existing authorization setting.
+telemetry_collector_generate() {
   local headers="" classes hash_identity
   case ${ONBEHALF_TELEMETRY_IDENTITY:-pseudonymous} in
     pseudonymous) hash_identity=true ;;
@@ -201,7 +211,7 @@ telemetry_collector_write() {
   local files
   mapfile -t files < <(telemetry_classes_files)
   classes=$(telemetry_classes_statements "${files[@]}") || die "could not read the tool classes in ${files[*]}"
-  if [ -e "$TELEMETRY_DIR/export-auth" ]; then
+  if [ "${1:-existing}" = yes ] || { [ "${1:-existing}" = existing ] && [ -e "$TELEMETRY_DIR/export-auth" ]; }; then
     headers=$'\n    headers:\n      authorization: ${file:'"$TELEMETRY_DIR"$'/export-auth}'
   fi
   touch "$TELEMETRY_DIR/htpasswd"
@@ -296,7 +306,6 @@ service:
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"
   chmod 0640 "$TELEMETRY_DIR/otelcol.yaml.new"
-  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
 }
 
 # Give a user a personal telemetry key and link the plugin into OpenCode.
