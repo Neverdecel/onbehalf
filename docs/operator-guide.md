@@ -1281,7 +1281,7 @@ Limits:
 - A user can remove the plugin from their own account. Then the backend gets
   no spans of that user. The user cannot send spans as a different user.
 - Give access to the backend only to approved operators and reviewers.
-  Pseudonymous data remains personal data, especially with precise timestamps.
+  Named and pseudonymous data remain personal data, especially with precise timestamps.
   Keep the identity secret outside the backend and its backups.
   Review backend retention before use. This command does not configure retention.
 - The Collector removes raw commands, host names and unknown attributes,

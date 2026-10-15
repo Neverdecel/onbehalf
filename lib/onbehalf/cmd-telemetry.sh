@@ -101,9 +101,9 @@ telemetry_enable() {
     rm -f "$TELEMETRY_DIR/export-auth"
   fi
   ONBEHALF_TELEMETRY=yes
+  telemetry_collector_write
   telemetry_save
   ok "saved $TELEMETRY_CONF (root only)"
-  telemetry_collector_write
   ok "wrote the Collector configuration $TELEMETRY_DIR/otelcol.yaml"
   jq -n --arg url "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT" '{url: $url}' >"$TELEMETRY_JSON"
   chmod 0644 "$TELEMETRY_JSON"

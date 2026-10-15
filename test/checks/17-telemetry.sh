@@ -46,8 +46,18 @@ chmod 0755 "$backend"
 # Use the Collector's JSON encoding in tests so assertions do not depend on
 # protobuf attribute order. Production export keeps its default encoding.
 json_export() {
+  local ready=0
+  if [ -e "$backend/collector.log" ]; then
+    ready=$(grep -cF 'Everything is ready. Begin running and processing data.' "$backend/collector.log" || true)
+  fi
   sed -i '/^  otlp_http\/backend:/a\    encoding: json' "$dir/otelcol.yaml"
-  pkill -HUP -x otelcol-contrib 2>/dev/null || true
+  if pkill -HUP -x otelcol-contrib 2>/dev/null; then
+    for _ in $(seq 1 30); do
+      [ "$(grep -cF 'Everything is ready. Begin running and processing data.' "$backend/collector.log" || true)" -le "$ready" ] || return 0
+      sleep 1
+    done
+    return 1
+  fi
 }
 # The test backend keeps structured OTLP JSON and HTTP headers.
 cat >"$backend/server.js" <<'EOF'
@@ -59,7 +69,10 @@ http.createServer((req, res) => {
   req.on("end", () => {
     let body = Buffer.concat(chunks);
     if (req.headers["content-encoding"] === "gzip") body = zlib.gunzipSync(body);
-    fs.writeFileSync(`${process.argv[2]}/req-${++n}`, JSON.stringify({ headers: req.headers, payload: JSON.parse(body.toString()) }));
+    let payload;
+    try { payload = JSON.parse(body.toString()); }
+    catch { res.writeHead(400); res.end(); return; }
+    fs.writeFileSync(`${process.argv[2]}/req-${++n}`, JSON.stringify({ headers: req.headers, payload }));
     res.writeHead(200, { "content-type": "application/json" });
     res.end("{}");
   });
@@ -68,6 +81,12 @@ EOF
 mkdir "$backend/out"
 node "$backend/server.js" "$backend/out" &
 server=$!
+for _ in $(seq 1 30); do
+  rejected=$(curl -s -o /dev/null -w '%{http_code}' --data 'invalid-json' http://127.0.0.1:14320 || true)
+  [ "$rejected" != 400 ] || break
+  sleep 1
+done
+check "the test backend rejects malformed data without exiting" test "$rejected" = 400
 
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 check "telemetry on succeeds" test $? -eq 0
@@ -116,7 +135,16 @@ check "doctor: OpenCode of alice sends the tool calls" grep -q "OpenCode sends t
 # A span that says that it is of alice, with the key of carol.
 span='{"resourceSpans":[{"resource":{"attributes":[{"key":"user.name","value":{"stringValue":"alice"}}]},"scopeSpans":[{"spans":[{"traceId":"5b8efff798038103d269b633813fc60c","spanId":"eee19b7ec3c1b174","name":"onbehalf-spoof-test","kind":1,"startTimeUnixNano":"1","endTimeUnixNano":"2"}]}]}]}'
 post() { # post USER KEYFILE: the HTTP status of one span
-  as "$1" "curl -s -o /dev/null -w '%{http_code}' -u \"$2:\$(cat $3)\" -H 'content-type: application/json' --data '$span' http://127.0.0.1:4318/v1/traces"
+  local code
+  for _ in $(seq 1 20); do
+    code=$(as "$1" "curl -s -o /dev/null -w '%{http_code}' --max-time 2 -u \"$2:\$(cat $3)\" -H 'content-type: application/json' --data '$span' http://127.0.0.1:4318/v1/traces" || true)
+    if [ "$code" != 000 ]; then
+      printf '%s' "$code"
+      return
+    fi
+    sleep 1
+  done
+  printf '000'
 }
 check "the Collector refuses the name of alice with the key of carol" test "$(post carol alice /home/carol/.config/onbehalf/telemetry.key)" = 401
 check "the Collector accepts the key of carol" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
@@ -221,6 +249,7 @@ check "the Collector uses the pseudonym of carol, not either account name" \
 # Identity display is independent of content capture and remains server-authenticated.
 original_span=$span
 span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-named-identity-test" |
+  .resourceSpans[0].resource.attributes += [{key: "user.id", value: {stringValue: "alice"}}] |
   .resourceSpans[0].scopeSpans[0].spans[0].attributes = [
     {key: "user.id", value: {stringValue: "alice"}},
     {key: "user.name", value: {stringValue: "alice"}},
@@ -234,14 +263,55 @@ check "doctor states that names are visible to backend readers" grep -q 'configu
 check "named mode still refuses another user's key" test "$(post carol alice /home/carol/.config/onbehalf/telemetry.key)" = 401
 check "named mode accepts the authenticated user" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
 identity_result() {
-  exported_spans | jq -e --arg name "$1" --arg id "$2" 'any(.[]; .name == $name and .attributes["user.id"] == $id and .attributes["user.name"] == null and .attributes["process.command_line"] == null)' >/dev/null
+  exported_spans | jq -e --arg name "$1" --arg id "$2" --arg span "$3" 'any(.[]; .spanId == $span and .name == $name and .attributes["user.id"] == $id and .attributes["user.name"] == null and .attributes["process.command_line"] == null)' >/dev/null
 }
-for _ in $(seq 1 20); do
-  identity_result onbehalf-named-identity-test carol && break
-  sleep 1
-done
-check "named mode uses carol, not the forged alice identity" identity_result onbehalf-named-identity-test carol
+post_identity() {
+  local id
+  id=$(openssl rand -hex 8)
+  span=$(jq -c --arg id "$id" '.resourceSpans[0].scopeSpans[0].spans[0].spanId = $id' <<<"$span")
+  for _ in $(seq 1 20); do
+    if [ "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200 ] && identity_result "$1" "$2" "$id"; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+check "named mode uses carol, not the forged alice identity" post_identity onbehalf-named-identity-test carol
 check "named mode does not export private command arguments" bash -c '! grep -aq PRIVATE_NAMED_ARGUMENT "$@"' _ "$backend"/out/req-*
+
+# A generation failure must not persist a privacy choice that was not applied.
+conf=/etc/onbehalf/telemetry.conf
+cp -p /usr/local/lib/onbehalf/telemetry/classes.json "$backend/valid-classes.json"
+printf 'invalid-json\n' >/usr/local/lib/onbehalf/telemetry/classes.json
+before_failure=$(sha256sum "$conf" "$dir/otelcol.yaml")
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity pseudonymous 2>&1)
+check "telemetry reports failed Collector generation" test $? -ne 0
+check "failed generation preserves the saved mode and YAML" test "$(sha256sum "$conf" "$dir/otelcol.yaml")" = "$before_failure"
+mv "$backend/valid-classes.json" /usr/local/lib/onbehalf/telemetry/classes.json
+
+cp -p "$dir/otelcol.yaml" "$backend/matching-mode.yaml"
+sed -i 's/^# onbehalf telemetry identity: named$/# onbehalf telemetry identity: pseudonymous/' "$dir/otelcol.yaml"
+mode_hash=$(sha256sum "$dir/otelcol.yaml")
+out=$(onbehalf doctor 2>&1)
+check "doctor detects a mismatched identity mode" grep -q 'telemetry configuration is outdated' <<<"$out"
+check "the mode check is read-only" test "$(sha256sum "$dir/otelcol.yaml")" = "$mode_hash"
+mv "$backend/matching-mode.yaml" "$dir/otelcol.yaml"
+
+cp -p "$conf" "$backend/valid-identity.conf"
+sed -i 's/^ONBEHALF_TELEMETRY_IDENTITY=.*/ONBEHALF_TELEMETRY_IDENTITY=invalid/' "$conf"
+invalid_hash=$(sha256sum "$conf" "$dir/otelcol.yaml")
+out=$(onbehalf doctor 2>&1)
+check "doctor reports an invalid saved identity mode" grep -q 'configured telemetry identity mode is invalid' <<<"$out"
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
+check "telemetry refuses an invalid saved mode" test $? -ne 0
+check "an invalid saved mode changes no configuration" test "$(sha256sum "$conf" "$dir/otelcol.yaml")" = "$invalid_hash"
+mv "$backend/valid-identity.conf" "$conf"
+
+out=$(onbehalf telemetry off 2>&1)
+check "telemetry off preserves named identity selection" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' "$conf"
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
+check "telemetry on restores the saved named mode after off" test $? -eq 0
+json_export
+check "named mode is retained after off and on" post_identity onbehalf-named-identity-test carol
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 check "an omitted identity flag retains the selected named mode" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' /etc/onbehalf/telemetry.conf
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity pseudonymous 2>&1)
@@ -249,11 +319,7 @@ check "switching back to pseudonymous succeeds" test $? -eq 0
 json_export
 span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-pseudonymous-identity-test"' <<<"$original_span")
 check "pseudonymous mode still accepts the original key" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
-for _ in $(seq 1 20); do
-  identity_result onbehalf-pseudonymous-identity-test "$pseudonym" && break
-  sleep 1
-done
-check "switching back restores the original pseudonym" identity_result onbehalf-pseudonymous-identity-test "$pseudonym"
+check "switching back restores the original pseudonym" post_identity onbehalf-pseudonymous-identity-test "$pseudonym"
 check "mode changes preserve the pseudonym secret" test "$(sha256sum "$dir/identity-salt")" = "$salt_hash"
 span=$original_span
 if [ "$FAILED" != 0 ]; then
