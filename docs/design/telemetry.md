@@ -57,7 +57,7 @@ onbehalf makes the spans.
 | Collector | The operator installs `otelcol-contrib`. onbehalf writes its configuration. The Collector reads it again at `SIGHUP`. |
 | Content | The backend gets fixed command labels, never raw commands, arguments, prompts, answers or output. Unknown commands stay unknown. |
 | Performance | Execution hooks observe actual tools, including Code Mode children. Model spans end at the stream boundary. Tasks record counters and first-text time. |
-| Privacy | The Collector derives a stable pseudonym from the authenticated account and a private secret. It removes account names, host names and unknown attributes. |
+| Privacy | The operator selects a stable pseudonym or authenticated account name. The Collector always removes host names, content and unknown attributes. Named mode exposes account names to backend readers. |
 | Classification | In the Collector, from the tool name and the command. The rules are data: `telemetry/classes.json` of the shared stack, then the default rules of onbehalf. The first rule that agrees gives the class. |
 
 ## Spans
@@ -69,9 +69,9 @@ onbehalf makes the spans.
 | `chat MODEL` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.conversation.id`, `gen_ai.response.finish_reasons`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `error.type` |
 
 All spans of one task are in one trace. Each span has `session.id`. The
-Collector sets the pseudonymous `user.id` on each span, because Langfuse
-reads the user from the span and not from the resource. It removes
-account names, host names and unknown attributes before export.
+Collector sets the authenticated `user.id` on each span, named or pseudonymous
+as the operator selects. Langfuse reads this identity from each span.
+Host names, content and unknown attributes are removed before export.
 
 The Collector does not send its own metrics. Its default port 8888 is
 frequently in use on the host.

@@ -18,7 +18,7 @@ TELEMETRY_GROUP=${TELEMETRY_GROUP:-otelcol-contrib}
 TELEMETRY_PLUGIN="$ONBEHALF_LIB/telemetry/opencode.js"
 
 telemetry_conf() {
-  ONBEHALF_TELEMETRY=no ONBEHALF_TELEMETRY_EXPORT='' ONBEHALF_TELEMETRY_PORT=4318
+  ONBEHALF_TELEMETRY=no ONBEHALF_TELEMETRY_EXPORT='' ONBEHALF_TELEMETRY_PORT=4318 ONBEHALF_TELEMETRY_IDENTITY=pseudonymous
   # shellcheck source=/dev/null
   [ ! -r "$TELEMETRY_CONF" ] || . "$TELEMETRY_CONF"
 }
@@ -33,12 +33,13 @@ telemetry_save() {
 ONBEHALF_TELEMETRY=$ONBEHALF_TELEMETRY
 ONBEHALF_TELEMETRY_EXPORT=$(printf %q "$ONBEHALF_TELEMETRY_EXPORT")
 ONBEHALF_TELEMETRY_PORT=$ONBEHALF_TELEMETRY_PORT
+ONBEHALF_TELEMETRY_IDENTITY=$ONBEHALF_TELEMETRY_IDENTITY
 EOF
   )
 }
 
 telemetry_usage() {
-  die "usage: onbehalf telemetry on --export URL [--port PORT] | telemetry off. The authorization header of the backend comes on stdin or in the terminal"
+  die "usage: onbehalf telemetry on --export URL [--port PORT] [--identity named|pseudonymous] | telemetry off. Backend authorization comes on stdin or in the terminal"
 }
 
 cmd_telemetry() {
@@ -59,7 +60,7 @@ cmd_telemetry() {
 }
 
 telemetry_enable() {
-  local auth=""
+  local auth="" has_auth=no
   while [ $# -gt 0 ]; do
     case $1 in
       --export)
@@ -72,9 +73,15 @@ telemetry_enable() {
         ONBEHALF_TELEMETRY_PORT=$2
         shift 2
         ;;
+      --identity)
+        [[ ${2:-} = named || ${2:-} = pseudonymous ]] || die "give --identity named or pseudonymous"
+        ONBEHALF_TELEMETRY_IDENTITY=$2
+        shift 2
+        ;;
       *) telemetry_usage ;;
     esac
   done
+  [[ $ONBEHALF_TELEMETRY_IDENTITY = named || $ONBEHALF_TELEMETRY_IDENTITY = pseudonymous ]] || die "give --identity named or pseudonymous"
   [ -n "$ONBEHALF_TELEMETRY_EXPORT" ] || telemetry_usage
   [ "$(harness_id)" = opencode ] || die "telemetry supports only OpenCode for now. This host uses $(harness label)"
   getent group "$TELEMETRY_GROUP" >/dev/null \
@@ -88,15 +95,18 @@ telemetry_enable() {
     auth=$(cat)
   fi
   install -d -o root -g "$TELEMETRY_GROUP" -m 0750 "$TELEMETRY_DIR"
-  if [ -n "$auth" ]; then
-    printf %s "$auth" | install -o root -g "$TELEMETRY_GROUP" -m 0640 /dev/stdin "$TELEMETRY_DIR/export-auth"
-  else
-    rm -f "$TELEMETRY_DIR/export-auth"
-  fi
+  [ -z "$auth" ] || has_auth=yes
   ONBEHALF_TELEMETRY=yes
+  # Generate first; a failure must not replace credentials for the old backend.
+  telemetry_collector_generate "$has_auth"
+  if [ -n "$auth" ]; then
+    printf %s "$auth" | install -o root -g "$TELEMETRY_GROUP" -m 0640 /dev/stdin "$TELEMETRY_DIR/export-auth.new"
+    mv "$TELEMETRY_DIR/export-auth.new" "$TELEMETRY_DIR/export-auth"
+  fi
+  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
+  [ -n "$auth" ] || rm -f "$TELEMETRY_DIR/export-auth"
   telemetry_save
   ok "saved $TELEMETRY_CONF (root only)"
-  telemetry_collector_write
   ok "wrote the Collector configuration $TELEMETRY_DIR/otelcol.yaml"
   jq -n --arg url "http://127.0.0.1:$ONBEHALF_TELEMETRY_PORT" '{url: $url}' >"$TELEMETRY_JSON"
   chmod 0644 "$TELEMETRY_JSON"
@@ -185,11 +195,23 @@ telemetry_stack_changed() {
 # The Collector: an OTLP/HTTP receiver on the loopback address that accepts
 # only the telemetry keys of the users, then the backend of the operator.
 telemetry_collector_write() {
-  local headers="" classes
+  telemetry_collector_generate
+  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
+}
+
+# Stage YAML before authorization changes. yes/no selects the pending header;
+# callers without a pending header keep the existing authorization setting.
+telemetry_collector_generate() {
+  local headers="" classes hash_identity
+  case ${ONBEHALF_TELEMETRY_IDENTITY:-pseudonymous} in
+    pseudonymous) hash_identity=true ;;
+    named) hash_identity=false ;;
+    *) die "give --identity named or pseudonymous" ;;
+  esac
   local files
   mapfile -t files < <(telemetry_classes_files)
   classes=$(telemetry_classes_statements "${files[@]}") || die "could not read the tool classes in ${files[*]}"
-  if [ -e "$TELEMETRY_DIR/export-auth" ]; then
+  if [ "${1:-existing}" = yes ] || { [ "${1:-existing}" = existing ] && [ -e "$TELEMETRY_DIR/export-auth" ]; }; then
     headers=$'\n    headers:\n      authorization: ${file:'"$TELEMETRY_DIR"$'/export-auth}'
   fi
   touch "$TELEMETRY_DIR/htpasswd"
@@ -201,7 +223,8 @@ telemetry_collector_write() {
   fi
   cat >"$TELEMETRY_DIR/otelcol.yaml.new" <<EOF
 # Written by onbehalf telemetry on. Do not change it: onbehalf writes it again.
-# onbehalf telemetry schema: 2
+# onbehalf telemetry schema: 3
+# onbehalf telemetry identity: ${ONBEHALF_TELEMETRY_IDENTITY:-pseudonymous}
 extensions:
   basicauth/onbehalf:
     htpasswd:
@@ -235,12 +258,12 @@ processors:
     error_mode: ignore
     trace_statements:
 $classes
-  # Fail closed if the privacy transform fails. The backend gets no account
-  # name, host name, raw command, arguments, output or unknown attributes.
+  # Fail closed on transform errors. Only named mode exports account names.
+  # Host names, raw commands, arguments, output and unknown attributes never go.
   transform/onbehalf-privacy:
     error_mode: propagate
     trace_statements:
-      - 'set(span.attributes["user.id"], SHA256(Concat([span.attributes["user.name"], "\${file:$TELEMETRY_DIR/identity-salt}"], ":")))'
+      - 'set(span.attributes["user.id"], SHA256(Concat([span.attributes["user.name"], "\${file:$TELEMETRY_DIR/identity-salt}"], ":"))) where $hash_identity'
       - 'keep_keys(resource.attributes, ["service.name", "service.version", "onbehalf.harness"])'
       - >-
         keep_keys(span.attributes, ["user.id", "session.id", "gen_ai.operation.name", "gen_ai.agent.name",
@@ -283,7 +306,6 @@ service:
 EOF
   chown root:"$TELEMETRY_GROUP" "$TELEMETRY_DIR/otelcol.yaml.new"
   chmod 0640 "$TELEMETRY_DIR/otelcol.yaml.new"
-  mv "$TELEMETRY_DIR/otelcol.yaml.new" "$TELEMETRY_DIR/otelcol.yaml"
 }
 
 # Give a user a personal telemetry key and link the plugin into OpenCode.
@@ -345,10 +367,21 @@ telemetry_check() {
     info "telemetry is off: sudo onbehalf telemetry on --export URL"
     return 0
   fi
-  if ! grep -qxF '# onbehalf telemetry schema: 2' "$TELEMETRY_DIR/otelcol.yaml" 2>/dev/null \
+  if [[ $ONBEHALF_TELEMETRY_IDENTITY != named && $ONBEHALF_TELEMETRY_IDENTITY != pseudonymous ]]; then
+    err "the configured telemetry identity mode is invalid"
+    fix "set --identity named or pseudonymous through telemetry on"
+    return 1
+  fi
+  if ! grep -qxF '# onbehalf telemetry schema: 3' "$TELEMETRY_DIR/otelcol.yaml" 2>/dev/null \
+    || ! grep -qxF "# onbehalf telemetry identity: $ONBEHALF_TELEMETRY_IDENTITY" "$TELEMETRY_DIR/otelcol.yaml" 2>/dev/null \
     || [ ! -s "$TELEMETRY_DIR/identity-salt" ]; then
-    warn "the telemetry configuration is outdated; the Collector can still export account and host names"
+    warn "the telemetry configuration is outdated; the configured identity mode and content filters may not be applied"
     fix "run sudo onbehalf telemetry on --export $ONBEHALF_TELEMETRY_EXPORT with the existing backend authorization, then reload the Collector"
+  fi
+  if [ "$ONBEHALF_TELEMETRY_IDENTITY" = named ]; then
+    info "configured identity: named; all backend readers can see authenticated account names"
+  else
+    info "configured identity: pseudonymous; account names stay outside the backend"
   fi
   local code
   # After a SIGHUP, the Collector starts again: give it a few seconds.

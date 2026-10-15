@@ -50,6 +50,7 @@ Operator commands (as root):
                                     an alert when a problem starts or stops
   health off | alert-test           stop the checks | send a test alert
   telemetry on --export URL [--port PORT]
+               [--identity named|pseudonymous]
                                     send the tool calls and model steps of each
                                     user to the OTel backend at URL, through the
                                     OTel Collector of the host (OpenCode only)

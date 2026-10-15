@@ -21,7 +21,7 @@ configuration for this Collector.
 | A model step | `chat MODEL` | A generation, with the model and the tokens |
 | A tool call | `execute_tool TOOL` | A tool observation. A failed command has the level ERROR |
 | The OpenCode session | `session.id` | A session |
-| The authenticated user | Pseudonymous `user.id`, from the telemetry key and a private secret | A user |
+| The authenticated user | `user.id`, named or pseudonymous as selected by the operator | A user |
 
 Tool metadata has a fixed `command_summary`, for example `kubectl get`.
 Langfuse gets no raw commands, arguments, prompts, answers or tool output.
@@ -33,6 +33,10 @@ observations do not supply tool durations to latency charts.
 
 Keep the pseudonym secret outside backend backups. Restrict backend access
 and confirm the approved retention period. Historical data stays unchanged.
+Use `--identity named` with `onbehalf telemetry on` for named audit attribution.
+The default is `pseudonymous`; an omitted flag keeps the saved mode.
+Content capture stays off in both modes. The Collector changes identity display
+without user runtime restarts.
 See the [operator guide](../../docs/operator-guide.md#telemetry) for privacy limits.
 
 ## Set up
