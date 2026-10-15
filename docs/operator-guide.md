@@ -1135,8 +1135,31 @@ probe)", not as a user. `health off` revokes the probe key.
 ## Telemetry
 
 `onbehalf telemetry` sends the tool calls and the model steps of each user
-to an OpenTelemetry (OTel) backend. Each span has a stable user pseudonym.
+to an OpenTelemetry (OTel) backend. Each span has the authenticated user identity.
 Only OpenCode is supported now.
+
+### Identity display
+
+Identity display is separate from content capture. Select the mode as an operator:
+
+- `--identity pseudonymous`: a stable hash of the authenticated account and
+  a private host secret. This is the default when no saved setting exists.
+- `--identity named`: the authenticated account name, for named audit attribution.
+  All readers of the backend project can see these names.
+
+For example:
+
+```sh
+sudo onbehalf telemetry on --export https://otel.example.com --identity named
+```
+
+Supply the existing backend authorization when the command asks for it.
+The command saves the mode in the root-only `telemetry.conf`.
+An omitted flag keeps the saved mode. `doctor` shows the configured mode.
+The Collector applies the change without a user runtime restart.
+Keep the pseudonym secret so a switch back restores the same IDs.
+Existing observations are not rewritten. Older hash IDs remain in historical views.
+Prompts, answers, arguments, output, raw errors and raw commands stay excluded in both modes.
 
 The backend gets these spans:
 
@@ -1197,8 +1220,8 @@ How it works:
    itself exports no tool data.
 2. The plugin sends the spans to the OTel Collector on the host, on
    `127.0.0.1:4318`. It sends the personal telemetry key of the user.
-3. The Collector accepts only a valid key. It derives the user pseudonym
-   from the authenticated account and a private host secret.
+3. The Collector accepts only a valid key. It derives identity from the
+   authenticated account, with a private-secret hash in pseudonymous mode.
    Client-supplied user attributes cannot change this identity.
 4. The Collector sends the spans to the backend of the operator.
 
@@ -1261,8 +1284,9 @@ Limits:
   Pseudonymous data remains personal data, especially with precise timestamps.
   Keep the identity secret outside the backend and its backups.
   Review backend retention before use. This command does not configure retention.
-- The Collector removes raw commands, account names, host names and unknown
-  attributes, also from older clients. This does not remove historical records.
+- The Collector removes raw commands, host names and unknown attributes,
+  also from older clients. Account names are exported only in named mode.
+  This does not remove historical records.
 - Code Mode HTTP extensions do not use tool execution hooks.
   Their duration remains part of the outer span, without a separate tool span.
 

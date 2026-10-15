@@ -6,6 +6,9 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+- Add operator-controlled `--identity named|pseudonymous` telemetry modes.
+  Keep content capture off in both modes and preserve the saved identity setting.
+
 - Send lowercase Langfuse observation types so Code Mode containers remain
   spans and unobserved results remain events, not tool-latency samples.
 

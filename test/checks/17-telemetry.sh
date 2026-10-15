@@ -71,6 +71,14 @@ server=$!
 
 out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 check "telemetry on succeeds" test $? -eq 0
+check "telemetry identity defaults to pseudonymous" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=pseudonymous' /etc/onbehalf/telemetry.conf
+before_invalid=$(sha256sum /etc/onbehalf/telemetry.conf "$dir/otelcol.yaml")
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity invalid 2>&1)
+check "telemetry refuses an invalid identity mode" test $? -ne 0
+check "an invalid identity mode leaves configuration unchanged" test "$(sha256sum /etc/onbehalf/telemetry.conf "$dir/otelcol.yaml")" = "$before_invalid"
+out=$(onbehalf telemetry on --export http://127.0.0.1:14320 --identity 2>&1)
+check "telemetry requires a value for identity mode" test $? -ne 0
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
 sed 's/^/        /' <<<"$out"
 check "telemetry on tells that the Collector does not run yet" grep -q "the OTel Collector does not answer" <<<"$out"
 json_export
@@ -209,6 +217,45 @@ spoof=$(grep -al onbehalf-spoof-test "$backend"/out/req-* | head -1)
 pseudonym=$(printf 'carol:%s' "$(cat "$dir/identity-salt")" | sha256sum | cut -d' ' -f1)
 check "the Collector uses the pseudonym of carol, not either account name" \
   bash -c 'grep -aq "$2" "$1" && ! grep -aqE "carol|alice" "$1"' _ "${spoof:-/dev/null}" "$pseudonym"
+
+# Identity display is independent of content capture and remains server-authenticated.
+original_span=$span
+span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-named-identity-test" |
+  .resourceSpans[0].scopeSpans[0].spans[0].attributes = [
+    {key: "user.id", value: {stringValue: "alice"}},
+    {key: "user.name", value: {stringValue: "alice"}},
+    {key: "process.command_line", value: {stringValue: "echo PRIVATE_NAMED_ARGUMENT"}}]' <<<"$original_span")
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity named 2>&1)
+check "named identity mode succeeds" test $? -eq 0
+json_export
+check "named mode is saved" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' /etc/onbehalf/telemetry.conf
+out=$(onbehalf doctor 2>&1)
+check "doctor states that names are visible to backend readers" grep -q 'configured identity: named' <<<"$out"
+check "named mode still refuses another user's key" test "$(post carol alice /home/carol/.config/onbehalf/telemetry.key)" = 401
+check "named mode accepts the authenticated user" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
+identity_result() {
+  exported_spans | jq -e --arg name "$1" --arg id "$2" 'any(.[]; .name == $name and .attributes["user.id"] == $id and .attributes["user.name"] == null and .attributes["process.command_line"] == null)' >/dev/null
+}
+for _ in $(seq 1 20); do
+  identity_result onbehalf-named-identity-test carol && break
+  sleep 1
+done
+check "named mode uses carol, not the forged alice identity" identity_result onbehalf-named-identity-test carol
+check "named mode does not export private command arguments" bash -c '! grep -aq PRIVATE_NAMED_ARGUMENT "$@"' _ "$backend"/out/req-*
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 2>&1)
+check "an omitted identity flag retains the selected named mode" grep -qx 'ONBEHALF_TELEMETRY_IDENTITY=named' /etc/onbehalf/telemetry.conf
+out=$(echo 'Bearer test-backend-key' | onbehalf telemetry on --export http://127.0.0.1:14320 --identity pseudonymous 2>&1)
+check "switching back to pseudonymous succeeds" test $? -eq 0
+json_export
+span=$(jq -c '.resourceSpans[0].scopeSpans[0].spans[0].name = "onbehalf-pseudonymous-identity-test"' <<<"$original_span")
+check "pseudonymous mode still accepts the original key" test "$(post carol carol /home/carol/.config/onbehalf/telemetry.key)" = 200
+for _ in $(seq 1 20); do
+  identity_result onbehalf-pseudonymous-identity-test "$pseudonym" && break
+  sleep 1
+done
+check "switching back restores the original pseudonym" identity_result onbehalf-pseudonymous-identity-test "$pseudonym"
+check "mode changes preserve the pseudonym secret" test "$(sha256sum "$dir/identity-salt")" = "$salt_hash"
+span=$original_span
 if [ "$FAILED" != 0 ]; then
   echo "        the Collector log:"
   tail -20 "$backend/collector.log" | sed 's/^/        /'
