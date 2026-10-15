@@ -169,7 +169,9 @@ const interrupted = await boot([start(),
   hook("before", "execute", unfinishedInput, 1200),
   { ...event("session.execution.interrupted"), created: 1400 }]);
 await interrupted.cleanup();
-assert.equal(interrupted.requests.flatMap(spans).find((s) => s.name === "execute_tool execute").status.message, "interrupted");
+const interruptedTool = interrupted.requests.flatMap(spans).find((s) => s.name === "execute_tool execute");
+assert.equal(attrs(interruptedTool)["error.type"], "interrupted");
+assert.equal(interruptedTool.status.code, 0);
 assert.doesNotMatch(JSON.stringify(interrupted.requests), /PRIVATE_/);
 
 const transformed = await boot([start(),
@@ -218,6 +220,33 @@ assert.equal(ambiguousRoot["langfuse.observation.metadata.tool_failure_count"], 
 assert.equal(ambiguousRoot["langfuse.observation.metadata.tool_unobserved_count"], 2);
 assert.doesNotMatch(JSON.stringify(ambiguous.requests), /PRIVATE_/);
 
+// An unmatched completion must not consume the input identity which will
+// later deliver a different call's real failure.
+for (const exactInput of [firstInput, secondInput]) {
+  const mixed = await boot([start(), event("session.tool.input.started", { id: "outer", name: "execute" }),
+    hook("before", "execute", outerInput, 1200),
+    hook("before", "datadog_search_logs", firstInput, 1300),
+    hook("before", "datadog_search_logs", secondInput, 1350),
+    hook("after", "datadog_search_logs", { query: "PRIVATE_REPLACED_INPUT" }, 1400, { status: "completed", result: {} }),
+    hook("after", "datadog_search_logs", exactInput, 1500, { status: "error", error: { status: 403, message: "PRIVATE_REAL_FAILURE" } }),
+    hook("after", "execute", outerInput, 1600, { status: "completed", result: {} }), { ...end(), created: 2000 }]);
+  await mixed.cleanup();
+  const mixedSpans = mixed.requests.flatMap(spans);
+  const results = mixedSpans.filter(s => s.name === "execute_tool datadog_search_logs");
+  assert.equal(results.length, 2);
+  const actualFailure = results.find(s => s.status.code === 2);
+  assert.equal(attrs(actualFailure)["error.type"], "permission_denied");
+  assert.equal(attrs(actualFailure)["langfuse.observation.type"], "TOOL");
+  assert.ok(BigInt(actualFailure.endTimeUnixNano) > BigInt(actualFailure.startTimeUnixNano));
+  assert.equal(results.filter(s => attrs(s)["langfuse.observation.metadata.execution_match"] === "ambiguous").length, 1);
+  assert.ok(results.every(s => attrs(s)["error.type"] !== "incomplete"));
+  const counts = attrs(mixedSpans.find(s => s.name.startsWith("invoke_agent")));
+  assert.equal(counts["langfuse.observation.metadata.tool_call_count"], 2);
+  assert.equal(counts["langfuse.observation.metadata.tool_failure_count"], 1);
+  assert.equal(counts["langfuse.observation.metadata.tool_unobserved_count"], 1);
+  assert.doesNotMatch(JSON.stringify(mixed.requests), /PRIVATE_/);
+}
+
 for (const terminal of ["session.execution.interrupted", "session.execution.succeeded"]) {
   const missing = await boot([start(), event("session.tool.input.started", { id: "outer", name: "shell" }),
     hook("before", "shell", { command: "ls /tmp" }, 1200), { ...event(terminal), created: 1400 }]);
@@ -228,6 +257,8 @@ for (const terminal of ["session.execution.interrupted", "session.execution.succ
   assert.equal(counters["langfuse.observation.metadata.tool_unobserved_count"], 1);
   assert.equal(counters["langfuse.observation.metadata.tool_interruption_count"], terminal.endsWith("interrupted") ? 1 : 0);
   assert.equal(attrs(missingSpans.find(s => s.name === "execute_tool shell"))["langfuse.observation.type"], "EVENT");
+  assert.equal(missingSpans.find(s => s.name === "execute_tool shell").status.code, 0);
+  if (terminal.endsWith("interrupted")) assert.equal(missingSpans.find(s => s.name.startsWith("invoke_agent")).status.code, 0);
 }
 
 const secretSkill = await boot([start(), ...tool("bad-skill", "skill", { id: "PRIVATE_SECRET_ARGUMENT" }, "session.tool.failed"), end()]);

@@ -1159,6 +1159,8 @@ Tasks record model steps, actual tool calls, tool failures and scheduled retries
 User interruptions and unobserved executions have separate counters.
 Ambiguous, incomplete and interrupted executions have type `EVENT`, not `TOOL`.
 They do not supply a guessed tool duration to latency charts.
+Unknown outcomes and user interruptions retain neutral span status, not ERROR.
+Real tool failures still have ERROR status, even if their timing is unknown.
 Generation spans record first-token time and retries. Missing observations stay
 absent, not zero. Timing without a stream boundary has explicit metadata.
 
