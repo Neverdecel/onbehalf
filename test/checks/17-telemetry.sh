@@ -9,6 +9,26 @@ set -uo pipefail
 
 check "the telemetry plugin passes the synthetic checks" node --experimental-vm-modules /src/test/fixtures/telemetry-plugin.mjs
 
+# Invalid dashboard sources must stop before the publisher can make a write.
+dashboard_test=$(mktemp -d)
+cp /src/examples/telemetry/dashboards.sh "$dashboard_test/dashboards.sh"
+printf 'LANGFUSE_PUBLIC_KEY=TEST_ONLY_KEY\nLANGFUSE_SECRET_KEY=TEST_ONLY_KEY\n' >"$dashboard_test/.env"
+echo '{"dashboards": []}' >"$dashboard_test/empty.json"
+mkdir "$dashboard_test/bin"
+cat >"$dashboard_test/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+touch "$DASHBOARD_TEST_CALLED"
+echo '{"data": [], "meta": {"totalPages": 1}}'
+EOF
+chmod +x "$dashboard_test/bin/curl"
+if DASHBOARD_TEST_CALLED="$dashboard_test/called" PATH="$dashboard_test/bin:$PATH" bash "$dashboard_test/dashboards.sh" http://127.0.0.1:1 "$dashboard_test/empty.json" >/dev/null 2>&1; then
+  check "the dashboard publisher refuses an empty source" false
+else
+  check "the dashboard publisher refuses an empty source" true
+fi
+check "the invalid dashboard source sends no API request" test ! -e "$dashboard_test/called"
+rm -rf "$dashboard_test"
+
 if ! command -v otelcol-contrib >/dev/null; then
   echo "  skip  the OTel Collector is not installed on this test host"
   exit "$FAILED"
@@ -44,6 +64,8 @@ check "telemetry on tells that the Collector does not run yet" grep -q "the OTel
 check "the Collector configuration is valid" otelcol-contrib validate --config "$dir/otelcol.yaml"
 check "the users cannot read the telemetry keys of the Collector" denied alice "cat $dir/htpasswd"
 check "the users cannot read the authorization of the backend" denied alice "cat $dir/export-auth"
+check "the users cannot read the pseudonym secret" denied alice "cat $dir/identity-salt"
+salt_hash=$(sha256sum "$dir/identity-salt")
 check "the telemetry key of alice is private" test "$(stat -c '%a %U' /home/alice/.config/onbehalf/telemetry.key)" = "600 alice"
 check "alice has the telemetry plugin" \
   test "$(readlink /home/alice/.config/opencode/plugins/onbehalf-telemetry.js)" = /usr/local/lib/onbehalf/telemetry/opencode.js
@@ -77,10 +99,10 @@ check "OpenCode of alice stops after the run" test $? -eq 0
 # The backend keeps OTLP protobuf: search the files as text with grep -a.
 got() { grep -aqF -- "$1" "$backend"/out/req-* 2>/dev/null; }
 for _ in $(seq 1 20); do
-  ! got onbehalf-telemetry-probe || break
+  ! got "execute_tool shell" || break
   sleep 1
 done
-check "the backend gets the tool call of alice, with its command" got "echo onbehalf-telemetry-probe"
+check "the backend gets no raw shell command" bash -c '! grep -aq onbehalf-telemetry-probe "$@"' _ "$backend"/out/req-*
 check "the backend gets the tool call as a GenAI span" got "execute_tool shell"
 check "the backend gets the model steps" got "chat agent-model"
 check "the backend gets the task of the prompt" got "invoke_agent"
@@ -89,9 +111,38 @@ check "the Collector sets user.id on each span, for backends such as Langfuse" g
 check "the Collector sends the authorization of the backend" got '"authorization":"Bearer test-backend-key"'
 # The fake model gives the text onbehalf-agent-done after a tool call.
 check "the backend gets no model answer" bash -c '! grep -aq onbehalf-agent-done "$@"' _ "$backend"/out/req-*
+
+# A real Code Mode run: concurrent calls have the same outer call ID.
+cat >/home/alice/.config/opencode/plugins/telemetry-probe.js <<'EOF'
+export default { id: "telemetry-probe", setup: async (ctx) => {
+  await ctx.tool.transform((editor) => {
+    editor.namespace({ name: "telemetry_test", description: "Synthetic telemetry checks" });
+    editor.add({ name: "probe", description: "Return a synthetic result",
+      input: { type: "object", properties: { delay: { type: "number" } }, required: ["delay"] },
+      options: { namespace: "telemetry_test", codemode: true },
+      execute: async ({ delay }) => {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return { content: "PRIVATE_CODEMODE_OUTPUT" };
+      } });
+  });
+} };
+EOF
+chown alice:alice /home/alice/.config/opencode/plugins/telemetry-probe.js
+as alice "cd ~ && timeout 180 opencode run --auto -m onbehalf/agent-model 'RUN_CODE: return await Promise.all([tools.telemetry_test.probe({delay: 50}), tools.telemetry_test.probe({delay: 100})]);'" >/dev/null 2>&1
+check "the real Code Mode run stops" test $? -eq 0
+for _ in $(seq 1 20); do
+  ! got "execute_tool telemetry_test_probe" || break
+  sleep 1
+done
+check "the backend gets actual Code Mode child tool spans" got "execute_tool telemetry_test_probe"
+check "the backend gets model first-token time" got "langfuse.observation.completion_start_time"
+check "the backend gets task tool counts" got "langfuse.observation.metadata.tool_call_count"
+check "the backend gets no Code Mode result" bash -c '! grep -aq PRIVATE_CODEMODE_OUTPUT "$@"' _ "$backend"/out/req-*
+rm /home/alice/.config/opencode/plugins/telemetry-probe.js
 spoof=$(grep -al onbehalf-spoof-test "$backend"/out/req-* | head -1)
-check "the span that carol sent is of carol, not alice" \
-  bash -c 'grep -aq carol "$1" && ! grep -aq alice "$1"' _ "${spoof:-/dev/null}"
+pseudonym=$(printf 'carol:%s' "$(cat "$dir/identity-salt")" | sha256sum | cut -d' ' -f1)
+check "the Collector uses the pseudonym of carol, not either account name" \
+  bash -c 'grep -aq "$2" "$1" && ! grep -aqE "carol|alice" "$1"' _ "${spoof:-/dev/null}" "$pseudonym"
 if [ "$FAILED" != 0 ]; then
   echo "        the Collector log:"
   tail -20 "$backend/collector.log" | sed 's/^/        /'
@@ -100,14 +151,16 @@ fi
 # The tool classes. The client gives the class read: the Collector replaces it.
 tool_span() { # tool_span USER KEYFILE COMMAND: the HTTP status of one tool span
   local body
-  body=$(jq -nc --arg c "$3" --arg t "$(openssl rand -hex 16)" --arg s "$(openssl rand -hex 8)" '{resourceSpans: [{resource: {},
+  body=$(jq -nc --arg c "$3" --arg t "$(openssl rand -hex 16)" --arg s "$(openssl rand -hex 8)" '{resourceSpans: [{resource: {attributes: [{key: "host.name", value: {stringValue: "PRIVATE_HOST"}}]},
     scopeSpans: [{spans: [{traceId: $t, spanId: $s, name: "execute_tool shell", kind: 1, startTimeUnixNano: "1", endTimeUnixNano: "2",
     attributes: [{key: "gen_ai.operation.name", value: {stringValue: "execute_tool"}}, {key: "gen_ai.tool.name", value: {stringValue: "shell"}},
-      {key: "process.command_line", value: {stringValue: $c}}, {key: "tool.class", value: {stringValue: "read"}}]}]}]}]}')
+      {key: "process.command_line", value: {stringValue: $c}}, {key: "tool.class", value: {stringValue: "read"}},
+      {key: "private.input", value: {stringValue: "PRIVATE_ARGUMENT"}},
+      {key: "gen_ai.tool.call.id", value: {stringValue: $s}}]}]}]}]}')
+  TOOL_SPAN_ID=$(jq -r '.resourceSpans[0].scopeSpans[0].spans[0].spanId' <<<"$body")
   as "$1" "curl -s -o /dev/null -w '%{http_code}' -u \"$1:\$(cat $2)\" -H 'content-type: application/json' --data '$body' http://127.0.0.1:4318/v1/traces"
 }
-# class COMMAND CLASS: the backend got the command with that class. The
-# protobuf has no line ends, so the check searches the bytes after the command.
+# class SPAN_ID CLASS: classification survives without the command.
 class() {
   for _ in $(seq 1 20); do
     cat "$backend"/out/req-* 2>/dev/null | tr '\n\0' '  ' | grep -aqP "\\Q$1\\E.{0,400}?tool\\.class.{1,8}$2" && return 0
@@ -116,21 +169,21 @@ class() {
   return 1
 }
 key=/home/carol/.config/onbehalf/telemetry.key
-for c in "kubectl delete pod web-1" "kubectl get pods -A" "make build"; do tool_span carol "$key" "$c" >/dev/null; done
-check "the Collector gives the class write to kubectl delete, not the class of the client" class "kubectl delete pod web-1" write
-check "the Collector gives the class read to kubectl get" class "kubectl get pods -A" read
-check "the Collector gives the class unknown to a command without a rule" class "make build" unknown
+tool_span carol "$key" "kubectl delete pod web-1" >/dev/null
+check "the Collector gives the class write to kubectl delete, not the class of the client" class "$TOOL_SPAN_ID" write
+tool_span carol "$key" "kubectl get pods -A" >/dev/null
+check "the Collector gives the class read to kubectl get" class "$TOOL_SPAN_ID" read
+tool_span carol "$key" "make build" >/dev/null
+check "the Collector gives the class unknown to a command without a rule" class "$TOOL_SPAN_ID" unknown
 check "the class is also a metadata key for Langfuse" got "langfuse.observation.metadata.tool_class"
 
-# An inline script: the Collector classifies the full command, then keeps
-# only its first line. The body, with a token, does not reach the backend.
+# An old client can still send a command. The Collector removes all of it.
 script=$(printf 'python3 - <<EOF # onbehalf-script-test\ntoken = "onbehalf-secret-marker"\nrequest(url, method="DELETE")\nEOF')
 tool_span carol "$key" "$script" >/dev/null
+check "a script with an HTTP DELETE gets the class write" class "$TOOL_SPAN_ID" write
 tool_span carol "$key" "command -v az kubectl" >/dev/null
-check "a script with an HTTP DELETE gets the class write" class "python3 - <<EOF # onbehalf-script-test" write
-check "command -v gets the class read" class "command -v az kubectl" read
-check "the backend gets the length of the full command" got "process.command_line.length"
-check "the backend gets no line after the first line of a command" bash -c '! grep -aq onbehalf-secret-marker "$@"' _ "$backend"/out/req-*
+check "command -v gets the class read" class "$TOOL_SPAN_ID" read
+check "the backend gets no command, arguments or host name" bash -c '! grep -aqE "process.command_line|onbehalf-secret-marker|onbehalf-script-test|PRIVATE_" "$@"' _ "$backend"/out/req-*
 
 stack=$(mktemp -d)
 cp -R /src/test/stack/. "$stack"
@@ -144,9 +197,10 @@ check "stack install gives the tool classes of the shared stack to the Collector
   grep -q "the Collector uses the tool classes of $ONBEHALF_STACK/current/telemetry/classes.json" <<<"$out"
 sleep 2
 tool_span carol "$key" "make deploy now" >/dev/null
-check "the Collector uses the rules of the shared stack" class "make deploy now" write
+check "the Collector uses the rules of the shared stack" class "$TOOL_SPAN_ID" write
 tool_span carol "$key" "kubectl get nodes" >/dev/null
-check "the default rules apply after the rules of the shared stack" class "kubectl get nodes" read
+check "the default rules apply after the rules of the shared stack" class "$TOOL_SPAN_ID" read
+check "the pseudonym secret stays stable after stack changes" test "$(sha256sum "$dir/identity-salt")" = "$salt_hash"
 onbehalf stack install /src/test/stack >/dev/null 2>&1
 rm -rf "$stack"
 

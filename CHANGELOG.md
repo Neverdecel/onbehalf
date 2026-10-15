@@ -6,6 +6,10 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+- Add tool execution spans inside Code Mode, first-response times and task
+  counters. Export fixed command labels and authenticated user pseudonyms
+  instead of raw commands, account names and host names.
+
 ### Work tools
 
 - A shared MCP server with a personal login can have `"disabled": true`
