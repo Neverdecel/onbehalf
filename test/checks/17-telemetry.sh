@@ -145,7 +145,7 @@ for command in 'ls /tmp' 'rm /tmp/onbehalf-telemetry-delete-test' 'false'; do
 done
 shell_results() {
   exported_spans | jq -e '
-    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.type"] == "TOOL" and
+    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.type"] == "tool" and
       .attributes["langfuse.observation.metadata.command_summary"] == "ls" and .attributes["tool.class"] == "read") and
     any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.metadata.command_summary"] == "rm" and
       .attributes["tool.class"] == "write" and (.attributes["process.exit.code"] // -1 | tonumber) == 0) and
@@ -188,9 +188,9 @@ codemode_results() {
     ($children | length) == 2 and ($containers | length) == 1 and ($tasks | length) == 1 and
     ($tasks[0].attributes["langfuse.observation.metadata.tool_call_count"] | tonumber) == 2 and
     ($tasks[0].attributes["langfuse.observation.metadata.tool_failure_count"] | tonumber) == 0 and
-    $container.attributes["langfuse.observation.type"] == "SPAN" and
+    $container.attributes["langfuse.observation.type"] == "span" and
     all($children[]; .parentSpanId == $container.spanId and .traceId == $container.traceId and
-      .attributes["langfuse.observation.type"] == "TOOL" and
+      .attributes["langfuse.observation.type"] == "tool" and
       .attributes["langfuse.observation.metadata.execution_observed"] == true and
       (.status.code == 1 or .status.code == "STATUS_CODE_OK") and
       (.endTimeUnixNano | tonumber) > (.startTimeUnixNano | tonumber)) and
