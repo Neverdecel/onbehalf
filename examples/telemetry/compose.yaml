@@ -86,7 +86,7 @@ services:
         condition: service_healthy
 
   langfuse-worker:
-    image: langfuse/langfuse-worker:4.56.0@sha256:3f7571ff3a725ebdcdf4c35e06bdf8c3f8325770691c673793ad61b328265e13
+    image: langfuse/langfuse-worker:4.58.0@sha256:5f0e9e0da70b0c5d91ad9158941ca042c25c936d371524a1454226ebc5f12093
     restart: unless-stopped
     environment: *langfuse-env
     depends_on: *langfuse-depends
