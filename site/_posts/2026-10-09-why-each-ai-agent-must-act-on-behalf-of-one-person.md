@@ -122,8 +122,9 @@ Nobody shared a secret with `bob`. Thus the team has no secret to change.
 ## Try it
 
 onbehalf is an early MVP, and it is open source under the Apache License
-2.0. It supports Ubuntu and Arch Linux, with OpenCode as the AI harness and
-LiteLLM as the model gateway.
+2.0. It supports Ubuntu and Arch Linux, with LiteLLM as the model gateway.
+Since version 0.2.0, the operator selects OpenCode, Claude Code or Codex
+as the AI harness of each host.
 
 Read the [README](https://github.com/Neverdecel/onbehalf) for the quick
 start. Read

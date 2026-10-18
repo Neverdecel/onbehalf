@@ -143,6 +143,14 @@ gateway and a real Forgejo Git server. See the
 See [CONTRIBUTING.md](CONTRIBUTING.md). Write all text in ASD-STE100. This
 project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
+Ask questions and give ideas in
+[Discussions](https://github.com/Neverdecel/onbehalf/discussions). The
+issues with the label
+[good first issue](https://github.com/Neverdecel/onbehalf/labels/good%20first%20issue)
+are a good start.
+
+If onbehalf helps your team, give it a star. Then other teams can find it.
+
 ## License
 
 Copyright 2026 Neverdecel. Licensed under the [Apache License 2.0](LICENSE).
