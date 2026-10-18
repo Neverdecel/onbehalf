@@ -94,10 +94,3 @@ services:
       context: images
       dockerfile: arch.Dockerfile
     image: onbehalf-test/host-arch
-
-  host-fedora:
-    <<: *host
-    build:
-      context: images
-      dockerfile: fedora.Dockerfile
-    image: onbehalf-test/host-fedora

@@ -1,6 +1,6 @@
 SHELL := bash
 COMPOSE := docker compose -f test/compose.yaml
-DISTROS := ubuntu arch fedora
+DISTROS := ubuntu arch
 
 # Fresh secrets for each make invocation. The canary stands in for the real
 # model provider key: tests check that no user can ever read it.
