@@ -36,6 +36,20 @@ check "status fails when the provider refuses requests" test $? -ne 0
 check "status names the provider refusal" grep -q "the model provider refused the request (HTTP 403)" <<<"$out"
 check "no output shows the provider key" bash -c '! grep -qF "$ONBEHALF_CANARY" <<<"$1"' _ "$out"
 
+# status --json: the same checks as JSON, for scripts. Only JSON on stdout.
+out=$(as alice "onbehalf status --model-check --json")
+check "status --json passes on the test host" test $? -eq 0
+check "status --json gives valid JSON" jq -e . <<<"$out"
+check "status --json names the user" test "$(jq -r .user <<<"$out")" = alice
+check "status --json shows that the gateway key works" \
+  jq -e 'any(.checks[]; .text == "your gateway key works" and .result == "ok")' <<<"$out"
+check "each check has a section" jq -e 'all(.checks[]; .section != null)' <<<"$out"
+out=$(as alice "onbehalf status --model blocked-model --json")
+check "status --json fails when the provider refuses requests" test $? -ne 0
+check "status --json counts the error" jq -e '.errors > 0' <<<"$out"
+check "status --json gives the fix with the failed check" \
+  jq -e 'any(.checks[]; .result == "error" and .fix != null)' <<<"$out"
+
 # onbehalf init: wrong URLs and keys change nothing, and the output says what to do next.
 saved() { sha256sum /etc/onbehalf/onbehalf.conf /etc/onbehalf/gateway-admin.key; }
 before=$(saved)

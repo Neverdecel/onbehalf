@@ -16,6 +16,7 @@
   <a href="#how-it-works">How it works</a> ·
   <a href="#see-it">See it</a> ·
   <a href="#quick-start">Quick start</a> ·
+  <a href="#try-it-on-your-laptop">Try it</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
@@ -115,6 +116,37 @@ opencode    # or: claude, codex
 Read the [operator guide](docs/operator-guide.md) and the
 [user guide](docs/user-guide.md) for the full procedures.
 
+## Try it on your laptop
+
+You must have Docker with Compose and `make`. The demo environment has a
+shared host `devbox`, a LiteLLM model gateway and a fake model. No request
+goes to a real model provider.
+
+```sh
+git clone https://github.com/Neverdecel/onbehalf.git && cd onbehalf
+make try    # builds the environment and opens a shell as the operator ops
+```
+
+In the shell of `ops`, install onbehalf and add two users:
+
+```sh
+sudo ./install.sh
+sudo onbehalf init --gateway-url http://gateway:4000 <~/admin.key
+sudo onbehalf stack install examples/stack
+sudo onbehalf user add alice bob
+```
+
+Log in as `alice`. At the first login, onbehalf asks which work tools to
+set up. Select "Skip for now". Then let the AI harness run a command:
+
+```sh
+sudo -iu alice
+opencode run --auto 'RUN: whoami'
+```
+
+The fake model runs the command after `RUN:`. The runtime answers `alice`.
+Type `exit` two times. `make try` then removes the environment.
+
 ## Status
 
 **MVP, version 0.2.0.** Tested on Ubuntu 24.04 and Arch Linux with
@@ -142,6 +174,11 @@ gateway and a real Forgejo Git server. See the
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Write all text in ASD-STE100. This
 project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+Ask questions and give ideas in
+[Discussions](https://github.com/Neverdecel/onbehalf/discussions).
+
+If onbehalf helps your team, give it a star. Then other teams can find it.
 
 ## License
 

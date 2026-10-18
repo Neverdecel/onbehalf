@@ -57,7 +57,7 @@ Operator commands (as root):
   telemetry off                     stop the telemetry
 
 User commands:
-  status [--model-check] [--model MODEL]
+  status [--model-check] [--model MODEL] [--json]
                                     check your own setup and logins
   tools [git] [gh] [az] [mcp:NAME]...
                                     set up your work tools and MCP logins,

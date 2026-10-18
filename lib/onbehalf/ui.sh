@@ -9,22 +9,53 @@ fi
 
 UI_ERRORS=0
 UI_WARNINGS=0
+# When UI_RECORD names a file, the helpers below add one "kind<TAB>text" line
+# to it and print nothing. ui_json makes JSON from the file.
+UI_RECORD=""
 
-heading() { printf '\n%s%s%s\n' "$_b" "$*" "$_0"; }
-ok() { printf '  %s✓%s %s\n' "$_g" "$_0" "$*"; }
+ui_record() {
+  local text=${*:2}
+  printf '%s\t%s\n' "$1" "${text//$'\t'/ }" >>"$UI_RECORD"
+}
+
+heading() {
+  if [ -n "$UI_RECORD" ]; then ui_record heading "$*"; else printf '\n%s%s%s\n' "$_b" "$*" "$_0"; fi
+}
+ok() {
+  if [ -n "$UI_RECORD" ]; then ui_record ok "$*"; else printf '  %s✓%s %s\n' "$_g" "$_0" "$*"; fi
+}
 warn() {
-  printf '  %s!%s %s\n' "$_y" "$_0" "$*"
+  if [ -n "$UI_RECORD" ]; then ui_record warning "$*"; else printf '  %s!%s %s\n' "$_y" "$_0" "$*"; fi
   UI_WARNINGS=$((UI_WARNINGS + 1))
 }
 err() {
-  printf '  %s✗%s %s\n' "$_r" "$_0" "$*"
+  if [ -n "$UI_RECORD" ]; then ui_record error "$*"; else printf '  %s✗%s %s\n' "$_r" "$_0" "$*"; fi
   UI_ERRORS=$((UI_ERRORS + 1))
 }
-info() { printf '  %s·%s %s\n' "$_d" "$_0" "$*"; }
+info() {
+  if [ -n "$UI_RECORD" ]; then ui_record info "$*"; else printf '  %s·%s %s\n' "$_d" "$_0" "$*"; fi
+}
 # The fix for the last warning or error, as a command or a short instruction.
-fix() { printf '      %sfix:%s %s\n' "$_d" "$_0" "$*"; }
+fix() {
+  if [ -n "$UI_RECORD" ]; then ui_record fix "$*"; else printf '      %sfix:%s %s\n' "$_d" "$_0" "$*"; fi
+}
+
+# ui_json FILE: the lines of a UI_RECORD file as a JSON array of checks:
+# {"section", "result": ok|warning|error|info, "text", "fix"}. A fix line
+# goes into the check above it.
+ui_json() {
+  jq -Rn '[inputs | split("\t") | {kind: .[0], text: (.[1:] | join(" "))}]
+    | reduce .[] as $l ({section: null, checks: []};
+        if $l.kind == "heading" then .section = $l.text
+        elif $l.kind == "fix" then
+          if (.checks | length) > 0 then .checks[-1].fix = $l.text else . end
+        else .checks += [{section: .section, result: $l.kind, text: $l.text, fix: null}]
+        end)
+    | .checks' <"$1"
+}
 
 summary() {
+  [ -z "$UI_RECORD" ] || return 0
   printf '\n'
   if [ "$UI_ERRORS" -gt 0 ]; then
     printf '%s%d error(s)%s, %d warning(s)\n' "$_r" "$UI_ERRORS" "$_0" "$UI_WARNINGS"

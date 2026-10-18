@@ -140,7 +140,8 @@ answer. The Ubuntu host also has real Claude Code and real Codex. The tests use 
   each problem. `--model-check` sends one real model request. A provider
   can refuse requests when all the host checks pass.
 - **`onbehalf status`** lets each user check their own setup, logins and
-  model use. Each user can correct problems without root.
+  model use. Each user can correct problems without root. `--json` gives
+  the same checks to a script.
 - **`onbehalf restart`** restarts the runtime of a user, of a runtime
   account, or of every user.
 - **`onbehalf report`** shows who uses the runtimes. It shows logins, work
@@ -156,4 +157,5 @@ answer. The Ubuntu host also has real Claude Code and real Codex. The tests use 
 | `doctor` finds problems that break isolation. `status` gives fixes without root | `01-doctor` |
 | The operator sees use, cost and failed requests for each user and model, but never what a user asked | `09-report` |
 | Each user sees their own model use in `status`, and not the use of other users | `09-report` |
+| `status --json` gives the same checks and fixes as JSON, and fails on an error | `09-model-access` |
 | Health checks send one alert when a problem starts and one when it stops. Only root can read the webhook URL | `09-health` |

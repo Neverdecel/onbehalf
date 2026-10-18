@@ -6,6 +6,13 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+- `onbehalf status --json` gives the checks of `status` as JSON, for
+  scripts.
+- `make try` starts the demo environment on a laptop, with a shell as the
+  operator `ops`. See "Try it on your laptop" in the README.
+- `install.sh` and `doctor` accept Fedora. `make test-fedora` runs the
+  host tests on a Fedora 44 host.
+
 - Add operator-controlled `--identity named|pseudonymous` telemetry modes.
   Keep content capture off in both modes and preserve the saved identity setting.
 

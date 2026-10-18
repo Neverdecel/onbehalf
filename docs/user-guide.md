@@ -255,6 +255,11 @@ onbehalf status --model-check
 It shows if the gateway or the model provider refused the request. The
 request is part of your model use.
 
+For a script, add `--json`. The command then gives the same checks as
+JSON: the user, the number of errors and warnings, and each check with its
+section, result (`ok`, `warning`, `error` or `info`), text and fix. The
+exit code is 1 if a check has an error.
+
 To see as which accounts your tools act with OpenCode, do these steps:
 
 1. Start `opencode`.
