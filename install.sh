@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install onbehalf from this checkout on an Ubuntu, Arch or Fedora host. Run as root.
+# Install onbehalf from this checkout on an Ubuntu or Arch host. Run as root.
 #
 #   sudo ./install.sh                 check the host, then install
 #   sudo ./install.sh --install-deps  also install missing system packages
@@ -52,15 +52,8 @@ case $ID in
     declare -A pkg=([curl]=curl [jq]=jq [git]=git [runuser]=util-linux [getent]=glibc
       [useradd]=shadow [usermod]=shadow [userdel]=shadow [pkill]=procps-ng [pgrep]=procps-ng [openssl]=openssl)
     ;;
-  fedora)
-    ok "$PRETTY_NAME"
-    pm_install="dnf install -y"
-    pm_update="dnf makecache"
-    declare -A pkg=([curl]=curl [jq]=jq [git]=git [runuser]=util-linux [getent]=glibc-common
-      [useradd]=shadow-utils [usermod]=shadow-utils [userdel]=shadow-utils [pkill]=procps-ng [pgrep]=procps-ng [openssl]=openssl)
-    ;;
   *)
-    err "$PRETTY_NAME is not supported. onbehalf supports Ubuntu, Arch and Fedora"
+    err "$PRETTY_NAME is not supported. onbehalf supports Ubuntu and Arch"
     exit 1
     ;;
 esac
