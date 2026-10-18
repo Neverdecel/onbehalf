@@ -5,9 +5,13 @@
 cmd_status() {
   load_conf
   [ "$(id -u)" != 0 ] || die "run this as yourself, not as root"
-  local check_model=no model="" u key
+  local check_model=no model="" json=no u key
   while [ $# -gt 0 ]; do
     case $1 in
+      --json)
+        json=yes
+        shift
+        ;;
       --model-check)
         check_model=yes
         shift
@@ -18,11 +22,15 @@ cmd_status() {
         check_model=yes
         shift 2
         ;;
-      *) die "usage: onbehalf status [--model-check] [--model MODEL]" ;;
+      *) die "usage: onbehalf status [--model-check] [--model MODEL] [--json]" ;;
     esac
   done
   u=$(id -un)
   key="$HOME/.config/onbehalf/gateway.key"
+  if [ "$json" = yes ]; then
+    UI_RECORD=$(mktemp)
+    trap 'rm -f "$UI_RECORD"' EXIT
+  fi
 
   heading "onbehalf for $u"
   if [ -e "$ONBEHALF_STACK/current" ]; then
@@ -64,6 +72,11 @@ cmd_status() {
   tools_status
 
   summary
+  if [ "$json" = yes ]; then
+    jq -n --arg user "$u" --argjson errors "$UI_ERRORS" --argjson warnings "$UI_WARNINGS" \
+      --argjson checks "$(ui_json "$UI_RECORD")" \
+      '{user: $user, errors: $errors, warnings: $warnings, checks: $checks}'
+  fi
   [ "$UI_ERRORS" = 0 ] || exit 1
 }
 

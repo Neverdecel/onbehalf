@@ -1,6 +1,6 @@
 SHELL := bash
 COMPOSE := docker compose -f test/compose.yaml
-DISTROS := ubuntu arch
+DISTROS := ubuntu arch fedora
 
 # Fresh secrets for each make invocation. The canary stands in for the real
 # model provider key: tests check that no user can ever read it.
@@ -9,7 +9,7 @@ ONBEHALF_CANARY    := $(or $(ONBEHALF_CANARY),sk-canary-$(shell openssl rand -he
 FORGEJO_ADMIN_PASSWORD := $(or $(FORGEJO_ADMIN_PASSWORD),$(shell openssl rand -hex 16))
 export LITELLM_MASTER_KEY ONBEHALF_CANARY FORGEJO_ADMIN_PASSWORD
 
-.PHONY: demo site site-assets images rebuild lint lint-shell lint-docker lint-yaml lint-docs test $(addprefix test-,$(DISTROS)) $(addprefix shell-,$(DISTROS)) down
+.PHONY: demo try site site-assets images rebuild lint lint-shell lint-docker lint-yaml lint-docs test $(addprefix test-,$(DISTROS)) $(addprefix shell-,$(DISTROS)) down
 
 # Static checks; the same ones CI runs. Needs shellcheck, shfmt, hadolint, yamllint.
 # lint-docs needs only bash and awk.
@@ -75,6 +75,14 @@ $(addprefix shell-,$(DISTROS)): shell-%:
 
 down:
 	$(COMPOSE) down -v --remove-orphans
+
+# Try onbehalf on a laptop: the demo host, gateway and fake model, with a
+# shell as the operator ops on devbox. Removes all when the shell stops.
+try:
+	@$(DEMO) --profile base build host-ubuntu && $(DEMO) build devbox || exit 1; \
+	$(DEMO) up -d --wait devbox || exit 1; \
+	$(DEMO) exec -u ops -w /home/ops/onbehalf devbox bash -l; \
+	$(DEMO) down -v --remove-orphans
 
 # Recorded casts of the operator and the user, in docs/assets/demo. Each run
 # starts from a clean host. The tapes run in order, because each one continues

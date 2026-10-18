@@ -104,8 +104,8 @@ doctor_model_access() {
 doctor_host() {
   . /etc/os-release
   case $ID in
-    ubuntu | arch) ok "$PRETTY_NAME" ;;
-    *) warn "$PRETTY_NAME is not tested. onbehalf supports Ubuntu and Arch" ;;
+    ubuntu | arch | fedora) ok "$PRETTY_NAME" ;;
+    *) warn "$PRETTY_NAME is not tested. onbehalf supports Ubuntu, Arch and Fedora" ;;
   esac
 
   local t missing=
