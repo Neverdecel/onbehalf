@@ -391,6 +391,8 @@ does not do all of the target architecture yet:
   shared OpenCode server.
 - Session control for each user: start, stop, and stop after a period
   with no activity.
+- A session board as the first client that shows the sessions of a user
+  as tickets. See the [design](docs/design/session-board.md).
 
 ### Phase 4: Extended governance
 
