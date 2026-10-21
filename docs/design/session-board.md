@@ -26,10 +26,12 @@ of Phase 3. A web client must never select the identity that acts.
 |---|---|
 | Owner of the board | The team or a different project. onbehalf does not supply the board. |
 | Owner of the identity | The interface broker of onbehalf. The board gets no setting that changes the user. |
-| Runtime | The OpenCode service that runs as the user. onbehalf starts it now, with a service port for each user. There is no shared OpenCode server. |
+| Runtime | The OpenCode service that runs as the user. onbehalf starts it now, and it runs all the time. There is no shared OpenCode server. A start on request is a later step. |
 | Login | Single sign-on at a reverse proxy, for example Entra ID through OIDC. |
 | Credentials | The board never gets the logins of Azure CLI, GitHub or other work tools. Each action stays the action of the user. |
 | Status data | The OpenCode API and its events. A plugin can add a short summary later (step 4). |
+| Client API | The board uses only the OpenCode server API and SDK. It does not use parts of `herdr-web-ui`, and herdr is not necessary on the host. |
+| Connection | A Unix socket that only the user can open, if OpenCode supports it. If not, a password for each user. |
 | Replacement | It is possible to replace the board. OpenChamber or a different client can replace it with no change to the identity contract. |
 
 ## What the board does
@@ -44,8 +46,8 @@ The board uses only the API of the OpenCode service of the user:
    session.
 5. A click on a ticket opens the session.
 
-These are the first statuses. The board selects the status from the
-OpenCode events. The list can change after a test with real users.
+A ticket has four statuses. The board selects the status from the
+OpenCode events.
 
 | Status | Meaning |
 |---|---|
@@ -81,17 +83,19 @@ identity of one login, and it goes to one runtime.
 - The broker does not show an action as the action of a different user.
 - The plugin of step 4 writes in the home directory of the user. Its files
   have the same permissions as the other runtime state.
-- The OpenCode service listens on a TCP port of the host. Step 1 must find
-  out if a different local account can connect to that port. If it can, the
-  broker must use a password for each user or a Unix socket.
+- The OpenCode service listens on a TCP port of the host now. A different
+  local account can possibly connect to that port. Thus the broker connects
+  through a Unix socket that only the user can open. If OpenCode has no
+  socket option, the broker uses a password for each user.
 
 ## Steps
 
 Each step is one small pull request.
 
 1. **Proof of the routes.** Find out how the OpenCode service accepts
-   connections: the address, the password option and the Unix socket
-   option. Write the result in this file.
+   connections: the address, the Unix socket option and the password
+   option. Find out if a different local account can connect. Write the
+   result in this file.
 2. **Route lookup.** A root command gives the service port of a Unix account
    and checks the owner of the process on that port. The reverse proxy can
    call it. Tests: the right port, a refusal for a port of a different
@@ -115,8 +119,7 @@ example of step 3.
 
 ## Open questions
 
-- Can the board use parts of `herdr-web-ui`, or only the OpenCode API and
-  SDK?
-- What is the final list of statuses and ticket fields?
-- Does a runtime start only on request through the broker? See the open
+- Which fields does a ticket show, in addition to the topic name, the
+  status and the one line? A test with real users decides.
+- When does the broker start and stop runtimes on request? See the open
   questions in [project.md](../../project.md#open-questions).
