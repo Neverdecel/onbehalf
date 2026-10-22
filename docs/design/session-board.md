@@ -1,6 +1,6 @@
 # Design: a session board behind the interface broker
 
-Status: proposal, 2026-10-21. No step is merged. See issue #52.
+Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). See issue #52.
 
 ## Goal
 
@@ -31,7 +31,7 @@ of Phase 3. A web client must never select the identity that acts.
 | Credentials | The board never gets the logins of Azure CLI, GitHub or other work tools. Each action stays the action of the user. |
 | Status data | The OpenCode API and its events. A plugin can add a short summary later (step 4). |
 | Client API | The board uses only the OpenCode server API and SDK. It does not use parts of `herdr-web-ui`, and herdr is not necessary on the host. |
-| Connection | A Unix socket that only the user can open, if OpenCode supports it. If not, a password for each user. |
+| Connection | The service password of each user, with HTTP Basic authentication. OpenCode 2.0.26 has no Unix socket option (see [Result of step 1](#result-of-step-1)). |
 | Replacement | It is possible to replace the board. OpenChamber or a different client can replace it with no change to the identity contract. |
 
 ## What the board does
@@ -68,11 +68,13 @@ user. It does these steps for each request:
 3. It finds the service port of that account. onbehalf records it now
    (`harness_opencode_port`).
 4. It checks that the process on that port runs as that Unix account.
-5. It sends the request to that port only. If a step fails, it refuses the
-   request.
+5. It sends the request to that port only, with the service password of
+   that account. If a step fails, it refuses the request.
 
-Step 4 stops a wrong configuration. Without it, a changed port can send a
-user to the runtime of a different user.
+The owner check (step 4 above) stops a wrong configuration. Without it, a changed port can send a
+user to the runtime of a different user. The owner check also protects the
+password. When a runtime stops, a different local account can listen on
+its port. Without the owner check, the broker sends the password to that account.
 
 The broker does not merge the sessions of two users. A request has the
 identity of one login, and it goes to one runtime.
@@ -83,23 +85,23 @@ identity of one login, and it goes to one runtime.
 - The broker does not show an action as the action of a different user.
 - The plugin of step 4 writes in the home directory of the user. Its files
   have the same permissions as the other runtime state.
-- The OpenCode service listens on a TCP port of the host now. A different
-  local account can possibly connect to that port. Thus the broker connects
-  through a Unix socket that only the user can open. If OpenCode has no
-  socket option, the broker uses a password for each user.
+- The OpenCode service listens on `127.0.0.1`. A different local account
+  can connect to the port, but the service refuses it without the password
+  (HTTP 401). The test `test/checks/03-isolation.sh` checks this for each
+  pair of users.
+- Only the user and root can read the service password. The broker must
+  not give it to the board or write it to a log.
 
 ## Steps
 
 Each step is one small pull request.
 
-1. **Proof of the routes.** Find out how the OpenCode service accepts
-   connections: the address, the Unix socket option and the password
-   option. Find out if a different local account can connect. Write the
-   result in this file.
+1. **Proof of the routes.** Done. See [Result of step 1](#result-of-step-1).
 2. **Route lookup.** A root command gives the service port of a Unix account
    and checks the owner of the process on that port. The reverse proxy can
-   call it. Tests: the right port, a refusal for a port of a different
-   user, and a refusal for a stopped runtime.
+   call it. It gives the service password only to root. Tests: the right
+   port, a refusal for a port of a different user, and a refusal for a
+   stopped runtime.
 3. **Reverse proxy example.** An example in `examples/` with OIDC at the
    reverse proxy and the route lookup of step 2. A test client shows the
    sessions of one user only.
@@ -110,6 +112,22 @@ Each step is one small pull request.
 
 The board itself is not a step of onbehalf. A team can test it on the
 example of step 3.
+
+## Result of step 1
+
+We examined OpenCode 2.0.26, the version of the test hosts, on
+2026-10-22.
+
+| Item | Result |
+|---|---|
+| Address | `opencode serve --service` listens on `127.0.0.1` and the port of `opencode service set port`. |
+| Authentication | HTTP Basic. The user name is `opencode`. A request without the password gets HTTP 401. A bearer token gets HTTP 401. |
+| Password | OpenCode makes a random password. It keeps it in `~/.config/opencode/service.json`, with mode 600. `opencode service set password` changes it. |
+| Unix socket | No option. The service settings are `disabled`, `remote`, `hostname`, `port`, `password`, `cors` and `env`. A socket path as `hostname` stops the service with an error. |
+| CORS | `opencode service set cors` adds origins. It is not necessary when the broker serves the board and the API at one origin. |
+
+Thus the broker uses the password, not a Unix socket. We can examine the
+socket option again for each new version of OpenCode.
 
 ## Not in this design
 
