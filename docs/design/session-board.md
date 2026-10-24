@@ -115,7 +115,6 @@ example of step 3.
 
 - A fork or a change of herdr.
 - Messages or coordination between sessions.
-- Claude Code and Codex. They have no service for each user.
 
 ## Open questions
 

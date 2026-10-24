@@ -53,7 +53,6 @@ cmd_stack_install() {
   ln -sfn "releases/$id" "$ONBEHALF_STACK/current.new"
   mv -T "$ONBEHALF_STACK/current.new" "$ONBEHALF_STACK/current"
   ok "shared stack $id is current"
-  harness activate
   telemetry_stack_changed
 
   # Every user gets the change now: new links, and running services restart.

@@ -29,24 +29,6 @@ updates:
       opencode:
         patterns: ["*"]
 
-  # Claude Code on the Ubuntu test host, with its platform binaries.
-  - package-ecosystem: npm
-    directory: /test/images/claude
-    schedule:
-      interval: weekly
-    groups:
-      claude:
-        patterns: ["*"]
-
-  # Codex on the Ubuntu test host, with its platform binaries.
-  - package-ecosystem: npm
-    directory: /test/images/codex
-    schedule:
-      interval: weekly
-    groups:
-      codex:
-        patterns: ["*"]
-
   - package-ecosystem: docker-compose
     directories: [/test, /examples/gateway, /examples/telemetry]
     schedule:
