@@ -21,20 +21,6 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefix /opt/opencode --omit=dev \
     && ln -s /opt/opencode/node_modules/.bin/opencode /usr/local/bin/opencode
 
-# System-wide Claude Code for the checks of the Claude Code adapter, pinned
-# by hash in claude/package-lock.json. Only the Ubuntu host has it.
-COPY claude/package.json claude/package-lock.json /opt/claude/
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefix /opt/claude --omit=dev \
-    && ln -s /opt/claude/node_modules/.bin/claude /usr/local/bin/claude
-
-# System-wide Codex for the checks of the Codex adapter, pinned by hash in
-# codex/package-lock.json. Only the Ubuntu host has it.
-COPY codex/package.json codex/package-lock.json /opt/codex/
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefix /opt/codex --omit=dev \
-    && ln -s /opt/codex/node_modules/.bin/codex /usr/local/bin/codex
-
 # The OTel Collector for the checks of onbehalf telemetry, from the official
 # image, pinned by digest. The otelcol-contrib package makes the same group.
 # Only the Ubuntu host has it.

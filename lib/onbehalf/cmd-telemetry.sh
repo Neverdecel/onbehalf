@@ -83,7 +83,6 @@ telemetry_enable() {
   done
   [[ $ONBEHALF_TELEMETRY_IDENTITY = named || $ONBEHALF_TELEMETRY_IDENTITY = pseudonymous ]] || die "give --identity named or pseudonymous"
   [ -n "$ONBEHALF_TELEMETRY_EXPORT" ] || telemetry_usage
-  [ "$(harness_id)" = opencode ] || die "telemetry supports only OpenCode for now. This host uses $(harness label)"
   getent group "$TELEMETRY_GROUP" >/dev/null \
     || die "the group $TELEMETRY_GROUP of the OTel Collector is not on this host. Install otelcol-contrib first. See the operator guide, section 'Telemetry'"
 
@@ -344,7 +343,6 @@ telemetry_reload() { pkill -HUP -x otelcol-contrib 2>/dev/null || true; }
 telemetry_user_add() {
   telemetry_on || return 0
   local u=$1 home=$2 group=$3
-  [ "$(harness_id)" = opencode ] || return 0
   telemetry_user_link "$u" "$home" "$group"
   if ! grep -q "^$u:" "$TELEMETRY_DIR/htpasswd" 2>/dev/null; then
     telemetry_users_write

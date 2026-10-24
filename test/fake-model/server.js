@@ -3,7 +3,6 @@
 // - a tool result as last message   -> "onbehalf-agent-done" (or $FAKE_MODEL_DONE)
 // - anything else (also title requests without tools) -> "onbehalf-agent-idle"
 // - model "blocked-model" -> HTTP 403, as from a provider network rule
-// - a request to /v1/responses (Codex) -> "onbehalf-responses-<model>"
 const http = require("http");
 
 const DONE = process.env.FAKE_MODEL_DONE || "onbehalf-agent-done";
@@ -72,30 +71,6 @@ function reply(body, res) {
   res.end("data: [DONE]\n\n");
 }
 
-// The responses API, for Codex. LiteLLM sends the request without a change.
-// The answer names the model, so a check can see which model the user got.
-function respond(body, res) {
-  if (body.model === "blocked-model") return blocked(res);
-  const item = { id: "msg_fake_" + Date.now(), type: "message", role: "assistant", status: "completed",
-    content: [{ type: "output_text", text: "onbehalf-responses-" + body.model, annotations: [] }] };
-  const response = { id: "resp_fake_" + Date.now(), object: "response", created_at: Math.floor(Date.now() / 1000),
-    model: body.model, status: "completed", output: [item],
-    usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 } };
-
-  if (!body.stream) {
-    res.writeHead(200, { "content-type": "application/json" });
-    return res.end(JSON.stringify(response));
-  }
-
-  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
-  let n = 0;
-  const send = (type, o) => res.write("event: " + type + "\ndata: " + JSON.stringify({ type, sequence_number: n++, ...o }) + "\n\n");
-  send("response.created", { response: { ...response, status: "in_progress", output: [] } });
-  send("response.output_item.done", { output_index: 0, item });
-  send("response.completed", { response });
-  res.end();
-}
-
 http.createServer((req, res) => {
   if (req.url === "/health") return res.end("ok");
   if (req.method === "GET" && req.url.endsWith("/models")) {
@@ -106,7 +81,7 @@ http.createServer((req, res) => {
   req.on("data", (c) => (raw += c));
   req.on("end", () => {
     try {
-      (req.url.endsWith("/responses") ? respond : reply)(JSON.parse(raw || "{}"), res);
+      reply(JSON.parse(raw || "{}"), res);
     } catch (e) {
       res.writeHead(400);
       res.end(String(e));

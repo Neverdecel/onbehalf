@@ -21,24 +21,6 @@ case $- in
         esac
         _onbehalf_no_runtime
       }
-      claude() {
-        case "${1:-}" in
-          --version | -v | --help | -h)
-            command claude "$@"
-            return
-            ;;
-        esac
-        _onbehalf_no_runtime
-      }
-      codex() {
-        case "${1:-}" in
-          --version | -V | --help | -h)
-            command codex "$@"
-            return
-            ;;
-        esac
-        _onbehalf_no_runtime
-      }
     fi
     ;;
 esac

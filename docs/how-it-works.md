@@ -30,19 +30,13 @@ The configuration has three levels:
 2. The personal configuration of the user is next.
 3. The shared stack has the lowest priority.
 
-Claude Code is an exception. Its shared settings are managed settings, and
-they have the highest priority. A user can still select a personal default
-model.
-
-The operator selects one AI harness for each host: OpenCode, Claude Code or
-Codex. The stack source does not depend on that selection.
-`sudo onbehalf harness NAME` changes the AI harness of a host.
+The AI harness is OpenCode. onbehalf supports no other AI harness.
 
 ## What is shared, what stays personal
 
 | Component | Task of the operator | What users share | What stays personal |
 |---|---|---|---|
-| AI harness | Select one, then install and update it for the full host (OpenCode, Claude Code or Codex) | The same program and version | Runtime: service, sessions, history and work |
+| AI harness | Install and update OpenCode for the full host | The same program and version | Runtime: service, sessions, history and work |
 | Work tools | Install Git, GitHub CLI, Azure CLI and the other work tools of the team | The same program and version | Logins, permissions, configuration and credentials |
 | Model gateway | Run LiteLLM and its database, or connect to a gateway that the team has | Gateway infrastructure and model deployments | Personal gateway key and the model use of the user |
 | Model catalog | Add deployed models to the shared stack | Available models and the default model | Personal model selection from the permitted models |
