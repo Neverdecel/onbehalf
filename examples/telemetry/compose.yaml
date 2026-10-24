@@ -108,7 +108,7 @@ services:
       retries: 30
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.12.11.4@sha256:8a790dd3468db22b1d4e7b18a176f378ff5ff6053b9c48dd4ea1fa71a24c5ba6
+    image: clickhouse/clickhouse-server:26.9.17.8@sha256:387ebbcca253026def04dc79e83d2323ac7d97bf309ddd090a8a3c702573e01a
     restart: unless-stopped
     user: "101:101"
     environment:
