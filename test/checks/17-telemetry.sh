@@ -173,11 +173,11 @@ for command in 'ls /tmp' 'rm /tmp/onbehalf-telemetry-delete-test' 'false'; do
 done
 shell_results() {
   exported_spans | jq -e '
-    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.type"] == "tool" and
+    any(.[]; .name == "execute_tool shell: ls" and .attributes["langfuse.observation.type"] == "tool" and
       .attributes["langfuse.observation.metadata.command_summary"] == "ls" and .attributes["tool.class"] == "read") and
-    any(.[]; .name == "execute_tool shell" and .attributes["langfuse.observation.metadata.command_summary"] == "rm" and
+    any(.[]; .name == "execute_tool shell: rm" and .attributes["langfuse.observation.metadata.command_summary"] == "rm" and
       .attributes["tool.class"] == "write" and (.attributes["process.exit.code"] // -1 | tonumber) == 0) and
-    any(.[]; .name == "execute_tool shell" and (.attributes["process.exit.code"] // -1 | tonumber) == 1 and .attributes["error.type"] == "exit_code")' >/dev/null
+    any(.[]; .name == "execute_tool shell: unknown" and (.attributes["process.exit.code"] // -1 | tonumber) == 1 and .attributes["error.type"] == "exit_code")' >/dev/null
 }
 for _ in $(seq 1 20); do
   shell_results && break

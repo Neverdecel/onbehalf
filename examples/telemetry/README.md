@@ -24,12 +24,19 @@ configuration for this Collector.
 | The authenticated user | `user.id`, named or pseudonymous as selected by the operator | A user |
 
 Tool metadata has a fixed `command_summary`, for example `kubectl get`.
+Shell observation names include that label, for example `execute_tool shell: kubectl get`.
+Charts grouped by observation name show CLI use without arguments or extra spans.
+This records shell-tool calls through OpenCode, not the terminal history of a user.
 Langfuse gets no raw commands, arguments, prompts, answers or tool output.
 Code Mode containers have type `SPAN`; their actual tool calls have child spans.
 Model spans include first-token time. Task metadata includes first-text time,
 tool counts, failures, model steps and scheduled retries.
 Interruptions and unobserved executions have separate counters. Their event
 observations do not supply tool durations to latency charts.
+Task names include `completed`, `failed` or `interrupted`, so charts can separate these results.
+Count failed tools with type `TOOL` and level `ERROR`, not all error observations.
+Structured errors supply fixed categories for invalid input, missing files, connection errors and timeouts.
+Error messages stay private. A shell exit code alone does not prove its cause.
 
 Keep the pseudonym secret outside backend backups. Restrict backend access
 and confirm the approved retention period. Historical data stays unchanged.

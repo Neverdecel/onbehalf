@@ -1209,6 +1209,13 @@ activation events contain the loaded skill name, never arguments or skill text.
 Error messages and error response bodies stay private.
 The task result is `completed`, `failed` or `interrupted`.
 `completed` does not mean that the answer was correct or useful.
+Task observation names include that result. Charts can separate interruptions without error status.
+Shell observation names include the fixed command label, for example `execute_tool shell: git show`.
+Tool-name charts can show CLI use without raw commands or extra tool spans.
+Structured error codes supply fixed input, syntax, connection and access categories.
+The plugin does not read error messages to infer a cause.
+Count failed tools with type `TOOL` and level `ERROR`. Do not also count their event observations.
+Historical observation names stay unchanged. Compare results from the same plugin version.
 
 The spans use the OTel GenAI semantic conventions. The backend never gets a
 prompt, a model answer or a tool output.

@@ -184,7 +184,7 @@ const transformed = await boot([start(),
   hook("before", "shell", { command: "kubectl get pods PRIVATE_NAMESPACE" }, 1200),
   hook("after", "shell", { command: "kubectl delete pod PRIVATE_RESOURCE" }, 1400, { status: "completed", result: {} }), end()]);
 await transformed.cleanup();
-assert.equal(attrs(transformed.requests.flatMap(spans).find((s) => s.name === "execute_tool shell"))["langfuse.observation.metadata.command_summary"], "kubectl delete");
+assert.equal(attrs(transformed.requests.flatMap(spans).find((s) => s.name === "execute_tool shell: kubectl delete"))["langfuse.observation.metadata.command_summary"], "kubectl delete");
 assert.doesNotMatch(JSON.stringify(transformed.requests), /PRIVATE_/);
 
 const longName = "a".repeat(65), longInput = {};
@@ -261,8 +261,8 @@ for (const terminal of ["session.execution.interrupted", "session.execution.succ
   assert.equal(counters["langfuse.observation.metadata.tool_failure_count"], 0);
   assert.equal(counters["langfuse.observation.metadata.tool_unobserved_count"], 1);
   assert.equal(counters["langfuse.observation.metadata.tool_interruption_count"], terminal.endsWith("interrupted") ? 1 : 0);
-  assert.equal(observationTypes[attrs(missingSpans.find(s => s.name === "execute_tool shell"))["langfuse.observation.type"]], "EVENT");
-  assert.equal(missingSpans.find(s => s.name === "execute_tool shell").status.code, 0);
+  assert.equal(observationTypes[attrs(missingSpans.find(s => attrs(s)["gen_ai.tool.name"] === "shell"))["langfuse.observation.type"]], "EVENT");
+  assert.equal(missingSpans.find(s => attrs(s)["gen_ai.tool.name"] === "shell").status.code, 0);
   if (terminal.endsWith("interrupted")) assert.equal(missingSpans.find(s => s.name.startsWith("invoke_agent")).status.code, 0);
 }
 
@@ -310,8 +310,50 @@ const coverage = [
 ];
 const labelTest = await boot([start(), ...coverage.flatMap(([command], index) => tool(`coverage-${index}`, "shell", { command })), end()]);
 await labelTest.cleanup();
-assert.deepEqual(labelTest.requests.flatMap(spans).filter(s => s.name === "execute_tool shell").map(s => attrs(s)["langfuse.observation.metadata.command_summary"]), coverage.map(([, label]) => label));
+assert.deepEqual(labelTest.requests.flatMap(spans).filter(s => attrs(s)["gen_ai.tool.name"] === "shell").map(s => attrs(s)["langfuse.observation.metadata.command_summary"]), coverage.map(([, label]) => label));
 assert.doesNotMatch(JSON.stringify(labelTest.requests), /PRIVATE_/);
+
+const cliCoverage = [
+  ["az account show --subscription PRIVATE_SUBSCRIPTION", "az account show"],
+  ["az account get-access-token --resource PRIVATE_RESOURCE", "az account get-access-token"],
+  ["az monitor activity-log list --resource-id PRIVATE_RESOURCE", "az monitor activity-log list"],
+  ["az monitor log-analytics query --analytics-query PRIVATE_QUERY", "az monitor log-analytics query"],
+  ["az network bastion ssh --target-resource-id PRIVATE_RESOURCE", "az network bastion ssh"],
+  ["kubectl config current-context", "kubectl config current-context"],
+  ["kubectl auth can-i get pods --namespace PRIVATE_NAMESPACE", "kubectl auth can-i"],
+  ["kubectl rollout restart deployment PRIVATE_RESOURCE", "kubectl rollout restart"],
+  ["gh auth status --hostname PRIVATE_HOST", "gh auth status"],
+  ["az account show-private PRIVATE_VALUE", "unknown"],
+  ["az account show && gh auth status", "unknown"],
+  ["bash -c 'az account show PRIVATE_SCRIPT'", "unknown"],
+];
+const cliTest = await boot([start(), ...cliCoverage.flatMap(([command], index) => tool(`cli-${index}`, "shell", { command })), end()]);
+await cliTest.cleanup();
+assert.deepEqual(cliTest.requests.flatMap(spans).filter(s => attrs(s)["gen_ai.tool.name"] === "shell").map(s => s.name), cliCoverage.map(([, label]) => `execute_tool shell: ${label}`));
+assert.doesNotMatch(JSON.stringify(cliTest.requests), /PRIVATE_|--subscription|--analytics-query|--hostname/);
+assert.equal(interrupted.requests.flatMap(spans).find(s => s.name.startsWith("invoke_agent")).name, "invoke_agent opencode: interrupted");
+assert.equal(root.name, "invoke_agent build: completed");
+
+const failures = [
+  [{ type: "tool.input.validation", message: "PRIVATE_ARGUMENTS" }, "invalid_input"],
+  [{ code: "ERR_INVALID_ARG_TYPE", message: "PRIVATE_ARGUMENTS" }, "invalid_input"],
+  [{ name: "SyntaxError", message: "PRIVATE_SCRIPT" }, "syntax_error"],
+  [{ code: "ENOENT", message: "PRIVATE_PATH" }, "not_found"],
+  [{ code: "EACCES", message: "PRIVATE_PATH" }, "permission_denied"],
+  [{ code: "ECONNREFUSED", message: "PRIVATE_HOST" }, "connection_error"],
+  [{ code: "ENOTFOUND", message: "PRIVATE_HOST" }, "connection_error"],
+  [{ code: "ETIMEDOUT", message: "PRIVATE_HOST" }, "timeout"],
+  [{ status: 400, message: "PRIVATE_REQUEST" }, "invalid_input"],
+  [{ status: 422, message: "PRIVATE_REQUEST" }, "invalid_input"],
+  [{ status: 408, message: "PRIVATE_REQUEST" }, "timeout"],
+  [{ status: 504, message: "PRIVATE_REQUEST" }, "timeout"],
+  [{ status: 409, message: "PRIVATE_REQUEST" }, "conflict"],
+  [{ type: "PRIVATE_UNKNOWN_TYPE", message: "PRIVATE_MESSAGE" }, "tool_error"],
+];
+const failureTest = await boot([start(), ...failures.flatMap(([error], index) => tool(`failure-${index}`, "grep", {}, "session.tool.failed", { error })), end()]);
+await failureTest.cleanup();
+assert.deepEqual(failureTest.requests.flatMap(spans).filter(s => attrs(s)["gen_ai.tool.name"] === "unknown").map(s => attrs(s)["error.type"]), failures.map(([, category]) => category));
+assert.doesNotMatch(JSON.stringify(failureTest.requests), /PRIVATE_|ENOENT|EACCES|ECONNREFUSED|ETIMEDOUT|ERR_INVALID_ARG_TYPE/);
 
 // A failed HTTP response or network request retains the same spans for retry.
 for (const failure of [() => ({ ok: false }), () => { throw new Error("PRIVATE_NETWORK_ERROR"); }]) {
