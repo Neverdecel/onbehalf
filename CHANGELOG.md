@@ -25,6 +25,9 @@ Code and Codex from 0.2.0 is removed.
 
 ### Other changes
 
+- Show fixed CLI labels and task results in telemetry observation names.
+  Add safe categories for structured input, syntax, connection and access errors.
+  Raw commands, arguments and error messages stay private.
 - `onbehalf status --json` gives the checks of `status` as JSON, for
   scripts.
 - `make try` starts the demo environment on a laptop, with a shell as the
