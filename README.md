@@ -49,8 +49,8 @@ keeps their own identity.
 - **One shared stack.** The team keeps settings, harness instructions,
   skills and the model catalog in Git. Each user gets them read-only, with
   personal overrides.
-- **One AI harness for each host.** The operator selects OpenCode, Claude
-  Code or Codex. One command changes the AI harness of a host.
+- **One AI harness for each host.** Every user uses the same OpenCode
+  installation of the host.
 - **One model gateway.** Each user has a personal gateway key. Only the
   gateway keeps the provider key. You see the use and the cost of each
   user.
@@ -95,8 +95,8 @@ The [user guide](docs/user-guide.md) and the
 onbehalf supports Ubuntu and Arch Linux. As the operator of the host, do
 these steps:
 
-1. Install one AI harness on the host: OpenCode, Claude Code or Codex. Run
-   a LiteLLM model gateway, or use the gateway of your team.
+1. Install OpenCode on the host. Run a LiteLLM model gateway, or use the
+   gateway of your team.
 2. Copy `examples/stack` into a Git repository of your team. Add the models
    that the gateway serves.
 3. Install onbehalf and start the guided setup:
@@ -110,7 +110,7 @@ these steps:
 Each user logs in with their own account and starts the AI harness:
 
 ```sh
-opencode    # or: claude, codex
+opencode
 ```
 
 Read the [operator guide](docs/operator-guide.md) and the
@@ -150,8 +150,7 @@ Type `exit` two times. `make try` then removes the environment.
 ## Status
 
 **MVP, version 0.2.0.** Tested on Ubuntu 24.04 and Arch Linux with
-OpenCode 2.0 and LiteLLM 1.105, and on Ubuntu 24.04 with Claude Code 2.1
-and Codex 0.162. Each test run uses the real AI harness, a real LiteLLM
+OpenCode 2.0 and LiteLLM 1.105. Each test run uses the real AI harness, a real LiteLLM
 gateway and a real Forgejo Git server. See the
 [known limitations](docs/operator-guide.md#known-limitations) and the
 [delivery plan](project.md#later-phases).

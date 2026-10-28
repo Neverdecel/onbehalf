@@ -4,24 +4,18 @@ Copy this directory into a Git repository of your team. Change it there.
 Review each change. To install a change on the host, run
 `sudo onbehalf stack install <dir>`.
 
-This stack source does not depend on one AI harness. It works on a host
-with OpenCode, with Claude Code or with Codex. The team owns the content.
+This stack source is for OpenCode, the AI harness of onbehalf. The team
+owns the content.
 
 ```
 models.json       the model catalog and an optional default model
 AGENTS.md         harness instructions for every runtime
 skills/           shared skills, one directory with a SKILL.md for each skill
-opencode/         only for OpenCode
+opencode/         optional
   opencode.json   settings of OpenCode
   agents/         shared custom agents, one Markdown file for each custom agent
 tools/            optional: work tools of the team, one JSON file for each tool
 ```
-
-You can add these directories:
-
-- `claude/` for Claude Code: `managed-settings.json` with the team
-  settings, and the directories `agents/` and `commands/`.
-- `codex/` for Codex: `config.toml` with the team settings.
 
 For the format of a work tool, see
 [Work tools of the shared stack](../../docs/operator-guide.md#work-tools-of-the-shared-stack).
@@ -55,29 +49,21 @@ configuration cannot give more gateway access.
 ## What onbehalf writes
 
 onbehalf writes the gateway address, the reference to the personal gateway
-key and the model catalog into the configuration of each AI harness. Do not
-set these items in the stack source. `onbehalf stack install` refuses a
-stack source that sets them.
-
-| File | Do not set |
-|---|---|
-| `opencode/opencode.json` | `providers`, `enabled_providers`, `model` |
-| `claude/managed-settings.json` | `model`, `apiKeyHelper`, `availableModels`, `env.ANTHROPIC_*`, `env.CLAUDE_CODE_USE_*` |
-| `codex/config.toml` | `model`, `model_provider`, the provider `onbehalf` |
+key and the model catalog into the configuration of OpenCode. Do not set
+`providers`, `enabled_providers` or `model` in `opencode/opencode.json`.
+`onbehalf stack install` refuses a stack source that sets them.
 
 `AGENTS.md` and each skill must be in one location only: at the root, or in
-the directory of one AI harness.
+`opencode/`.
 
 > **WARNING:** Do not put credentials or the file `opencode.jsonc` in the
 > stack source. Every user can read the shared stack.
 
 ## How the shared stack gets to each user
 
-| AI harness | Shared settings | Links in the account of the user |
-|---|---|---|
-| OpenCode | The link `~/.config/opencode/opencode.json` | `AGENTS.md`, and each skill, custom agent and command, in `~/.config/opencode/` |
-| Claude Code | `/etc/claude-code/managed-settings.json` | `CLAUDE.md`, and each skill, custom agent and command, in `~/.claude/` |
-| Codex | `/etc/codex/config.toml` | `AGENTS.md` and each skill, in `~/.codex/` |
+The shared settings are the link `~/.config/opencode/opencode.json`. Each
+user also gets a link for `AGENTS.md`, and for each skill, custom agent and
+command, in `~/.config/opencode/`.
 
 onbehalf links each named item separately. Thus a personal item does not
 hide the other items of the shared stack.
@@ -111,14 +97,13 @@ reference, the same as the gateway key.
 
 ## Two routes to the gateway
 
-This section applies only to OpenCode. onbehalf writes one provider for
-each `api` value of `models.json`:
+onbehalf writes one provider for each `api` value of `models.json`:
 
 - `onbehalf` uses the OpenAI API (`"api": "openai"`, the default). The
   tests cover this route.
 - `onbehalf-anthropic` uses the Anthropic API (`"api": "anthropic"`). This
   route keeps Claude features, for example prompt caching. The tests do not
-  cover this route for OpenCode yet.
+  cover this route yet.
 
 If the Anthropic route causes problems, remove `"api": "anthropic"` from
 the model. The gateway translates the request.
@@ -134,6 +119,3 @@ has no file, so the default rules apply.
 
 A stack source without `models.json` keeps its function. Then the enabled
 provider model entries of `opencode/opencode.json` are the model catalog.
-Such a stack source works only for OpenCode. To use Claude Code or Codex,
-add `models.json`, and remove `providers`, `enabled_providers` and `model`
-from `opencode.json`.

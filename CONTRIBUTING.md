@@ -60,7 +60,7 @@ report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ```
 bin/onbehalf        the CLI
-lib/onbehalf/       commands, output helpers, one adapter for each AI harness
+lib/onbehalf/       commands, output helpers, the OpenCode adapter
 install.sh          installer
 docs/               operator and user guides
 examples/           example shared stack and gateway deployment
@@ -155,7 +155,7 @@ messages. They agree with the table
 | Term | Meaning | Do not use |
 |---|---|---|
 | Host | The Linux machine that onbehalf manages. Write "shared host" the first time in a text. | server, machine, VM (except where the form of deployment is important) |
-| AI harness | The program that every user uses, installed one time on the host. The operator selects one for each host: OpenCode, Claude Code or Codex. Oh My Pi is planned. Write a product name only for a command, file or setting of that product. | agent, coding harness, CLI harness, agent harness |
+| AI harness | The program that every user uses, installed one time on the host. onbehalf supports only OpenCode. Write a product name only for a command, file or setting of that product. | agent, coding harness, CLI harness, agent harness |
 | Runtime | The running instance of the AI harness for one user: its service, sessions, history and state. It runs as that user. Write "harness runtime" the first time in a text. Write "OpenCode service" only for the unit. | agent, agent service |
 | Work tools | Git, GitHub CLI, Azure CLI and the other tools that act as the user. Each tool has its own login. | toolchain |
 | Model gateway | The gateway that keeps the provider keys and records the model use (LiteLLM today). An operator runs it or connects the host to it. | |
@@ -163,7 +163,7 @@ messages. They agree with the table
 | Stack source | The directory or Git repository where an operator edits the shared stack. | stack directory, stack repository |
 | Shared stack | The reviewed, read-only version that `onbehalf stack install` makes current. Every user gets it: harness settings, harness instructions, custom agents, skills, commands and the model catalog. Releases are an internal detail. | baseline, blueprint, stack release |
 | Harness settings | Settings of the AI harness. Shared settings come from the shared stack. Personal settings override them. | |
-| Harness instructions | `AGENTS.md`. Claude Code reads it through the link `CLAUDE.md`. | agent instructions |
+| Harness instructions | `AGENTS.md`. | agent instructions |
 | Custom agents, skills | Named items in the shared stack or in the account of a user. A personal item replaces the shared item with the same name. "Agent" is the name that the AI harness uses for this feature. | |
 | MCP connections | MCP servers that the shared stack defines. Each user logs in. | |
 | User | A team member whose runtime runs in their own Unix account. | person |

@@ -6,6 +6,25 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+### Only OpenCode
+
+onbehalf supports only OpenCode as the AI harness. The support for Claude
+Code and Codex from 0.2.0 is removed.
+
+- `onbehalf harness NAME` and `onbehalf init --harness NAME` are removed.
+  `init` and `setup` do not write `ONBEHALF_HARNESS` to `onbehalf.conf`.
+- `onbehalf stack install` ignores the `claude/` and `codex/` directories
+  of a stack source. `models.json`, `AGENTS.md` and `skills/` at the root
+  of the stack source work as before.
+- Before you update a host that uses Claude Code or Codex, change it to
+  OpenCode with onbehalf 0.2.0: `sudo onbehalf harness opencode`. If the
+  host has onbehalf 0.3 or later, the commands stop with an error. Then
+  install OpenCode for the full host, remove the line `ONBEHALF_HARNESS`
+  from `/etc/onbehalf/onbehalf.conf`, and run
+  `sudo onbehalf stack install DIR`.
+
+### Other changes
+
 - `onbehalf status --json` gives the checks of `status` as JSON, for
   scripts.
 - `make try` starts the demo environment on a laptop, with a shell as the
