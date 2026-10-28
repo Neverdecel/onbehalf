@@ -13,6 +13,7 @@ docs/user-guide.md
 docs/design/monitoring.md
 docs/design/telemetry.md
 docs/design/session-board.md
+docs/design/harness.md
 examples/telemetry/README.md
 examples/stack/README.md
 examples/stack/AGENTS.md

@@ -16,7 +16,9 @@ This version has a breaking change. onbehalf supports only OpenCode. Read
 ### Only OpenCode
 
 onbehalf supports only OpenCode as the AI harness. The support for Claude
-Code and Codex from 0.2.0 is removed.
+Code and Codex from 0.2.0 is removed. OpenCode can use all models. More AI
+harnesses add maintenance and risk, but give no real benefit. See
+[Only OpenCode](docs/design/harness.md).
 
 - `onbehalf harness NAME` and `onbehalf init --harness NAME` are removed.
   `init` and `setup` do not write `ONBEHALF_HARNESS` to `onbehalf.conf`.
