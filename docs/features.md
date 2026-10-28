@@ -6,7 +6,7 @@ table of claims. The test in `test/checks/` that checks each claim is in the
 
 The tests run on fresh Ubuntu and Arch hosts for each test run. The AI
 harness is real OpenCode with a fake model that always gives the same
-answer. The Ubuntu host also has real Claude Code and real Codex. The tests use a real LiteLLM gateway and a real Forgejo Git server.
+answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 
 ## Identity and isolation
 
@@ -47,9 +47,8 @@ answer. The Ubuntu host also has real Claude Code and real Codex. The tests use 
   version. Personal files stay.
 - **Shared custom agents with limits.** A shared custom agent asks the
   user before each command that is not in its list of permitted commands.
-- **A stack source for each AI harness.** `models.json` is the model
-  catalog. `AGENTS.md` and `skills/` at the root are for each AI harness.
-  onbehalf writes the gateway providers of OpenCode from `models.json`.
+- **A simple stack source.** `models.json` is the model catalog.
+  `AGENTS.md` and `skills/` can be at the root. onbehalf writes the gateway providers of OpenCode from `models.json`.
 
 | Claim | Checked by |
 |---|---|
@@ -68,27 +67,15 @@ answer. The Ubuntu host also has real Claude Code and real Codex. The tests use 
   stack permits. A personal configuration cannot add a model. The shared
   stack turns off the built-in providers of OpenCode, because they do not
   go through the gateway.
-- **One AI harness for each host.** The operator selects it. onbehalf
-  checks that the gateway serves the API of that AI harness.
-- **A change of the AI harness.** `sudo onbehalf harness NAME` changes the
-  AI harness of a host. Each user keeps the gateway key and the personal
-  settings.
-- **Claude Code as the AI harness.** The managed settings of the host give
-  the gateway, the personal gateway key and the model catalog. A user can
-  change the default model to a different model of the model catalog.
-- **Codex as the AI harness.** The system configuration of the host gives
-  the gateway, the personal gateway key and the default model. A user can
-  change the default model to a different model of the model catalog.
+- **A check of the gateway API.** onbehalf checks that the gateway serves
+  the API of OpenCode.
 
 | Claim | Checked by |
 |---|---|
 | Gateway keys permit only the models in the model catalog, also after a model leaves the catalog | `09-personal-models` |
 | Users see only the gateway providers of the shared stack, not the built-in providers of OpenCode | `09-personal-models` |
 | `doctor --model-check` shows a refusal from the provider separately from the result of the host | `09-model-access` |
-| `init`, `doctor` and `health` check the API of the AI harness of the host, without a model request | `13-harness-setting` |
-| Claude Code answers through the gateway with the personal gateway key. A personal default model stays after a stack update. `doctor` finds personal credentials that go around the gateway | `14-claude-code` |
-| Codex answers through the gateway with the personal gateway key. The gateway refuses a model that is not in the model catalog. A personal default model stays after a stack update. `doctor` finds personal credentials that go around the gateway | `15-codex` |
-| A host changes from OpenCode to Claude Code, to Codex and back. Each time, the user gets the new links, the gateway key gets the routes of the new API, and the runtime answers through the gateway | `16-harness-change` |
+| `init`, `doctor` and `health` check the API of OpenCode, without a model request. `doctor` names an old host configuration with Claude Code or Codex | `13-gateway-api` |
 
 ## Enroll and offboard
 

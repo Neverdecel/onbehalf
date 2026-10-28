@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Clean Ubuntu host with only the prerequisites. onbehalf itself is installed
 # by the tests, so every run starts from this state.
-FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
 
 # Keep downloaded packages in the BuildKit cache mount between builds.
 # Optionally use another package mirror, for example the CI provider's.
@@ -20,20 +20,6 @@ COPY opencode/package.json opencode/package-lock.json /opt/opencode/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefix /opt/opencode --omit=dev \
     && ln -s /opt/opencode/node_modules/.bin/opencode /usr/local/bin/opencode
-
-# System-wide Claude Code for the checks of the Claude Code adapter, pinned
-# by hash in claude/package-lock.json. Only the Ubuntu host has it.
-COPY claude/package.json claude/package-lock.json /opt/claude/
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefix /opt/claude --omit=dev \
-    && ln -s /opt/claude/node_modules/.bin/claude /usr/local/bin/claude
-
-# System-wide Codex for the checks of the Codex adapter, pinned by hash in
-# codex/package-lock.json. Only the Ubuntu host has it.
-COPY codex/package.json codex/package-lock.json /opt/codex/
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefix /opt/codex --omit=dev \
-    && ln -s /opt/codex/node_modules/.bin/codex /usr/local/bin/codex
 
 # The OTel Collector for the checks of onbehalf telemetry, from the official
 # image, pinned by digest. The otelcol-contrib package makes the same group.

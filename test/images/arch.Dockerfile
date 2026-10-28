@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Clean Arch host with only the prerequisites. onbehalf itself is installed
 # by the tests, so every run starts from this state.
-FROM archlinux:base@sha256:4e77cf2ea5f410e6f8be5abf93ccf17ce2436e87a138c167208356711a405dbd
+FROM archlinux:base@sha256:3c64b538588416593f69a1aebd2f2ec0f2541b29159f32556fa7def2167147a0
 
 RUN --mount=type=cache,target=/var/cache/pacman/pkg \
     pacman -Syu --noconfirm --needed \

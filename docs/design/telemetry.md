@@ -7,7 +7,7 @@ Status: step 1 in progress, 2026-10-14. Issue #18.
 The operator, the platform team and a later audit must see what the users
 and their runtimes do:
 
-- The tool calls for each user, each tool and each AI harness.
+- The tool calls for each user and each tool.
 - The split between tool calls that only read (`az group list`,
   `terraform plan`) and tool calls that change a system
   (`terraform apply`, `az group delete`).
@@ -51,7 +51,7 @@ onbehalf makes the spans.
 
 | Topic | Decision |
 |---|---|
-| First AI harness | OpenCode. Claude Code and Codex come later, with their native OTel export. |
+| AI harness | OpenCode, the only AI harness of onbehalf. |
 | Data source for OpenCode | A plugin of onbehalf, `lib/onbehalf/telemetry/opencode.js`. It reads the session events and sends OTLP/JSON spans. |
 | Identity | A personal telemetry key for each user, the same model as the gateway key. The Collector checks the key (`basicauth`, htpasswd file) and sets `user.name` from `auth.username`. A value in the span cannot change it. |
 | Collector | The operator installs `otelcol-contrib`. onbehalf writes its configuration. The Collector reads it again at `SIGHUP`. |
@@ -90,8 +90,6 @@ frequently in use on the host.
    `dashboards.sh` in `examples/telemetry`. Langfuse groups by the user
    only as a list of the top values, and it cannot group by metadata. Thus
    the read-and-write split is widgets side by side.
-5. Claude Code and Codex, with their native OTel export and the same
-   Collector.
 
 ## Limits
 

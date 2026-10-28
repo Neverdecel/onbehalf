@@ -117,7 +117,7 @@ STACK_MODEL_IDS_OK='unique | select(length > 0 and all(.[]; type == "string" and
   . != "all-proxy-models" and . != "all-team-models"))'
 
 # The model catalog of a stack directory (a stack source or a release).
-# models.json is the catalog for each AI harness. A stack without it keeps
+# models.json is the catalog. A stack without it keeps
 # the catalog in the providers of opencode/opencode.json, as onbehalf 0.1.0.
 stack_models() {
   if [ -e "$1/models.json" ]; then
@@ -149,24 +149,22 @@ stack_catalog_valid() {
   " "$1" >/dev/null 2>&1
 }
 
-# The harness instructions and the skills at the root are for each AI
-# harness. A harness directory must not have an item with the same name.
+# The harness instructions and the skills at the root are for OpenCode.
+# The opencode/ directory must not have an item with the same name.
 stack_shared_valid() {
-  local h skill
+  local skill
   if [ -d "$1/skills" ]; then
     for skill in "$1"/skills/*; do
       [ -e "$skill" ] || continue
       [ -f "$skill/SKILL.md" ] || die "skills/${skill##*/}: each skill must be a directory with a SKILL.md"
     done
   fi
-  for h in "${HARNESSES[@]}"; do
-    if [ -e "$1/AGENTS.md" ] && [ -e "$1/$h/AGENTS.md" ]; then
-      die "AGENTS.md is at the root and in $h/. Keep one of them"
-    fi
-    for skill in "$1"/skills/*; do
-      [ -e "$skill" ] || continue
-      [ ! -e "$1/$h/skills/${skill##*/}" ] || die "the skill ${skill##*/} is in skills/ and in $h/skills/. Keep one of them"
-    done
+  if [ -e "$1/AGENTS.md" ] && [ -e "$1/opencode/AGENTS.md" ]; then
+    die "AGENTS.md is at the root and in opencode/. Keep one of them"
+  fi
+  for skill in "$1"/skills/*; do
+    [ -e "$skill" ] || continue
+    [ ! -e "$1/opencode/skills/${skill##*/}" ] || die "the skill ${skill##*/} is in skills/ and in opencode/skills/. Keep one of them"
   done
 }
 
@@ -238,27 +236,13 @@ gateway_models_match() {
 }
 
 # model_access_check KEYFILE MODEL WHO: send one short request through the
-# gateway, with the API of the AI harness, and say who refused it, if it
+# gateway, with the chat completions API, and say who refused it, if it
 # fails. A gateway that answers and accepts keys can still have a provider
 # that refuses every request.
 model_access_check() {
-  local keyfile=$1 model=$2 who=$3 out code msg route body
-  case $(harness api) in
-    messages)
-      route=/v1/messages
-      body=$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
-        messages: [{role: "user", content: "Reply with the word ok."}]}')
-      ;;
-    responses)
-      route=/v1/responses
-      body=$(jq -nc --arg m "$model" '{model: $m, max_output_tokens: 16, input: "Reply with the word ok."}')
-      ;;
-    *)
-      route=/v1/chat/completions
-      body=$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
-        messages: [{role: "user", content: "Reply with the word ok."}]}')
-      ;;
-  esac
+  local keyfile=$1 model=$2 who=$3 out code msg body route=/v1/chat/completions
+  body=$(jq -nc --arg m "$model" '{model: $m, max_tokens: 16,
+    messages: [{role: "user", content: "Reply with the word ok."}]}')
   info "one request to $model as $who, with a maximum of 16 output tokens. It is model use of $who"
   out=$(curl -sS --max-time 60 -w '\n%{http_code}' -X POST "$ONBEHALF_GATEWAY_URL$route" \
     -H @<(printf 'Authorization: Bearer %s\n' "$(<"$keyfile")") -H 'Content-Type: application/json' \

@@ -62,7 +62,7 @@ services:
 
   # Git server, to check who commits and who pushes.
   forgejo:
-    image: codeberg.org/forgejo/forgejo:16.0.5-rootless@sha256:5effb7305584aca479b29fde6f9631a6dbe86ae798ae02eeea33a3666f0c0bf8
+    image: codeberg.org/forgejo/forgejo:17.0.0-rootless@sha256:6554520f7574602100b7d6620c6ac5b18cec30325f823777497eac36234f5cf8
     entrypoint: ["/bin/sh", "/onbehalf/start.sh"]
     volumes:
       - ./forgejo/start.sh:/onbehalf/start.sh:ro

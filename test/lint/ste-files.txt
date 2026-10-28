@@ -11,8 +11,8 @@ docs/faq.md
 docs/operator-guide.md
 docs/user-guide.md
 docs/design/monitoring.md
-docs/design/harnesses.md
 docs/design/telemetry.md
+docs/design/session-board.md
 examples/telemetry/README.md
 examples/stack/README.md
 examples/stack/AGENTS.md

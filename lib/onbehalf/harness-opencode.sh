@@ -6,7 +6,6 @@ harness_opencode_command() { echo opencode; }
 
 # The gateway API of OpenCode: chat completions. A provider of the Anthropic
 # API uses the messages routes. Gateway keys keep the routes of onbehalf 0.1.0.
-harness_opencode_api() { echo chat; }
 harness_opencode_api_routes() { echo /v1/chat/completions; }
 harness_opencode_routes() {
   echo '["/models","/v1/models","/chat/completions","/v1/chat/completions","/responses","/v1/responses","/messages","/v1/messages","/user/daily/activity"]'
@@ -87,13 +86,7 @@ harness_opencode_stack_problem() {
   echo "add \"enabled_providers\": $(harness_opencode_providers "$cfg") to opencode/opencode.json in the stack source, then: sudo onbehalf stack install DIR"
 }
 
-# The shared settings are links into the release. Nothing goes into /etc.
-harness_opencode_activate() { :; }
-harness_opencode_deactivate() { :; }
-harness_opencode_user_unlink() { harness_unlink_all "$1/.config/opencode" "$ONBEHALF_STACK/current/opencode"; }
-
 # The runtime: the OpenCode service of the user.
-harness_opencode_service() { :; }
 harness_opencode_runs() { pgrep -u "$1" -f 'serve --service' >/dev/null; }
 harness_opencode_restart() { as_user "$1" "opencode service restart" >/dev/null; }
 harness_opencode_restart_self() { opencode service restart >/dev/null; }

@@ -9,23 +9,15 @@ account. The runtime of each user runs as that user.
 
 ## Which AI harnesses does onbehalf support?
 
-OpenCode, Claude Code and Codex. The operator selects one AI harness for
-each host. onbehalf connects to it through an adapter
-(`lib/onbehalf/harness-NAME.sh`). Oh My Pi is planned.
-
-## Can a host change to a different AI harness?
-
-Yes. `sudo onbehalf harness NAME` changes the AI harness of the host. The
-team keeps its stack source, and each user keeps the gateway key and the
-personal settings. See
-[Change the AI harness](operator-guide.md#change-the-ai-harness).
+Only OpenCode. onbehalf connects to it through an adapter
+(`lib/onbehalf/harness-opencode.sh`). Version 0.2.0 also supported Claude
+Code and Codex. That support is removed.
 
 ## Which models can the team use?
 
 Each model that the LiteLLM gateway serves and that the shared stack
-permits. The gateway must serve the API of the AI harness of the host. The
-tests cover the chat completions API with OpenCode, the messages API with
-Claude Code and the responses API with Codex.
+permits. The gateway must serve the chat completions API. A model with the
+Anthropic API in `models.json` uses the messages API.
 
 ## Is the runtime a sandbox?
 

@@ -25,7 +25,7 @@ The MVP and phase 1 have one goal: a shared host that works.
 
 | Area | Owner | Root necessary |
 |---|---|---|
-| Installation of the AI harness (for the full host: OpenCode, Claude Code or Codex) | Operator, with the documentation of the AI harness | Yes |
+| Installation of the AI harness (OpenCode, for the full host) | Operator, with the documentation of the AI harness | Yes |
 | Installation of the work tools (Git, GitHub CLI, Azure CLI and others) | Operator, with the documentation of each tool | Yes |
 | Model gateway (LiteLLM, database, provider keys, models) | Operator, with the LiteLLM documentation. `examples/gateway` is only an example | Yes (on its own host or in Docker) |
 | Connection to the gateway (`onbehalf init`) | onbehalf | Yes |
@@ -67,16 +67,13 @@ The work that is larger than the shared host is in
 ### Runtime limits
 
 onbehalf owns the runtime limit at the Unix account. It also gives the
-shared stack to each user. An adapter for each AI harness uses this
-contract. A terminal client or a web client connects to the runtime of a
+shared stack to each user. The OpenCode adapter uses this contract. A terminal client or a web client connects to the runtime of a
 user. The client does not set the identity that acts.
 
 Each runtime runs as the Unix account that owns the session. The work tools
 (Git, GitHub CLI, Azure CLI and others) use the login stores and the
-permissions of that account. A different AI harness must keep the same
-contract for identity and isolation. OpenCode, Claude Code and Codex have
-an adapter. The operator selects one AI harness for each host. Oh My Pi is
-a planned adapter.
+permissions of that account. onbehalf supports only OpenCode as the AI
+harness.
 
 Attribution comes from the account that the external system records. A name
 that a user can configure, for example the Git commit author, is not
@@ -146,25 +143,6 @@ must turn them off with `enabled_providers`. That setting is configuration,
 not a control. Only a control of the outbound traffic of the host stops a
 user who runs OpenCode with a different configuration. Permit outbound
 HTTPS only to the gateway.
-
-### Claude Code and Codex adapter contracts
-
-These adapters use a stack source with `models.json`. onbehalf writes the
-gateway, the personal key reference and the model catalog into the
-configuration of the AI harness.
-
-| Layer | Claude Code | Codex |
-|---|---|---|
-| Shared settings | `/etc/claude-code/managed-settings.json`, a link to the current release | `/etc/codex/config.toml`, a link to the current release |
-| Personal overrides | `~/.claude/settings.json`. The managed settings have priority, but a personal default model has priority over the shared default | `~/.codex/config.toml`. It has priority over the shared settings |
-| Named items | Links in `~/.claude/{agents,skills,commands}/`, and the link `~/.claude/CLAUDE.md` to the shared `AGENTS.md` | Links in `~/.codex/skills/`, and the link `~/.codex/AGENTS.md` |
-| Gateway API | `/v1/messages` | `/v1/responses` |
-| Service | None. Each new session reads the shared stack | None. Each new session reads the shared stack |
-
-A gateway key permits only the API of the AI harness of the host.
-`onbehalf harness NAME` changes the AI harness of a host. It updates the
-routes of each key and the links of each user. See the
-[design](docs/design/harnesses.md).
 
 ### Governance and delivery of the shared stack
 
@@ -247,8 +225,8 @@ This section applies to the MVP and phase 1. See
 - Accounts for each user: make, adopt, isolate and offboard them.
 - A connection from the host to one model gateway that runs, and one
   personal gateway key for each user.
-- One shared stack for each user, with personal overrides. Each host has
-  one AI harness: OpenCode, Claude Code or Codex.
+- One shared stack for each user, with personal overrides. The AI harness
+  is OpenCode.
 - Runtimes that run only as the user who starts them.
 - Personal acting credentials through the login of each tool. Azure CLI,
   GitHub and OAuth MCP servers are the first integrations. onbehalf guides
@@ -281,8 +259,7 @@ This section applies to the MVP and phase 1. See
 
 ## Current implementation
 
-The MVP uses OpenCode, Claude Code or Codex and the terminal on Ubuntu and
-Arch Linux.
+The MVP uses OpenCode and the terminal on Ubuntu and Arch Linux.
 [Features](docs/features.md) gives the automated checks. The implementation
 does not do all of the target architecture yet:
 
@@ -311,14 +288,10 @@ does not do all of the target architecture yet:
   project configuration has a higher priority.
 - `models.json` of the shared stack is the model catalog. A stack source
   without it has the model catalog in the provider model entries of
-  `opencode.json`, and works only for OpenCode. Enrollment, updates and
+  `opencode.json`. Enrollment, updates and
   rollback limit the personal gateway keys to the model catalog.
-- The operator selects the AI harness with `init --harness NAME`.
-  `onbehalf harness NAME` changes it. `init`, `doctor` and `health` check
-  that the gateway serves its API.
-- The Claude Code adapter and the Codex adapter write the configuration of
-  the host from `models.json`. They have no service. The MCP work tool
-  supports only OpenCode.
+- `init`, `doctor` and `health` check that the gateway serves the API of
+  OpenCode.
 - For OpenCode, `enabled_providers` in the shared stack permits only the
   gateway providers. `stack install` refuses a stack source without it, and
   `doctor` shows the problem. This setting guides OpenCode. The gateway and
@@ -359,8 +332,6 @@ does not do all of the target architecture yet:
 - Full repeatable Linux provisioning. Enrollment at the first login also for
   logins that are not SSH. The MVP enrolls when it makes an account and,
   with auto-enroll, at the first SSH login.
-- The same override contract for each AI harness. In the MVP, the managed
-  settings of Claude Code have priority over the personal settings.
 - Changes to the shared stack without lost work. In the MVP, a change to the
   shared stack restarts all runtimes that run, and stops their work. Phase 2
   restarts only runtimes with no work. It restarts the other runtimes when
@@ -371,8 +342,6 @@ does not do all of the target architecture yet:
   action, and when.
 - Model use limits and cost reports for each user, through the model
   gateway.
-- Support for Oh My Pi as one more AI harness.
-- The MCP work tool for Codex.
 - A first production host, Azure attribution checks, signed commits and
   more tool integrations.
 - Delegated access through OAuth on-behalf-of (OBO) for one downstream API.
@@ -391,6 +360,8 @@ does not do all of the target architecture yet:
   shared OpenCode server.
 - Session control for each user: start, stop, and stop after a period
   with no activity.
+- A session board as the first client that shows the sessions of a user
+  as tickets. See the [design](docs/design/session-board.md).
 
 ### Phase 4: Extended governance
 
@@ -407,7 +378,7 @@ does not do all of the target architecture yet:
   authentication, fine-grained tokens or SSH keys?
 - Can Azure access use credentials with a short life in the MVP? Or must
   this wait for Phase 2?
-- How does the adapter for each AI harness show overrides for settings and
-  named skills?
+- How does the OpenCode adapter show overrides for settings and named
+  skills?
 - Which login integration starts the bootstrap for Unix accounts that a
   different system makes?

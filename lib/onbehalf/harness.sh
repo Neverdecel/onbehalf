@@ -1,54 +1,34 @@
 # shellcheck shell=bash
-# The AI harness of the host. The operator selects one AI harness for each
-# host. Each adapter, harness-NAME.sh, gives the functions harness_NAME_OP.
+# The AI harness of the host. onbehalf supports one AI harness: OpenCode.
+# The adapter, harness-opencode.sh, gives the functions harness_opencode_OP.
 
-# The AI harnesses that onbehalf supports, in the order of their directories.
-HARNESSES=(opencode claude codex)
-
-# The AI harness of the host. A host without the setting uses OpenCode.
-harness_id() { echo "${ONBEHALF_HARNESS:-opencode}"; }
-
-# True if NAME is an AI harness that onbehalf supports.
-harness_known() {
-  local h
-  for h in "${HARNESSES[@]}"; do [ "$h" != "$1" ] || return 0; done
-  return 1
-}
-
-# harness OP [ARGS]: call OP of the adapter of the AI harness of the host.
+# harness OP [ARGS]: call OP of the OpenCode adapter. The configuration of
+# a host from onbehalf 0.2 can name Claude Code or Codex.
 harness() {
-  local op=$1 h
+  local op=$1
   shift
-  h=$(harness_id)
-  harness_known "$h" || die "the AI harness '$h' in $ONBEHALF_ETC/onbehalf.conf is not one of: ${HARNESSES[*]}"
-  "harness_${h}_$op" "$@"
+  [ "${ONBEHALF_HARNESS:-opencode}" = opencode ] \
+    || die "onbehalf supports only OpenCode. $ONBEHALF_ETC/onbehalf.conf sets ONBEHALF_HARNESS=$ONBEHALF_HARNESS. Install OpenCode for the full host, remove that line, then run: sudo onbehalf stack install DIR"
+  "harness_opencode_$op" "$@"
 }
 
-# Check the harness directories of a stack source. The adapter of the host
-# always checks, because a stack source with only models.json, AGENTS.md
-# and skills/ serves each AI harness.
-harness_validate() {
-  local h
-  for h in "${HARNESSES[@]}"; do
-    if [ -d "$1/$h" ] || [ "$h" = "$(harness_id)" ]; then "harness_${h}_validate" "$1"; fi
-  done
-}
+# Check the OpenCode directory of a stack source. A stack source with only
+# models.json, AGENTS.md and skills/ is also correct.
+harness_validate() { harness_opencode_validate "$1"; }
 
 # Build a new release directory: give the harness instructions and the
-# skills at the root to each AI harness. With models.json, each adapter
-# writes the model catalog into the configuration of its AI harness.
+# skills at the root to OpenCode. With models.json, the adapter writes the
+# model catalog into the configuration of OpenCode.
 harness_build() {
-  local rel=$1 h
-  for h in "${HARNESSES[@]}"; do
-    [ -d "$rel/$h" ] || [ -e "$rel/models.json" ] || continue
-    install -d "$rel/$h"
-    [ ! -e "$rel/AGENTS.md" ] || cp "$rel/AGENTS.md" "$rel/$h/AGENTS.md"
-    if [ -d "$rel/skills" ]; then
-      install -d "$rel/$h/skills"
-      cp -R "$rel/skills/." "$rel/$h/skills/"
-    fi
-    [ ! -e "$rel/models.json" ] || "harness_${h}_build" "$rel"
-  done
+  local rel=$1
+  [ -d "$rel/opencode" ] || [ -e "$rel/models.json" ] || return 0
+  install -d "$rel/opencode"
+  [ ! -e "$rel/AGENTS.md" ] || cp "$rel/AGENTS.md" "$rel/opencode/AGENTS.md"
+  if [ -d "$rel/skills" ]; then
+    install -d "$rel/opencode/skills"
+    cp -R "$rel/skills/." "$rel/opencode/skills/"
+  fi
+  [ ! -e "$rel/models.json" ] || harness_opencode_build "$rel"
 }
 
 # The link code of each adapter.
@@ -90,15 +70,6 @@ harness_link_each() {
     [ -e "$child" ] || continue
     harness_link_item "$u" "$group" "$replace" "$child" "$dir/${child##*/}"
   done
-}
-
-# harness_unlink_all DIR SRC: remove each link into SRC, at a change of the
-# AI harness. The personal items stay.
-harness_unlink_all() {
-  local link
-  while IFS= read -r -d '' link; do
-    if [[ $(link_of "$link") == "$2/"* ]]; then rm -f "$link"; fi
-  done < <(find "$1" -maxdepth 2 -type l -print0 2>/dev/null)
 }
 
 # harness_unlink_removed DIR SRC: remove only the broken links into SRC, for
