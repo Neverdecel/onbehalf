@@ -6,10 +6,19 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
+No changes yet.
+
+## 0.3.0 (2026-10-28)
+
+This version has a breaking change. onbehalf supports only OpenCode. Read
+"Only OpenCode" before you update a host that uses Claude Code or Codex.
+
 ### Only OpenCode
 
 onbehalf supports only OpenCode as the AI harness. The support for Claude
-Code and Codex from 0.2.0 is removed.
+Code and Codex from 0.2.0 is removed. OpenCode can use all models. More AI
+harnesses add maintenance and risk, but give no real benefit. See
+[Only OpenCode](docs/design/harness.md).
 
 - `onbehalf harness NAME` and `onbehalf init --harness NAME` are removed.
   `init` and `setup` do not write `ONBEHALF_HARNESS` to `onbehalf.conf`.
@@ -32,13 +41,10 @@ Code and Codex from 0.2.0 is removed.
   scripts.
 - `make try` starts the demo environment on a laptop, with a shell as the
   operator `ops`. See "Try it on your laptop" in the README.
-
 - Add operator-controlled `--identity named|pseudonymous` telemetry modes.
   Keep content capture off in both modes and preserve the saved identity setting.
-
 - Send lowercase Langfuse observation types so Code Mode containers remain
   spans and unobserved results remain events, not tool-latency samples.
-
 - Add tool execution spans inside Code Mode, first-response times and task
   counters. Export fixed command labels and authenticated user pseudonyms
   instead of raw commands, account names and host names.
@@ -87,6 +93,7 @@ Code and Codex from 0.2.0 is removed.
 - More default class rules: a script or `curl` with an HTTP write method,
   a write command in list form, `--help`, `--version` and `command -v`.
 - The installer now checks for `openssl`.
+- The host tests use OpenCode 2.1.4.
 
 ## 0.2.0 (2026-10-12)
 

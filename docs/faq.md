@@ -13,6 +13,10 @@ Only OpenCode. onbehalf connects to it through an adapter
 (`lib/onbehalf/harness-opencode.sh`). Version 0.2.0 also supported Claude
 Code and Codex. That support is removed.
 
+OpenCode can use all models that the gateway serves. Each other AI harness
+adds maintenance and risk, but gives no real benefit. See
+[Only OpenCode](design/harness.md).
+
 ## Which models can the team use?
 
 Each model that the LiteLLM gateway serves and that the shared stack

@@ -73,7 +73,7 @@ user. The client does not set the identity that acts.
 Each runtime runs as the Unix account that owns the session. The work tools
 (Git, GitHub CLI, Azure CLI and others) use the login stores and the
 permissions of that account. onbehalf supports only OpenCode as the AI
-harness.
+harness. See [Only OpenCode](docs/design/harness.md) for the reasons.
 
 Attribution comes from the account that the external system records. A name
 that a user can configure, for example the Git commit author, is not

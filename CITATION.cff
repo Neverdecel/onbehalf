@@ -11,7 +11,7 @@ abstract: >-
   no shared credential.
 authors:
   - alias: Neverdecel
-version: 0.2.0
+version: 0.3.0
 license: Apache-2.0
 repository-code: https://github.com/Neverdecel/onbehalf
 url: https://github.com/Neverdecel/onbehalf
