@@ -31,7 +31,7 @@ services:
       retries: 30
 
   gateway:
-    image: ghcr.io/berriai/litellm-database:v1.105.1@sha256:2bcadb9905b692a5ca4dadd51bccaaa23a95dc8a0f9322d9c9787f0ac2aeb50e
+    image: ghcr.io/berriai/litellm-database:v1.106.5@sha256:0d10536ce596ef74bf5bbd3244310bb11c2cadd8f92d2f22d587cc0b9fc16e01
     command: ["--config", "/etc/litellm/config.yaml", "--port", "4000"]
     volumes:
       - ./gateway/litellm.yaml:/etc/litellm/config.yaml:ro
