@@ -86,7 +86,7 @@ jobs:
           limit-severities-for-sarif: true
           trivyignores: .trivyignore.yaml
           exit-code: "0" # findings go to code scanning; gitleaks is the hard gate
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         if: always() && !github.event.repository.private && github.event.pull_request.head.repo.fork != true
         with:
           sarif_file: trivy.sarif
@@ -106,7 +106,7 @@ jobs:
           persist-credentials: false
       # The repo is shell, which CodeQL does not analyse; it does check the
       # workflows themselves for injection and permission mistakes.
-      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: actions
-      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
