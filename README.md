@@ -102,7 +102,7 @@ these steps:
 3. Install onbehalf and start the guided setup:
 
    ```sh
-   git clone --branch v0.2.0 https://github.com/Neverdecel/onbehalf.git && cd onbehalf
+   git clone --branch v0.3.0 https://github.com/Neverdecel/onbehalf.git && cd onbehalf
    sudo ./install.sh --install-deps    # checks the host, then installs
    sudo onbehalf setup                 # connect, install the stack, add users
    ```
@@ -149,8 +149,8 @@ Type `exit` two times. `make try` then removes the environment.
 
 ## Status
 
-**MVP, version 0.2.0.** Tested on Ubuntu 24.04 and Arch Linux with
-OpenCode 2.0 and LiteLLM 1.105. Each test run uses the real AI harness, a real LiteLLM
+**MVP, version 0.3.0.** Tested on Ubuntu 24.04 and Arch Linux with
+OpenCode 2.1 and LiteLLM 1.105. Each test run uses the real AI harness, a real LiteLLM
 gateway and a real Forgejo Git server. See the
 [known limitations](docs/operator-guide.md#known-limitations) and the
 [delivery plan](project.md#later-phases).

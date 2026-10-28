@@ -36,7 +36,7 @@ Commands for a user, without root:
 - `tools`: guided logins for the work tools and MCP servers.
 - `restart`.
 
-Status: MVP, version 0.2.0. Tested on Ubuntu 24.04 and Arch Linux with OpenCode 2.0 and LiteLLM 1.105. An automated host test checks each claim. The tests run the real AI harness with a real LiteLLM gateway and a real Forgejo Git server.
+Status: MVP, version 0.3.0. Tested on Ubuntu 24.04 and Arch Linux with OpenCode 2.1 and LiteLLM 1.105. An automated host test checks each claim. The tests run the real AI harness with a real LiteLLM gateway and a real Forgejo Git server.
 
 ## Docs
 
