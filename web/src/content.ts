@@ -20,9 +20,9 @@ export const brand = {
 };
 
 export const nav = [
+  {label: 'The problem', href: '#problem'},
   {label: 'See it', href: '#see'},
   {label: 'How it works', href: '#how'},
-  {label: 'Why', href: '#why'},
 ];
 
 /** The three example users. The colours come from @theme in index.css. */
@@ -33,17 +33,82 @@ export const users = [
 ];
 
 export const hero = {
-  title: 'ONBEHALF',
-  kicker: 'The setup is shared. The identity is not.',
-  host: 'team-host · 3 users · 1 shared stack',
-  hint: 'Scroll to clear the fog',
+  eyebrow: 'Open source · for teams on one Linux host',
+  title: 'One AI setup for the team.',
+  accent: 'Each action stays personal.',
+  lead: 'onbehalf gives your team one reviewed OpenCode setup on a shared Linux host. The runtime of each user runs as that user, with the logins of that user.',
+  install: 'sudo onbehalf setup',
+  chips: ['OpenCode', 'LiteLLM', 'Git', 'GitHub CLI', 'Azure CLI', 'Ubuntu and Arch'],
+  shared: 'shared stack 3f9c2a1b7e04 · read-only · the same for each user',
+  panes: [
+    {
+      user: 'alice',
+      lines: [
+        {t: 'cmd', s: 'onbehalf status'},
+        {t: 'ok', s: 'shared stack 3f9c2a1b7e04'},
+        {t: 'ok', s: 'your gateway key works'},
+        {t: 'ok', s: 'OpenCode uses the shared stack'},
+        {t: 'cmd', s: 'git log -1 --format=%an'},
+        {t: 'out', s: 'alice'},
+      ],
+    },
+    {
+      user: 'bob',
+      lines: [
+        {t: 'cmd', s: 'cat ~alice/.config/gh/hosts.yml'},
+        {t: 'bad', s: 'Permission denied'},
+        {t: 'cmd', s: 'gh api user -q .login'},
+        {t: 'out', s: 'bob'},
+        {t: 'cmd', s: 'git log -1 --format=%an'},
+        {t: 'out', s: 'bob'},
+      ],
+    },
+  ],
 };
 
-/** The statement that lights up word by word. Words in accent get a colour. */
-export const statement = {
-  eyebrow: 'The idea',
-  text: 'One host. One reviewed setup for the whole team. And each action keeps the name of the user who did it.',
-  accent: ['each', 'action', 'name', 'user'],
+/**
+ * The scroll story. Each beat is one way to share a setup. The stage and the
+ * score change with each beat.
+ */
+export const story = {
+  eyebrow: 'The problem',
+  heading: 'A shared setup must not hide who did an action.',
+  beats: [
+    {
+      tag: 'Option 1',
+      title: 'A setup on each laptop',
+      body: 'Each user keeps a different setup. An improvement stays with one user. Nobody knows which models the team uses, or the cost.',
+    },
+    {
+      tag: 'Option 2',
+      title: 'One shared account',
+      body: 'The team gets one setup. But each commit shows the shared account. Each user can read the logins of all the other users.',
+    },
+    {
+      tag: 'onbehalf',
+      title: 'One shared stack. One account for each user.',
+      body: 'The team reviews one setup in Git. Each runtime runs as its user. Each record shows the real user, and each login stays private.',
+    },
+  ],
+
+  // A blank line between the points keeps each point a sentence of its own
+  // for make lint-docs.
+  points: [
+    'One reviewed setup for the team',
+
+    'Git, GitHub and Azure record the real user',
+
+    'No user can read the logins of a different user',
+
+    'Model use and cost for each user',
+
+    'Offboard without a secret to change',
+  ],
+  has: [
+    [false, true, true, false, true],
+    [true, false, false, false, false],
+    [true, true, true, true, true],
+  ],
 };
 
 /** Frames of the reel. Each frame is a short terminal session. */
@@ -119,31 +184,6 @@ export const flow = {
     {n: '04', title: 'Each record shows the user', body: 'Git, GitHub, Azure and the model gateway record each action as the user who did it.'},
   ],
   readout: 'Shared credentials',
-};
-
-export const compare = {
-  eyebrow: 'Why onbehalf',
-  heading: 'Three ways to share a setup.',
-  note: 'Each ring is one of the five points below.',
-
-  // A blank line between the points keeps each point a sentence of its own
-  // for make lint-docs.
-  points: [
-    'One reviewed setup for the team',
-
-    'Git, GitHub and Azure record the real user',
-
-    'No user can read the logins of a different user',
-
-    'Model use and cost for each user',
-
-    'Offboard without a secret to change',
-  ],
-  items: [
-    {name: 'A setup on each laptop', has: [false, true, true, false, true]},
-    {name: 'One shared account', has: [true, false, false, false, false]},
-    {name: 'onbehalf', has: [true, true, true, true, true], featured: true},
-  ],
 };
 
 export const start = {

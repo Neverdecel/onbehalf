@@ -140,12 +140,6 @@ html.lenis body {
   }
 }
 
-@keyframes twinkle {
-  50% {
-    opacity: 0.1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

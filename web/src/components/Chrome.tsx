@@ -45,7 +45,7 @@ function GitHub({className = ''}: {className?: string}) {
 export function Header() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="fixed inset-x-0 top-0 z-50 text-white">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-night/75 pb-3 text-white backdrop-blur-md sm:pb-4">
       <a href="#main" className="absolute -left-[999px] top-2 rounded bg-night px-3 py-1 focus:left-4">
         Skip to the content
       </a>
