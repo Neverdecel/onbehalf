@@ -62,7 +62,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          docs_only='^([^/]+\.md|docs/.*|site/.*|test/lint/.*|llms\.txt|CITATION\.cff|LICENSE|NOTICE|\.github/ISSUE_TEMPLATE/.*|\.github/(pull_request_template\.md|CODEOWNERS|dependabot\.yml)|\.github/workflows/(pages|fuzz|scorecard|security)\.yml)$'
+          docs_only='^([^/]+\.md|docs/.*|site/.*|web/.*|test/lint/.*|llms\.txt|CITATION\.cff|LICENSE|NOTICE|\.github/ISSUE_TEMPLATE/.*|\.github/(pull_request_template\.md|CODEOWNERS|dependabot\.yml)|\.github/workflows/(pages|fuzz|scorecard|security)\.yml)$'
           code=true
           if [ "$EVENT" = pull_request ] && files=$(git diff --name-only "$BASE...$HEAD") && [ -n "$files" ]; then
             other=$(grep -Ev "$docs_only" <<<"$files" || true)

@@ -24,3 +24,4 @@ site/about/index.md
 site/_posts/2026-10-09-why-each-ai-agent-must-act-on-behalf-of-one-person.md
 CHANGELOG.md
 demo/README.md
+web/src/content.ts

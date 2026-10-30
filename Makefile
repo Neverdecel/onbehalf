@@ -9,7 +9,7 @@ ONBEHALF_CANARY    := $(or $(ONBEHALF_CANARY),sk-canary-$(shell openssl rand -he
 FORGEJO_ADMIN_PASSWORD := $(or $(FORGEJO_ADMIN_PASSWORD),$(shell openssl rand -hex 16))
 export LITELLM_MASTER_KEY ONBEHALF_CANARY FORGEJO_ADMIN_PASSWORD
 
-.PHONY: demo try site site-assets images rebuild lint lint-shell lint-docker lint-yaml lint-docs test $(addprefix test-,$(DISTROS)) $(addprefix shell-,$(DISTROS)) down
+.PHONY: demo try site site-assets web images rebuild lint lint-shell lint-docker lint-yaml lint-docs test $(addprefix test-,$(DISTROS)) $(addprefix shell-,$(DISTROS)) down
 
 # Static checks; the same ones CI runs. Needs shellcheck, shfmt, hadolint, yamllint.
 # lint-docs needs only bash and awk.
@@ -45,11 +45,18 @@ site-assets:
 	mkdir -p site/assets
 	cp $(SITE_ASSETS) site/assets/
 
-site: site-assets
+# The start page: a Vite app in web/. Needs Node.js 22 and npm.
+web:
+	npm ci --prefix web
+	npm run lint --prefix web
+	npm run build --prefix web
+
+site: site-assets web
 	docker run --rm $(SITE_USER) -v "$$PWD/site:/src" -w /usr/local/bundle \
 	  -e JEKYLL_ENV=production -e PAGES_REPO_NWO=Neverdecel/onbehalf -e HOME=/tmp \
 	  --entrypoint bin/$(if $(DRAFTS),jekyll,github-pages) $(PAGES_IMAGE) \
 	  build --source /src --destination /src/_site $(if $(DRAFTS),--unpublished)
+	cp -R web/dist/. site/_site/
 
 # Cached build: layers are reused until a Dockerfile or version pin changes.
 images:
