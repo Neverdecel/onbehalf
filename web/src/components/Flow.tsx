@@ -77,6 +77,9 @@ export function Flow({reduced}: {reduced: boolean}) {
       if (!g) return;
       const t = n.leg < 0 ? 1 : range(legT[n.leg], 0.75, 1);
       g.style.opacity = String(0.12 + 0.88 * t);
+      // A node glows for a moment when its leg reaches it.
+      const glow = n.leg < 0 ? 0 : range(legT[n.leg], 0.9, 1) * (1 - range(w, n.leg + 1.2, n.leg + 1.8));
+      g.style.filter = glow > 0.01 ? `drop-shadow(0 0 ${12 * glow}px ${n.color})` : '';
     });
 
     const now = Math.min(LEGS.length - 1, Math.floor(w));

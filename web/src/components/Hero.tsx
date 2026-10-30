@@ -31,6 +31,10 @@ const PEOPLE = [
 const PEOPLE_DROP = 60;
 const GROUND_DROP = 35;
 const HOST_DROP = 470;
+/** Pointer parallax, in stage units at the edge of the screen. Near layers move more. */
+const TILT = {ridge: 6, host: 12, people: 26, sky: 10};
+/** Seconds for one pulse to go from the host to a user. */
+const PULSE_S = 2.6;
 
 /** A small seeded PRNG, so the stars are the same on each load. */
 function stars(n: number) {
@@ -96,7 +100,25 @@ export function Hero({reduced}: {reduced: boolean}) {
   const stackOut = useRef<HTMLSpanElement>(null);
   const idOut = useRef<HTMLSpanElement>(null);
   const clock = useRef<HTMLSpanElement>(null);
+  const linesG = useRef<SVGGElement>(null);
+  const pulses = useRef<(SVGCircleElement | null)[]>([]);
+  const lengths = useRef<number[]>([]);
+  const sky = useRef<SVGSVGElement>(null);
+  /** Pointer position (-1..1), and the eased value that the layers follow. */
+  const pointer = useRef({x: 0, y: 0, ex: 0, ey: 0});
   const field = useMemo(() => stars(170), []);
+
+  useEffect(() => {
+    lengths.current = lines.current.map((l) => l?.getTotalLength() ?? 0);
+    // Only a mouse or a pen moves the scene; a touch screen scrolls.
+    if (reduced || !window.matchMedia('(pointer: fine)').matches) return;
+    const move = (e: PointerEvent) => {
+      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener('pointermove', move, {passive: true});
+    return () => window.removeEventListener('pointermove', move);
+  }, [reduced]);
 
   // The clock writes the text directly, one time each second.
   useEffect(() => {
@@ -122,11 +144,21 @@ export function Hero({reduced}: {reduced: boolean}) {
 
     const settle = ease(range(p, 0, RISE[1]));
     const r = ease(range(p, RISE[0], RISE[1]));
-    ridge.current?.style.setProperty('transform', `translate3d(0, ${settle * 18}px, 0)`);
-    glow.current?.style.setProperty('opacity', String(r));
-    host.current?.style.setProperty('transform', `translate3d(0, ${(1 - r) * HOST_DROP + settle * 6}px, 0)`);
-    ground.current?.style.setProperty('transform', `translate3d(0, ${settle * GROUND_DROP}px, 0)`);
-    people.current?.style.setProperty('transform', `translate3d(0, ${settle * PEOPLE_DROP}px, 0)`);
+    const m = pointer.current;
+    m.ex += (m.x - m.ex) * 0.06;
+    m.ey += (m.y - m.ey) * 0.06;
+    const tx = (k: number) => -m.ex * k;
+    const ty = (k: number) => -m.ey * k * 0.5;
+    sky.current?.style.setProperty('transform', `translate3d(${tx(TILT.sky)}px, ${ty(TILT.sky)}px, 0) scale(1.03)`);
+    ridge.current?.style.setProperty('transform', `translate3d(${tx(TILT.ridge)}px, ${settle * 18 + ty(TILT.ridge)}px, 0)`);
+    glow.current?.style.setProperty('opacity', String(r * (0.85 + 0.15 * Math.sin(performance.now() / 700))));
+    host.current?.style.setProperty('transform', `translate3d(${tx(TILT.host)}px, ${(1 - r) * HOST_DROP + settle * 6 + ty(TILT.host)}px, 0)`);
+    ground.current?.style.setProperty('transform', `translate3d(${tx(TILT.host)}px, ${settle * GROUND_DROP + ty(TILT.host)}px, 0)`);
+    people.current?.style.setProperty('transform', `translate3d(${tx(TILT.people)}px, ${settle * PEOPLE_DROP + ty(TILT.people)}px, 0)`);
+
+    // The lines join the host and the people, so they follow the mean of the two tilts.
+    const mid = (TILT.host + TILT.people) / 2;
+    linesG.current?.style.setProperty('transform', `translate3d(${tx(mid)}px, ${ty(mid)}px, 0)`);
 
     let done = 0;
     lines.current.forEach((path, i) => {
@@ -136,6 +168,19 @@ export function Hero({reduced}: {reduced: boolean}) {
       const badge = people.current?.querySelectorAll<SVGCircleElement>('[data-badge]')[i];
       badge?.setAttribute('opacity', String(d));
       if (d >= 1) done++;
+      // When a line is complete, light pulses go from the host to its user.
+      const pulse = pulses.current[i];
+      const len = lengths.current[i];
+      if (!pulse || !len) return;
+      if (d < 1 || reduced) {
+        pulse.style.opacity = '0';
+        return;
+      }
+      const t = ((performance.now() / 1000 / PULSE_S + i * 0.33) % 1 + 1) % 1;
+      const pt = path.getPointAtLength(len * t);
+      pulse.setAttribute('cx', String(pt.x));
+      pulse.setAttribute('cy', String(pt.y));
+      pulse.style.opacity = String(Math.sin(t * Math.PI));
     });
 
     const t = ease(range(p, 0.4, 0.62));
@@ -154,9 +199,18 @@ export function Hero({reduced}: {reduced: boolean}) {
       <div className="sticky top-0 h-screen-s overflow-hidden">
         {/* Sky */}
         <div aria-hidden="true" className="absolute inset-0" style={{background: 'radial-gradient(120% 80% at 50% 85%, #1c2152 0%, #0f1533 45%, #0b1022 75%)'}} />
-        <svg aria-hidden="true" className="absolute inset-0 size-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+        <svg ref={sky} aria-hidden="true" className="absolute inset-0 size-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
           {field.map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#e8ebf5" opacity={s.o} />
+            <circle
+              key={i}
+              cx={s.x}
+              cy={s.y}
+              r={s.r}
+              fill="#e8ebf5"
+              opacity={s.o}
+              // One star in five twinkles, each on its own beat.
+              style={i % 5 === 0 ? {animation: `twinkle ${3 + (i % 7)}s ease-in-out ${(i % 11) * 0.4}s infinite`} : undefined}
+            />
           ))}
         </svg>
 
@@ -187,6 +241,7 @@ export function Hero({reduced}: {reduced: boolean}) {
                 strokeWidth="1.2"
               />
             </g>
+            <g ref={linesG}>
             {users.map((u, i) => {
               const a = PEOPLE[i];
               const by = a.y + PEOPLE_DROP - 38;
@@ -209,6 +264,19 @@ export function Hero({reduced}: {reduced: boolean}) {
                 />
               );
             })}
+            {users.map((u, i) => (
+              <circle
+                key={u.name}
+                ref={(el) => {
+                  pulses.current[i] = el;
+                }}
+                r="4"
+                fill="#fff"
+                opacity="0"
+                style={{filter: `drop-shadow(0 0 8px ${u.color}) drop-shadow(0 0 3px ${u.color})`}}
+              />
+            ))}
+            </g>
             <g ref={people}>
               {users.map((u, i) => (
                 <g key={u.name} transform={`translate(${PEOPLE[i].x} ${PEOPLE[i].y}) scale(1.25)`}>

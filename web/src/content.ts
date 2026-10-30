@@ -39,6 +39,13 @@ export const hero = {
   hint: 'Scroll to clear the fog',
 };
 
+/** The statement that lights up word by word. Words in accent get a colour. */
+export const statement = {
+  eyebrow: 'The idea',
+  text: 'One host. One reviewed setup for the whole team. And each action keeps the name of the user who did it.',
+  accent: ['each', 'action', 'name', 'user'],
+};
+
 /** Frames of the reel. Each frame is a short terminal session. */
 export const reel = {
   eyebrow: 'See it',

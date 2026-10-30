@@ -139,3 +139,17 @@ html.lenis body {
     opacity: 0;
   }
 }
+
+@keyframes twinkle {
+  50% {
+    opacity: 0.1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
+}

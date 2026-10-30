@@ -9,8 +9,8 @@ in `lib/onbehalf/VERSION`.
 ### A new start page for the website
 
 The start page of the GitHub Pages site is a new Vite app in `web/`. The
-page shows the shared host and its users. Then it shows example terminal
-sessions, a flow that draws as you scroll, a comparison and the quick
+page shows the shared host and its users. Then a statement lights up word by
+word. Then come example terminal sessions, a flow that draws as you scroll, a comparison and the quick
 start. The blog, the about page and the feed stay on Jekyll. To build the
 full site on your computer, run `make site`. You must have Node.js 22.
 
