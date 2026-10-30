@@ -29,6 +29,15 @@ updates:
       opencode:
         patterns: ["*"]
 
+  # The start page of the GitHub Pages site.
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      site:
+        patterns: ["*"]
+
   - package-ecosystem: docker-compose
     directories: [/test, /examples/gateway, /examples/telemetry]
     schedule:
