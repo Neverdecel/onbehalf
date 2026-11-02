@@ -1061,6 +1061,32 @@ probe)", not as a user. `health off` revokes the probe key.
 
 `doctor` shows if the checks run, and when they ran last.
 
+## Route for an interface broker
+
+An interface broker sends a user from a web client to their own runtime.
+The broker maps the login to a Unix account. Then it runs this command as
+root:
+
+```bash
+sudo onbehalf route alice
+```
+
+The output is JSON with `user`, `url`, `username` and `password`. The
+broker sends each request to `url` with HTTP Basic authentication. Only
+root can run the command.
+
+The command refuses the route in these cases:
+
+- The account is not a user on the host.
+- The runtime of the user does not run.
+- A different account listens on the port of the user.
+
+> **WARNING:** Do not give the password to the web client or write it to a
+> log. With the password, a process can act as the user.
+
+The route is step 2 of the
+[session board design](design/session-board.md).
+
 ## Telemetry
 
 `onbehalf telemetry` sends the tool calls and the model steps of each user

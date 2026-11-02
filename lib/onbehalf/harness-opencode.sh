@@ -96,6 +96,26 @@ harness_opencode_stop() { pkill -u "$1" -f opencode 2>/dev/null || true; }
 harness_opencode_operator_runs() { pgrep -u "$1" -x 'opencode(\.exe)?' >/dev/null 2>&1; }
 harness_opencode_operator_stop() { echo "opencode service stop"; }
 
+# The route of a broker to the service of a user: JSON with the URL and the
+# login of the service. It reads service.json as the user, so a link there
+# cannot make root read a different file. It refuses when nothing listens on
+# the port, or when a different account listens on it: the password would
+# go to that account.
+harness_opencode_route() {
+  local u=$1 svc port password owners
+  svc=$(as_user "$u" 'cat ~/.config/opencode/service.json' 2>/dev/null) || true
+  port=$(jq -r '.port // empty' <<<"$svc" 2>/dev/null) || true
+  password=$(jq -r '.password // empty' <<<"$svc" 2>/dev/null) || true
+  [ -n "$port" ] || port=$(harness_opencode_port "$u")
+  [[ $port =~ ^[0-9]+$ ]] && [ "$port" -le 65535 ] || die "$u has no OpenCode service port. Run: sudo onbehalf user add $u"
+  [ -n "$password" ] || die "the OpenCode service of $u has no password. Start the runtime: sudo onbehalf restart $u"
+  owners=$(listen_uids "$port")
+  [ -n "$owners" ] || die "the runtime of $u does not run: nothing listens on port $port"
+  [ "$owners" = "$(id -u "$u")" ] || die "a different account listens on port $port, not $u. onbehalf does not give the route"
+  jq -n --arg u "$u" --arg url "http://127.0.0.1:$port" --arg pw "$password" \
+    '{user: $u, url: $url, username: "opencode", password: $pw}'
+}
+
 # Offboard: the service port goes back to the free ports.
 harness_opencode_user_remove() { harness_opencode_port_release "$1"; }
 

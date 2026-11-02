@@ -5,7 +5,7 @@ set -Eeuo pipefail
 trap 'echo "onbehalf: failed at ${BASH_SOURCE[0]##*/}:$LINENO: $BASH_COMMAND" >&2' ERR
 
 ONBEHALF_LIB=${ONBEHALF_LIB:-$(readlink -f "$(dirname "$(readlink -f "$0")")/../lib/onbehalf")}
-for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-telemetry cmd-status harness harness-opencode tools; do
+for f in common ui menu cmd-init cmd-setup cmd-stack cmd-restart cmd-user entra enroll roles cmd-doctor cmd-report cmd-health cmd-telemetry cmd-status cmd-route harness harness-opencode tools; do
   # shellcheck source=/dev/null
   . "$ONBEHALF_LIB/$f.sh"
 done
@@ -53,6 +53,8 @@ Operator commands (as root):
                                     user to the OTel backend at URL, through the
                                     OTel Collector of the host
   telemetry off                     stop the telemetry
+  route NAME                        the route of an interface broker to the
+                                    runtime of NAME, as JSON (with its password)
 
 User commands:
   status [--model-check] [--model MODEL] [--json]
@@ -129,6 +131,10 @@ case "${1:-} ${2:-}" in
   "report "*)
     shift
     cmd_report "$@"
+    ;;
+  "route "*)
+    shift
+    cmd_route "$@"
     ;;
   "status "*)
     shift

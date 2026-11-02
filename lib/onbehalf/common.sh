@@ -76,6 +76,15 @@ local_account() { awk -F: -v n="$1" '$1 == n { f = 1 } END { exit !f }' /etc/pas
 
 home_of() { getent passwd "$1" | cut -d: -f6; }
 
+# The uids of the accounts that listen on TCP PORT, one line each. Read from
+# /proc/net/tcp, because ss does not show socket owners in a rootless container.
+# A host without IPv6 has no /proc/net/tcp6.
+listen_uids() {
+  { cat /proc/net/tcp && cat /proc/net/tcp6 2>/dev/null || true; } \
+    | awk -v p=":$(printf '%04X' "$1")" '$4 == "0A" && substr($2, length($2) - 4) == p { print $8 }' \
+    | sort -u
+}
+
 # Target of a symlink, or nothing if PATH is no symlink.
 link_of() { readlink "$1" 2>/dev/null || true; }
 
