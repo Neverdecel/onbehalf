@@ -16,6 +16,7 @@ docs/design/session-board.md
 docs/design/harness.md
 examples/telemetry/README.md
 examples/stack/README.md
+examples/broker/README.md
 examples/stack/AGENTS.md
 examples/stack/opencode/agents/whoami.md
 .github/pull_request_template.md

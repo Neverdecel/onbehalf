@@ -1,0 +1,16 @@
+# Example systemd unit for the onbehalf broker. See README.md.
+[Unit]
+Description=onbehalf interface broker (example)
+After=network.target
+
+[Service]
+User=onbehalf-broker
+Group=onbehalf-broker
+RuntimeDirectory=onbehalf-broker
+RuntimeDirectoryMode=0750
+Environment="BROKER_ROUTE=sudo -n /usr/local/bin/onbehalf route --upn"
+ExecStart=/usr/bin/node /opt/onbehalf-broker/broker.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

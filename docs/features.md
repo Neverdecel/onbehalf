@@ -136,7 +136,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
   and model. It never shows what a user asked.
 - **`onbehalf route`** gives an interface broker the route to the
   runtime of one user. It refuses the route when a different account
-  listens on the port of that user.
+  listens on the port of that user. With `--upn`, it finds the user from
+  the Entra login. [examples/broker](../examples/broker/README.md) uses it
+  for single sign-on to the runtime of each user.
 - **`onbehalf health`** checks the gateway, the shared stack, the disk, the
   provider and every key in a few seconds. `health on` runs the check each
   10 minutes. When a problem starts or stops, it sends a message to a Teams
@@ -149,4 +151,5 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | Each user sees their own model use in `status`, and not the use of other users | `09-report` |
 | `status --json` gives the same checks and fixes as JSON, and fails on an error | `09-model-access` |
 | `route` gives the port and the password of the runtime of a user only to root, and only when that user listens on the port | `18-route` |
+| The example broker sends a login only to the runtime of the user linked to it, and never gives the password to the client | `19-broker` |
 | Health checks send one alert when a problem starts and one when it stops. Only root can read the webhook URL | `09-health` |

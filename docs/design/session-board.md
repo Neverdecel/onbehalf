@@ -1,7 +1,7 @@
 # Design: a session board behind the interface broker
 
-Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). Step 2 is
-complete (2026-11-02). See issue #52.
+Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). Steps 2
+and 3 are complete (2026-11-02). See issue #52.
 
 ## Goal
 
@@ -133,9 +133,11 @@ Each step is one small pull request.
    nothing listens on the port, or when a different account listens on it.
    It reads `service.json` as the user, so a link there cannot make root
    read a different file. The test is `test/checks/18-route.sh`.
-3. **Reverse proxy example.** An example in `examples/` with OIDC at the
-   reverse proxy and the route lookup of step 2. A test client shows the
-   sessions of one user only.
+3. **Reverse proxy example.** Done: [examples/broker](../../examples/broker/README.md).
+   nginx and oauth2-proxy do the single sign-on with OIDC. A small broker
+   gets the route with `sudo onbehalf route --upn UPN` and sends the request
+   to the runtime of that user. The test client is the OpenCode web
+   interface. The test is `test/checks/19-broker.sh`.
 4. **Status plugin.** An OpenCode plugin in the example stack source. When
    a session becomes idle or stops, it records a short status: what the
    session did, a decision, and the question for the user. It writes no
