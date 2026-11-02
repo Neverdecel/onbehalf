@@ -52,7 +52,7 @@ check "an account name is not a login (HTTP $code)" test "$code" = 403
 
 # The client cannot select the password or the user.
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 --unix-socket "$SOCK" \
-  -u opencode:wrong -H "x-auth-request-preferred-username: carol.smith@corp.test" http://board/api/session)
+  -H "authorization: Basic $(printf 'opencode:%s' wrong | base64)" -H "x-auth-request-preferred-username: carol.smith@corp.test" http://board/api/session)
 check "a password of the client does not change the route (HTTP $code)" test "$code" = 200
 pw=$(as carol 'jq -r .password ~/.config/opencode/service.json')
 check "carol has a service password (test setup)" test -n "$pw"
