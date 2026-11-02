@@ -6,7 +6,11 @@ set -uo pipefail
 . /src/test/lib.sh
 
 listens() { as "$1" 'jq -r .port ~/.config/opencode/service.json'; }
-for u in "${PEOPLE[@]}"; do as "$u" "opencode service start" >/dev/null 2>&1; done
+
+# 10-offboarding removed bob. carol is the other user of this check.
+useradd -m -s /bin/bash carol
+onbehalf user add carol >/dev/null 2>&1
+for u in alice carol; do as "$u" "opencode service start" >/dev/null 2>&1; done
 
 # The route of alice opens her runtime, and only with its password.
 route=$(onbehalf route alice 2>&1)
@@ -21,31 +25,34 @@ check "the runtime refuses a request without the password (HTTP $code)" test "$c
 check "a user cannot get a route" denied alice "onbehalf route alice"
 check "there is no route for an account that is not a user" bash -c '! onbehalf route root >/dev/null 2>&1'
 
-# alice sets the port of bob: the route must not send her password to bob.
+# alice sets the port of carol: the route must not send her password to carol.
 port=$(listens alice)
 as alice "opencode service stop" >/dev/null 2>&1
-as alice "jq '.port = $(listens bob)' ~/.config/opencode/service.json >/tmp/svc.\$\$ && cat /tmp/svc.\$\$ >~/.config/opencode/service.json && rm /tmp/svc.\$\$"
+as alice "jq '.port = $(listens carol)' ~/.config/opencode/service.json >/tmp/svc.\$\$ && cat /tmp/svc.\$\$ >~/.config/opencode/service.json && rm /tmp/svc.\$\$"
 out=$(onbehalf route alice 2>&1)
 check "no route to a port where a different user listens" test $? -ne 0
-grep -q 'different account' <<<"$out" || sed 's/^/        /' <<<"$out"
+check "the refusal names a different account on the port" grep -q 'different account' <<<"$out"
 as alice "jq '.port = $port' ~/.config/opencode/service.json >/tmp/svc.\$\$ && cat /tmp/svc.\$\$ >~/.config/opencode/service.json && rm /tmp/svc.\$\$"
 
 # A stopped runtime has no route.
 out=$(onbehalf route alice 2>&1)
 check "no route to a runtime that does not run" test $? -ne 0
-grep -q 'does not run' <<<"$out" || sed 's/^/        /' <<<"$out"
+check "the refusal says that the runtime does not run" grep -q 'does not run' <<<"$out"
 
-# bob holds the port of alice while her runtime is stopped.
-as bob "PORT=$port nohup node /src/test/fixtures/squat.js > /tmp/squat-route.log 2>&1 &"
+# carol holds the port of alice while her runtime is stopped.
+log=/tmp/squat-route-$$.log
+as carol "PORT=$port nohup node /src/test/fixtures/squat.js > $log 2>&1 &"
 for _ in $(seq 20); do
-  grep -q listening /tmp/squat-route.log 2>/dev/null && break
+  grep -q listening "$log" 2>/dev/null && break
   sleep 0.5
 done
-check "bob holds the port of alice (test setup)" grep -q listening /tmp/squat-route.log
+check "carol holds the port of alice (test setup)" grep -q listening "$log"
 out=$(onbehalf route alice 2>&1)
-check "no route to the port of alice while bob holds it" test $? -ne 0
+check "no route to the port of alice while carol holds it" test $? -ne 0
+check "the refusal names a different account on the port" grep -q 'different account' <<<"$out"
 check "the output of the refused route has no password" bash -c '! grep -q password <<<"$1"' _ "$out"
-pkill -u bob -f squat.js
+pkill -u carol -f squat.js
+rm -f "$log"
 
 # A link in the settings of alice cannot make root read a file of root.
 printf '{"port": %s, "password": "root-secret"}\n' "$port" >/root/route-test.json
@@ -58,5 +65,8 @@ as alice "rm ~/.config/opencode/service.json && mv ~/.config/opencode/service.js
 rm -f /root/route-test.json
 as alice "opencode service restart" >/dev/null 2>&1
 check "root gets the route of alice again" bash -c 'onbehalf route alice >/dev/null'
+
+onbehalf user remove carol >/dev/null 2>&1
+check "carol is removed (test cleanup)" bash -c '! id carol' 2>/dev/null
 
 exit $FAILED
