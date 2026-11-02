@@ -32,6 +32,8 @@ of Phase 3. A web client must never select the identity that acts.
 | Status data | The OpenCode API and its events. A plugin can add a short summary later (step 4). |
 | Client API | The board uses only the OpenCode server API and SDK. It does not use parts of `herdr-web-ui`, and herdr is not necessary on the host. |
 | Connection | The service password of each user, with HTTP Basic authentication. OpenCode 2.0.26 has no Unix socket option (see [Result of step 1](#result-of-step-1)). |
+| Ticket | A ticket is an OpenCode session, not a task. The board shows the work that runs now. It keeps no task list. |
+| Status report | An OpenCode plugin records a short status when a session becomes idle or stops (step 4). The session does not have to call a tool. |
 | Replacement | It is possible to replace the board. OpenChamber or a different client can replace it with no change to the identity contract. |
 
 ## What the board does
@@ -129,6 +131,32 @@ We examined OpenCode 2.0.26, the version of the test hosts, on
 Thus the broker uses the password, not a Unix socket. We can examine the
 socket option again for each new version of OpenCode.
 
+## Comparison with kanzo
+
+[kanzo](https://github.com/emanuele-em/kanzo) is a kanban board and an MCP
+server in one program. We examined version 0.3.0 on 2026-11-02.
+
+| Topic | kanzo | This design |
+|---|---|---|
+| Ticket | A task. AI tools take tasks through MCP and move them through todo, doing, review and done. | A session of the runtime. |
+| Identity | No login. The MCP client writes its own author name on a comment. Sharing is for a network that you trust. | The broker sets the identity after the single sign-on. The client cannot change it. |
+| Status | The MCP client writes comments. | OpenCode events, and a plugin later. |
+| Location | One program for each user, on `127.0.0.1`. | The OpenCode service of each user, on `127.0.0.1`. |
+
+We take these ideas from kanzo for a board client:
+
+- A clear mark for the work that waits for the user. Here it is the status
+  Blocked.
+- One group of tickets for each Git remote of the session directory.
+- A search over all tickets with one key.
+
+We do not take the identity model of kanzo. A client must never write the
+name of the user that acts.
+
+kanzo runs on `127.0.0.1` in the account of one user. Thus the broker can
+possibly send a login to the kanzo of that user. We decide this after
+step 2.
+
 ## Not in this design
 
 - A fork or a change of herdr.
@@ -138,5 +166,8 @@ socket option again for each new version of OpenCode.
 
 - Which fields does a ticket show, in addition to the topic name, the
   status and the one line? A test with real users decides.
+- Do we use kanzo as a test client behind the broker? Then the route
+  lookup must support more than one service for each user. We decide this
+  after step 2.
 - When does the broker start and stop runtimes on request? See the open
   questions in [project.md](../../project.md#open-questions).
