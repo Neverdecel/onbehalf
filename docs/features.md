@@ -134,6 +134,9 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 - **`onbehalf report`** shows who uses the runtimes. It shows logins, work
   tools, model requests, tokens, cost and failed requests for each user
   and model. It never shows what a user asked.
+- **`onbehalf route`** gives an interface broker the route to the
+  runtime of one user. It refuses the route when a different account
+  listens on the port of that user.
 - **`onbehalf health`** checks the gateway, the shared stack, the disk, the
   provider and every key in a few seconds. `health on` runs the check each
   10 minutes. When a problem starts or stops, it sends a message to a Teams
@@ -145,4 +148,5 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | The operator sees use, cost and failed requests for each user and model, but never what a user asked | `09-report` |
 | Each user sees their own model use in `status`, and not the use of other users | `09-report` |
 | `status --json` gives the same checks and fixes as JSON, and fails on an error | `09-model-access` |
+| `route` gives the port and the password of the runtime of a user only to root, and only when that user listens on the port | `18-route` |
 | Health checks send one alert when a problem starts and one when it stops. Only root can read the webhook URL | `09-health` |

@@ -6,7 +6,10 @@ in `lib/onbehalf/VERSION`.
 
 ## Unreleased
 
-No changes yet.
+- `sudo onbehalf route NAME` gives an interface broker the route to the
+  runtime of a user, as JSON. It refuses the route when a different
+  account listens on the port of the user. See the operator guide,
+  section "Route for an interface broker".
 
 ## 0.3.0 (2026-10-28)
 

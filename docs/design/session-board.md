@@ -1,6 +1,7 @@
 # Design: a session board behind the interface broker
 
-Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). See issue #52.
+Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). Step 2 is
+complete (2026-11-02). See issue #52.
 
 ## Goal
 
@@ -99,11 +100,11 @@ identity of one login, and it goes to one runtime.
 Each step is one small pull request.
 
 1. **Proof of the routes.** Done. See [Result of step 1](#result-of-step-1).
-2. **Route lookup.** A root command gives the service port of a Unix account
-   and checks the owner of the process on that port. The reverse proxy can
-   call it. It gives the service password only to root. Tests: the right
-   port, a refusal for a port of a different user, and a refusal for a
-   stopped runtime.
+2. **Route lookup.** Done: `sudo onbehalf route NAME`. It gives the URL and
+   the service password as JSON, only to root. It refuses the route when
+   nothing listens on the port, or when a different account listens on it.
+   It reads `service.json` as the user, so a link there cannot make root
+   read a different file. The test is `test/checks/18-route.sh`.
 3. **Reverse proxy example.** An example in `examples/` with OIDC at the
    reverse proxy and the route lookup of step 2. A test client shows the
    sessions of one user only.
@@ -127,6 +128,8 @@ We examined OpenCode 2.0.26, the version of the test hosts, on
 | Password | OpenCode makes a random password. It keeps it in `~/.config/opencode/service.json`, with mode 600. `opencode service set password` changes it. |
 | Unix socket | No option. The service settings are `disabled`, `remote`, `hostname`, `port`, `password`, `cors` and `env`. A socket path as `hostname` stops the service with an error. |
 | CORS | `opencode service set cors` adds origins. It is not necessary when the broker serves the board and the API at one origin. |
+
+OpenCode 2.1.4 gave the same result on 2026-11-02.
 
 Thus the broker uses the password, not a Unix socket. We can examine the
 socket option again for each new version of OpenCode.
