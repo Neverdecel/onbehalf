@@ -14,6 +14,7 @@ skills/           shared skills, one directory with a SKILL.md for each skill
 opencode/         optional
   opencode.json   settings of OpenCode
   agents/         shared custom agents, one Markdown file for each custom agent
+  plugins/        shared OpenCode plugins, for example onbehalf-status.js
 tools/            optional: work tools of the team, one JSON file for each tool
 ```
 
@@ -90,10 +91,39 @@ commands. `opencode run --auto` approves them.
 
 MCP connections and plugins are settings of the AI harness, so the shared
 stack can share them. The tests cover a remote MCP server with OAuth for
-OpenCode. The tests do not cover plugins yet. Before you share a
+OpenCode, and the status plugin below. Before you share a
 connection, examine how it does the authentication. Each user must log in
 as themselves. Or the connection must read a personal secret through a
 reference, the same as the gateway key.
+
+## The status plugin
+
+`opencode/plugins/onbehalf-status.js` records a short status for each
+session of a user. A session board shows it. See the
+[session board design](../../docs/design/session-board.md).
+
+The plugin writes `~/.local/state/onbehalf/sessions.json`, with mode 600.
+For each session, the file has these fields:
+
+| Field | Meaning |
+|---|---|
+| `status` | `in progress`, `blocked`, `done` or `stopped`. |
+| `title` | The title of the session. |
+| `directory` | The directory of the session. |
+| `line` | The last line of the last answer, with a maximum of 200 characters. |
+| `question` | The open permission request, when the status is `blocked`. |
+| `updated` | The time of the last change, in milliseconds. |
+
+A board reads the file through the OpenCode API of the user, for example
+through the [example broker](../broker/README.md):
+
+```text
+GET /api/fs/read/.local/state/onbehalf/sessions.json?path=~
+```
+
+The plugin writes only to the home directory of the user. It sends
+nothing to the network. It keeps the last 200 sessions. The file contains
+the last line of each answer, so do not copy it to a shared location.
 
 ## Two routes to the gateway
 

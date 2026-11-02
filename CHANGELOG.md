@@ -14,6 +14,9 @@ in `lib/onbehalf/VERSION`.
   linked to an Entra UPN. A new example in `examples/broker` uses it: nginx
   and oauth2-proxy do the single sign-on, and a small broker sends each
   request to the runtime of the login.
+- The example stack source has an OpenCode plugin, `onbehalf-status.js`.
+  It records a short status for each session in the home directory of the
+  user. A session board reads it through the OpenCode API.
 
 ## 0.3.0 (2026-10-28)
 

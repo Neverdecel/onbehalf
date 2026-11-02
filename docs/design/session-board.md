@@ -1,7 +1,7 @@
 # Design: a session board behind the interface broker
 
-Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). Steps 2
-and 3 are complete (2026-11-02). See issue #52.
+Status: proposal, 2026-10-21. Step 1 is complete (2026-10-22). Steps 2,
+3 and 4 are complete (2026-11-02). See issue #52.
 
 ## Goal
 
@@ -138,10 +138,13 @@ Each step is one small pull request.
    gets the route with `sudo onbehalf route --upn UPN` and sends the request
    to the runtime of that user. The test client is the OpenCode web
    interface. The test is `test/checks/19-broker.sh`.
-4. **Status plugin.** An OpenCode plugin in the example stack source. When
-   a session becomes idle or stops, it records a short status: what the
-   session did, a decision, and the question for the user. It writes no
-   prompt or answer to a location outside the home directory.
+4. **Status plugin.** Done: `opencode/plugins/onbehalf-status.js` in the
+   [example stack source](../../examples/stack/README.md#the-status-plugin).
+   For each session, it records the status, the title, the last line of the
+   last answer and the open permission request. It writes only to
+   `~/.local/state/onbehalf/sessions.json`. A board reads this file through
+   the OpenCode API. The plugin makes no model request, so the summary is
+   the last line of the answer. The test is `test/checks/20-status.sh`.
 
 The board itself is not a step of onbehalf. A team can test it on the
 example of step 3.

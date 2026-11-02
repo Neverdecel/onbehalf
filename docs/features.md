@@ -152,4 +152,5 @@ answer. The tests use a real LiteLLM gateway and a real Forgejo Git server.
 | `status --json` gives the same checks and fixes as JSON, and fails on an error | `09-model-access` |
 | `route` gives the port and the password of the runtime of a user only to root, and only when that user listens on the port | `18-route` |
 | The example broker sends a login only to the runtime of the user linked to it, and never gives the password to the client | `19-broker` |
+| The status plugin of the example stack records the status of each session, and only the user can read it | `20-status` |
 | Health checks send one alert when a problem starts and one when it stops. Only root can read the webhook URL | `09-health` |
