@@ -59,6 +59,34 @@ OpenCode events.
 | Done | The session is idle after its last answer. |
 | Stopped | The session stopped with an error, or the user stopped it. |
 
+## The user flow (mockup)
+
+These screens are a mockup, not a product. onbehalf does not supply the
+board. The screens show the flow that the broker contract makes possible.
+The source is [mockup.html](../assets/session-board/mockup.html).
+
+1. The user opens the board. The reverse proxy asks for the single
+   sign-on. The board gets no password.
+
+   ![The sign-in page of the board](../assets/session-board/signin.png)
+
+2. The broker maps the login to the Unix account `alice`. The board shows
+   the sessions of alice only. The tickets that wait for alice are at the
+   left. Each ticket shows its topic, one line and its Git remote.
+
+   ![The board with four columns: Blocked, In progress, Done and Stopped](../assets/session-board/board.png)
+
+3. A click on a ticket opens the session. Here the session waits for a
+   permission. The command runs with the logins of alice.
+
+   ![An open session with a permission request](../assets/session-board/session.png)
+
+4. When the runtime of alice does not run, the broker refuses the route.
+   The board tells alice how to start the runtime. It never connects her
+   to the runtime of a different user.
+
+   ![The page for a runtime that does not run](../assets/session-board/refused.png)
+
 ## The broker contract
 
 The broker is between the reverse proxy and the OpenCode service of each
