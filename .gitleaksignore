@@ -1,0 +1,3 @@
+# Findings that are not secrets. Give the reason for each line.
+# A wrong test password (opencode:wrong) in an old commit of test/checks/19-broker.sh.
+8bbb16dfc7ab5495b6910ee73a0bc14902fb9c44:test/checks/19-broker.sh:curl-auth-user:54

@@ -1071,6 +1071,14 @@ root:
 sudo onbehalf route alice
 ```
 
+For a login of the single sign-on, give the Entra UPN in place of the
+name. onbehalf finds the user in `/etc/onbehalf/entra.map`. The case of the
+UPN has no effect:
+
+```bash
+sudo onbehalf route --upn alice@example.com
+```
+
 The output is JSON with `user`, `url`, `username` and `password`. The
 broker sends each request to `url` with HTTP Basic authentication. Only
 root can run the command.
@@ -1078,6 +1086,7 @@ root can run the command.
 The command refuses the route in these cases:
 
 - The account is not a user on the host.
+- No user is linked to the UPN.
 - The runtime of the user does not run.
 - A different account listens on the port of the user.
 
@@ -1085,7 +1094,8 @@ The command refuses the route in these cases:
 > log. With the password, a process can act as the user.
 
 The route is step 2 of the
-[session board design](design/session-board.md).
+[session board design](design/session-board.md). For an example broker
+with single sign-on, see [examples/broker](../examples/broker/README.md).
 
 ## Telemetry
 

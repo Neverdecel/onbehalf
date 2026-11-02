@@ -10,6 +10,10 @@ in `lib/onbehalf/VERSION`.
   runtime of a user, as JSON. It refuses the route when a different
   account listens on the port of the user. See the operator guide,
   section "Route for an interface broker".
+- `sudo onbehalf route --upn UPN` gives the route of the user that is
+  linked to an Entra UPN. A new example in `examples/broker` uses it: nginx
+  and oauth2-proxy do the single sign-on, and a small broker sends each
+  request to the runtime of the login.
 
 ## 0.3.0 (2026-10-28)
 

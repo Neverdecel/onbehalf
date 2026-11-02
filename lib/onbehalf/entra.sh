@@ -25,6 +25,8 @@ entra_valid_id() {
 entra_id_of() { [ -r "$ENTRA_MAP" ] && awk -v n="$1" '$1 == n { print $2 }' "$ENTRA_MAP" || true; }
 entra_upn_of() { [ -r "$ENTRA_MAP" ] && awk -v n="$1" '$1 == n && $3 != "-" { print $3 }' "$ENTRA_MAP" || true; }
 entra_name_of() { [ -r "$ENTRA_MAP" ] && awk -v i="$1" '$2 == i { print $1 }' "$ENTRA_MAP" || true; }
+# The UPN of a login has no fixed case, so this lookup ignores the case.
+entra_name_of_upn() { [ -r "$ENTRA_MAP" ] && UPN=$1 awk 'tolower($3) == tolower(ENVIRON["UPN"]) { print $1 }' "$ENTRA_MAP" || true; }
 
 # entra_link NAME ID [UPN]: add or replace the link of NAME and of ID.
 entra_link() {

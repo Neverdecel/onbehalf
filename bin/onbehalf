@@ -55,6 +55,8 @@ Operator commands (as root):
   telemetry off                     stop the telemetry
   route NAME                        the route of an interface broker to the
                                     runtime of NAME, as JSON (with its password)
+  route --upn UPN                   the same, for the user linked to the Entra
+                                    UPN of a login
 
 User commands:
   status [--model-check] [--model MODEL] [--json]
