@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Clean Ubuntu host with only the prerequisites. onbehalf itself is installed
 # by the tests, so every run starts from this state.
-FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
 
 # Keep downloaded packages in the BuildKit cache mount between builds.
 # Optionally use another package mirror, for example the CI provider's.
