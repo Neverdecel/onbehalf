@@ -51,7 +51,7 @@ services:
         condition: service_healthy
 
   langfuse-web:
-    image: langfuse/langfuse:4.70.0@sha256:932a46dfab770f89ecb2ec35258b6b80d3be8773403981a64d271ff0a408deef
+    image: langfuse/langfuse:4.70.1@sha256:71b04842ecff8fe0dd15c7bbb1acd6e0555735e393a8108c43feb4b8d0adf9e6
     restart: unless-stopped
     environment:
       <<: *langfuse-env
